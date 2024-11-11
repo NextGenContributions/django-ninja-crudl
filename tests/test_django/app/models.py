@@ -123,7 +123,6 @@ class Book(models.Model):
     authors: models.ManyToManyField[Author, models.Model] = models.ManyToManyField(
         Author,
         blank=False,
-        null=False,
     )  # Many-to-Many relationship
     publisher = models.ForeignKey(
         Publisher,
@@ -175,7 +174,7 @@ class Book(models.Model):
             "title": Infer,
             "isbn": Infer,
             "publication_date": Infer,
-            "authors": {"id": Infer, "name": Infer},
+            "authors": {"id": Infer, "name": Infer, "birth_date": Infer},
             "publisher": {"id": Infer, "name": Infer},
         }
         list_fields: ClassVar[ModelFields | None] = {
@@ -184,6 +183,7 @@ class Book(models.Model):
             "isbn": Infer,
             "publication_date": Infer,
             "publisher": {"id": Infer, "name": Infer},
+            "authors": {"id": Infer, "name": Infer},
         }
         search_fields: ClassVar[list[str]] = [
             "title",

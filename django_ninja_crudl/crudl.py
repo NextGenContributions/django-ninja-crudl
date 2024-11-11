@@ -1,18 +1,19 @@
 """CRUDL API base class."""
 
-import inspect
-from collections.abc import Callable
-from functools import wraps
-from typing import TYPE_CHECKING, Any, ClassVar, Literal
+from enum import Enum, IntEnum
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, cast
 from uuid import UUID
 
-from django.db import models, transaction
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError, models, transaction
 from django.db.models import (
     ForeignKey,
+    ForeignObjectRel,
     ManyToManyField,
     ManyToManyRel,
     ManyToOneRel,
     Model,
+    OneToOneField,
     OneToOneRel,
 )
 from django.http import HttpRequest, HttpResponse
@@ -27,76 +28,29 @@ from ninja_extra import (
     http_put,
     status,
 )
-from ninja_extra.searching import Searching, searching
+from pydantic import BaseModel
 
-from django_ninja_crudl.errors import (
+from django_ninja_crudl.base import CrudlBaseMixin
+from django_ninja_crudl.errors.openapi_extras import (
+    not_authorized_openapi_extra,
+    throttle_openapi_extra,
+)
+from django_ninja_crudl.errors.schemas import (
     Conflict409Schema,
     ErrorSchema,
+    Forbidden403Schema,
     ResourceNotFound404Schema,
+    ServiceUnavailable503Schema,
+    Unauthorized401Schema,
+    UnprocessableEntity422Schema,
 )
+from django_ninja_crudl.model_utils import get_pydantic_fields
+from django_ninja_crudl.types import PathArgs, RequestDetails
+from django_ninja_crudl.utils import add_function_arguments, validating_manager
 from superschema import Infer, ModelFields, SuperSchema
 
 if TYPE_CHECKING:
     from django.db.models.manager import BaseManager
-
-FKwargs = dict[str, Any]
-
-
-def extract_arguments_from_path_spec(path_spec: str) -> dict[str, type]:
-    """Extract arguments from the path spec.
-
-    Args:
-        path_spec (str): The path spec. For example: "/{uuid:organization}/resource/{uuid:id}"
-
-    Returns:
-        dict[str, type]: A dictionary with the argument names as keys and the argument types as values. For example: {"organization": UUID, "id": UUID}.
-
-    """
-    args_with_types: dict[str, type] = {}
-    for part in path_spec.split("/"):
-        if part.startswith("{") and part.endswith("}"):
-            arg_type, arg_name = part[1:-1].split(":")
-            if arg_type == "uuid":
-                arg_type = UUID
-            elif arg_type == "int":
-                arg_type = int
-            elif arg_type == "str":
-                arg_type = str
-            args_with_types[arg_name] = arg_type
-    return args_with_types
-
-
-def add_function_arguments(path_spec: str) -> Callable[[Callable], Callable]:
-    """Add function arguments to the decorated function."""
-    new_args_with_types: dict[str, type] = extract_arguments_from_path_spec(path_spec)
-
-    def decorator(func: Callable) -> Callable:
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return func(*args, **kwargs)
-
-        new_signature = inspect.signature(func)
-
-        # add the new arguments to the signature before the **kwargs:
-        new_params = list(new_signature.parameters.values())
-        new_params = (
-            new_params[:-1]
-            + [
-                inspect.Parameter(
-                    name,
-                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                    annotation=new_args_with_types[name],
-                )
-                for name in new_args_with_types
-            ]
-            + new_params[-1:]
-        )
-        new_signature = new_signature.replace(parameters=new_params)
-
-        wrapper.__signature__ = new_signature
-        return wrapper
-
-    return decorator
 
 
 class CrudlApiBaseMeta:
@@ -113,15 +67,15 @@ DjangoRelationFields = (
 )
 
 
-class CrudlMeta(type):
+class CrudlMeta[TDjangoModel](type):
     """Metaclass for the CRUDL API."""
 
     @classmethod
-    def _get_pk_name(cls, model_class: type[Model]) -> str:
+    def _get_pk_name(cls, model_class: type[TDjangoModel]) -> str:
         return model_class._meta.pk.name
 
     @classmethod
-    def _get_pk_type(cls, model_class: type[Model]) -> str:
+    def _get_pk_type(cls, model_class: type[TDjangoModel]) -> str:
         """Get the primary key type."""
         field = model_class._meta.pk
         if isinstance(
@@ -170,6 +124,7 @@ class CrudlMeta(type):
             raise ValueError(msg)
 
         base_path = _meta.base_path
+        permission_classes = getattr(_meta, "permission_classes", [])
 
         resource_name = model_class.__name__.lower()
 
@@ -286,6 +241,8 @@ class CrudlMeta(type):
                         },
                     },
                 },
+                **not_authorized_openapi_extra,
+                **throttle_openapi_extra,
             },
         }
 
@@ -293,48 +250,70 @@ class CrudlMeta(type):
         tags = [name]
 
         @api_controller(tags=tags)
-        class CrudlBase(ControllerBase):
+        class CrudlBase[TDjangoModelBase: models.Model](
+            ControllerBase,
+            CrudlBaseMixin,
+        ):
             """Base class for the CRUDL API."""
 
-            def _check_permissions(
-                self,
-                request: HttpRequest,
-                type: str,
-                model_class: type[models.Model],
-            ) -> None:
-                """Check the permissions for the object."""
+            _permission_classes = permission_classes
 
-            def _check_object_permissions(
-                self,
-                request: HttpRequest,
-                type: str,
-                obj: models.Model,
-            ) -> None:
-                pass
+            def _get_related_model(self, field_name: str) -> type[Model]:
+                """Return the related model class for a field name."""
+                field = model_class._meta.get_field(field_name)  # noqa: SLF001
+                if isinstance(field, ForeignObjectRel):
+                    return cast(type[Model], field.related_model)
+                if isinstance(field, OneToOneRel):
+                    return cast(type[Model], field.related_model)
+                if isinstance(field, ManyToManyRel):
+                    return cast(type[Model], field.related_model)
+                if isinstance(field, ManyToOneRel):
+                    return cast(type[Model], field.related_model)
+                if isinstance(field, ManyToManyField):
+                    return cast(type[Model], field.related_model)
+
+                msg = f"Field name '{field_name}' and type '{type(field)}' is not a relation"
+                raise ValueError(msg)
 
             def get_model_filter_args(
                 self,
-                kwargs: dict[str, Any] | None,
+                path_args: dict[str, Any] | None,
             ) -> dict[str, str | int | float | UUID]:
                 """Filter out the keys that are not fields of the model."""
-                if kwargs is None:
+                if path_args is None:
                     return {}
                 return {
-                    k: v for k, v in kwargs.items() if getattr(model_class, k, None)
+                    k: v for k, v in path_args.items() if getattr(model_class, k, None)
                 }
 
             def get_pre_filtered_queryset(
                 self,
-                kwargs: dict[str, Any],
+                path_args: PathArgs,
             ) -> "BaseManager[Model]":
                 """Return a queryset that is filtered by params from the path query."""
-                model_filters = self.get_model_filter_args(kwargs)
-                qs = self.get_queryset().filter(**model_filters)
-                return qs
+                model_filters = self.get_model_filter_args(path_args)
+                return self.get_queryset().filter(**model_filters)
 
             def get_queryset(self) -> "BaseManager[Model]":
                 """Return the model's manager."""
                 return model_class.objects
+
+            def get_filtered_queryset_for_related_model(
+                self,
+                request: HttpRequest,
+                field_name: str,
+                payload: BaseModel | None,
+                path_args: PathArgs,
+            ) -> models.Q:
+                """Get filtered queryset for related model based on custom conditions."""
+                # Get the appropriate filtering method based on the field name
+                filter_method_name = f"get_related_filter_for_field_{field_name}"
+                filter_method = getattr(self, filter_method_name, None)
+                if not filter_method:
+                    msg = f"Filter method {filter_method_name} not found"
+                    raise ValueError(msg)
+
+                return filter_method(request, field_name)
 
             if create_fields:
 
@@ -344,8 +323,12 @@ class CrudlMeta(type):
                     tags=tags,
                     response={
                         status.HTTP_201_CREATED: CreateResponseSchema,
+                        status.HTTP_401_UNAUTHORIZED: Unauthorized401Schema,
+                        status.HTTP_403_FORBIDDEN: Forbidden403Schema,
                         status.HTTP_404_NOT_FOUND: ResourceNotFound404Schema,
                         status.HTTP_409_CONFLICT: Conflict409Schema,
+                        status.HTTP_422_UNPROCESSABLE_ENTITY: UnprocessableEntity422Schema,
+                        status.HTTP_503_SERVICE_UNAVAILABLE: ServiceUnavailable503Schema,
                     },
                     openapi_extra=create_schema_extra,
                 )
@@ -355,15 +338,31 @@ class CrudlMeta(type):
                     self,
                     request: HttpRequest,
                     payload: CreateSchema,
-                    **kwargs: FKwargs,
-                ) -> tuple[Literal[201], Model]:
+                    **path_args: PathArgs,
+                ) -> (
+                    tuple[Literal[403], Forbidden403Schema]
+                    | tuple[Literal[409], Conflict409Schema]
+                    | tuple[Literal[201], Model]
+                ):
+                    request_details = RequestDetails[model_class](
+                        action="create",
+                        request=request,
+                        schema=CreateSchema,
+                        path_args=path_args,
+                        payload=payload,
+                        model_class=model_class,
+                    )
                     """Create a new object."""
-                    obj = model_class()
-                    self.check_object_permissions(obj)
+                    if not self.has_permission(request_details):
+                        return self.get_403_error(request)
+                    self.pre_create(request_details)
 
+                    obj_fields_to_set: list[tuple[str, Any]] = []
                     m2m_fields_to_set: list[tuple[str, Any]] = []
+
                     for field, field_value in payload.model_dump().items():
-                        print("----------###########field", field)
+                        if isinstance(field_value, Enum | IntEnum):
+                            field_value = field_value.value  # noqa: PLW2901
                         if isinstance(
                             model_class._meta.get_field(field),  # noqa: SLF001, WPS437
                             ManyToManyField
@@ -382,46 +381,103 @@ class CrudlMeta(type):
                             else:  # Non-relational fields
                                 field_name = field
 
-                            setattr(obj, field_name, field_value)
-
-                    obj.save()
+                            obj_fields_to_set.append((field_name, field_value))
+                    try:
+                        with validating_manager(model_class):
+                            created_obj: Model = model_class.objects.create(
+                                **dict(obj_fields_to_set),
+                            )
+                    # if integrity error, return 409
+                    except IntegrityError as integrity_error:
+                        transaction.set_rollback(True)
+                        return self.get_409_error(request, exception=integrity_error)
 
                     for m2m_field, m2m_field_value in m2m_fields_to_set:
-                        """
-                        self._check_permissions(
-                            request=request,
-                            type="create",
-                            model_class=getattr(model_class, m2m_field).related_model,
-                        )
-                        """
-                        getattr(obj, m2m_field).set(m2m_field_value)
+                        related_model_class = self._get_related_model(m2m_field)
 
-                    return status.HTTP_201_CREATED, obj
+                        if isinstance(m2m_field_value, list):
+                            for m2m_field_value_item in m2m_field_value:
+                                related_obj = related_model_class.objects.get(
+                                    id=m2m_field_value_item,
+                                )
+                                request_details_related = request_details
+                                request_details_related.related_model_class = (
+                                    related_model_class
+                                )
+                                request_details_related.related_object = related_obj
+                                if not self.has_related_object_permission(
+                                    request_details_related,
+                                ):
+                                    transaction.set_rollback(True)
+                                    return self.get_404_error(request)
+                        else:
+                            related_obj = related_model_class.objects.get(
+                                id=m2m_field_value,
+                            )
+
+                            if not self.has_related_object_permission(request_details):
+                                transaction.set_rollback(True)
+                                return self.get_404_error(request)
+
+                        try:
+                            getattr(created_obj, m2m_field).set(m2m_field_value)
+                        except IntegrityError:
+                            transaction.set_rollback(True)
+                            return self.get_409_error(request)
+
+                    # Perform full_clean() on the created object and raise an exception if it fails
+                    try:
+                        created_obj.full_clean()
+                    except ValidationError as validation_error:
+                        # revert the transaction
+                        transaction.set_rollback(True)
+                        return self.get_409_error(request, exception=validation_error)
+
+                    request_details.object = created_obj
+                    self.post_create(request_details)
+                    return 201, created_obj
 
             if get_one_fields:
 
                 @http_get(
                     path=get_one_path,
-                    # path=get_one_path_with_pk,
                     response={
                         status.HTTP_200_OK: GetOneSchema,
+                        status.HTTP_401_UNAUTHORIZED: Unauthorized401Schema,
+                        status.HTTP_403_FORBIDDEN: Forbidden403Schema,
                         status.HTTP_404_NOT_FOUND: ErrorSchema,
+                        status.HTTP_422_UNPROCESSABLE_ENTITY: UnprocessableEntity422Schema,
+                        status.HTTP_503_SERVICE_UNAVAILABLE: ServiceUnavailable503Schema,
                     },
                     operation_id=get_one_operation_id,
                 )
                 @add_function_arguments(get_one_path)
                 def get_one(
                     self,
-                    **kwargs: FKwargs,
-                ) -> tuple[Literal[404], ErrorSchema] | Model:
+                    request: HttpRequest,
+                    **path_args: PathArgs,
+                ) -> tuple[Literal[403, 404], ErrorSchema] | Model:
                     """Retrieve an object."""
-                    # kwargs["id"] = id.id
-                    obj = self.get_pre_filtered_queryset(kwargs).first()
+                    request_details = RequestDetails(
+                        action="get_one",
+                        request=request,
+                        schema=GetOneSchema,
+                        path_args=path_args,
+                        model_class=model_class,
+                    )
+                    if not self.has_permission(request_details):
+                        return self.get_403_error(request)
+                    obj = (
+                        self.get_pre_filtered_queryset(path_args)
+                        .filter(self.get_base_filter(request_details))
+                        .filter(self.get_filter_for_get_one(request_details))
+                        .first()
+                    )
                     if obj is None:
-                        return status.HTTP_404_NOT_FOUND, ErrorSchema(
-                            code="not_found",
-                            message="Not found",
-                        )
+                        return self.get_404_error(request)
+                    request_details.object = obj
+                    if not self.has_object_permission(request_details):
+                        return self.get_404_error(request)
                     return obj
 
             if update_fields:
@@ -431,28 +487,50 @@ class CrudlMeta(type):
                     operation_id=update_operation_id,
                     response={
                         status.HTTP_200_OK: UpdateSchema,
+                        status.HTTP_401_UNAUTHORIZED: Unauthorized401Schema,
+                        status.HTTP_403_FORBIDDEN: Forbidden403Schema,
                         status.HTTP_404_NOT_FOUND: ErrorSchema,
+                        status.HTTP_422_UNPROCESSABLE_ENTITY: UnprocessableEntity422Schema,
+                        status.HTTP_503_SERVICE_UNAVAILABLE: ServiceUnavailable503Schema,
                     },
                 )
                 @transaction.atomic
                 @add_function_arguments(update_path)
                 def update(
                     self,
+                    request: HttpRequest,
                     payload: UpdateSchema,
-                    **kwargs: FKwargs,
-                ) -> tuple[Literal[404], ErrorSchema] | Model:
+                    **path_args: PathArgs,
+                ) -> tuple[Literal[403, 404], ErrorSchema] | Model:
                     """Update an object."""
-                    obj = self.get_pre_filtered_queryset(kwargs).first()
+                    request_details = RequestDetails[TDjangoModel](
+                        action="put",
+                        request=request,
+                        schema=UpdateSchema,
+                        path_args=path_args,
+                        payload=payload,
+                        model_class=model_class,
+                    )
+                    if not self.has_permission(request_details):
+                        return self.get_403_error(request)
+                    obj = (
+                        self.get_pre_filtered_queryset(path_args)
+                        .filter(self.get_base_filter(request_details))
+                        .filter(self.get_filter_for_update(request_details))
+                        .first()
+                    )
 
                     if obj is None:
-                        return status.HTTP_404_NOT_FOUND, ErrorSchema(
-                            code="not_found",
-                            message="Not found",
-                        )
+                        return self.get_404_error(request)
+                    request_details.object = obj
+                    if not self.has_object_permission(request_details):
+                        self.get_404_error(request)
+                    self.pre_update(request_details)
 
                     for attr_name, attr_value in payload.model_dump().items():
                         setattr(obj, attr_name, attr_value)
                     obj.save()
+                    self.post_update(request_details)
                     return obj
 
             if update_fields:
@@ -462,7 +540,11 @@ class CrudlMeta(type):
                     operation_id=patch_operation_id,
                     response={
                         status.HTTP_200_OK: UpdateSchema,
+                        status.HTTP_401_UNAUTHORIZED: Unauthorized401Schema,
+                        status.HTTP_403_FORBIDDEN: Forbidden403Schema,
                         status.HTTP_404_NOT_FOUND: ResourceNotFound404Schema,
+                        status.HTTP_422_UNPROCESSABLE_ENTITY: UnprocessableEntity422Schema,
+                        status.HTTP_503_SERVICE_UNAVAILABLE: ServiceUnavailable503Schema,
                     },
                     exclude_unset=True,
                 )
@@ -470,19 +552,37 @@ class CrudlMeta(type):
                 @add_function_arguments(update_path)
                 def patch(
                     self,
+                    request: HttpRequest,
                     payload: PartialUpdateSchema,
-                    **kwargs: FKwargs,
-                ) -> tuple[Literal[404], ErrorSchema] | Model:
-                    obj: Model | None = self.get_pre_filtered_queryset(kwargs).first()
+                    **path_args: PathArgs,
+                ) -> tuple[Literal[403, 404], ErrorSchema] | Model:
+                    """Patch an object."""
+                    request_details = RequestDetails[TDjangoModel](
+                        action="patch",
+                        request=request,
+                        schema=PartialUpdateSchema,
+                        path_args=path_args,
+                        payload=payload,
+                        model_class=model_class,
+                    )
+                    if not self.has_permission(request_details):
+                        return self.get_403_error(request)
+                    obj: Model | None = (
+                        self.get_pre_filtered_queryset(path_args)
+                        .filter(self.get_base_filter(request_details))
+                        .filter(self.get_filter_for_update(request_details))
+                        .first()
+                    )
                     if obj is None:
-                        return status.HTTP_404_NOT_FOUND, ErrorSchema(
-                            code="not_found",
-                            message="Not found",
-                        )
+                        return self.get_404_error(request)
+                    request_details.object = obj
+                    if not self.has_object_permission(request_details):
+                        return self.get_404_error(request)
 
                     for attr_name, attr_value in payload.items():
                         setattr(obj, attr_name, attr_value)
                     obj.save()
+                    self.post_patch(request_details)
                     return obj
 
             @http_delete(
@@ -491,23 +591,44 @@ class CrudlMeta(type):
                 tags=tags,
                 response={
                     status.HTTP_204_NO_CONTENT: None,
+                    status.HTTP_401_UNAUTHORIZED: Unauthorized401Schema,
+                    status.HTTP_403_FORBIDDEN: Forbidden403Schema,
                     status.HTTP_404_NOT_FOUND: ResourceNotFound404Schema,
+                    status.HTTP_422_UNPROCESSABLE_ENTITY: UnprocessableEntity422Schema,
+                    status.HTTP_503_SERVICE_UNAVAILABLE: ServiceUnavailable503Schema,
                 },
             )
+            @transaction.atomic
             @add_function_arguments(delete_path)
             def delete(
                 self,
-                **kwargs: FKwargs,
-            ) -> tuple[Literal[404], ErrorSchema] | tuple[Literal[204], None]:
+                request: HttpRequest,
+                **path_args: PathArgs,
+            ) -> tuple[Literal[403, 404], ErrorSchema] | tuple[Literal[204], None]:
                 """Delete the object by id."""
-                obj = self.get_pre_filtered_queryset(kwargs).first()
+                request_details = RequestDetails[TDjangoModel](
+                    action="delete",
+                    request=request,
+                    path_args=path_args,
+                    model_class=model_class,
+                )
+                if not self.has_permission(request_details):
+                    return self.get_403_error(request)
+
+                obj = (
+                    self.get_pre_filtered_queryset(path_args)
+                    .filter(self.get_filter_for_delete(request_details))
+                    .first()
+                )
                 if obj is None:
-                    return status.HTTP_404_NOT_FOUND, ErrorSchema(
-                        code="not_found",
-                        message="Not found",
-                    )
+                    return self.get_404_error(request)
+                request_details.object = obj
+                if not self.has_object_permission(request_details):
+                    return self.get_404_error(request)
+                self.pre_delete(request_details)
                 obj.delete()
-                return status.HTTP_204_NO_CONTENT, None
+                self.post_delete(request_details)
+                return 204, None
 
             if list_fields:
                 openapi_extra = {
@@ -529,27 +650,91 @@ class CrudlMeta(type):
 
                 @http_get(
                     path=list_path,
-                    response=list[ListSchema],
+                    response={
+                        200: list[ListSchema],
+                        401: Unauthorized401Schema,
+                        status.HTTP_403_FORBIDDEN: Forbidden403Schema,
+                        422: UnprocessableEntity422Schema,
+                        status.HTTP_503_SERVICE_UNAVAILABLE: ServiceUnavailable503Schema,
+                    },
                     operation_id=list_operation_id,
                     tags=tags,
                     openapi_extra=openapi_extra,
                 )
                 # @paginate
-                @searching(Searching, search_fields=search_fields)
+                # @searching(Searching, search_fields=search_fields)
                 @add_function_arguments(list_path)
                 def get_many(
                     self,
                     request: HttpRequest,
                     response: HttpResponse,
-                    **kwargs: FKwargs,
-                ) -> models.Manager[Model]:
+                    **path_args: PathArgs,
+                ) -> tuple[Literal[403], ErrorSchema] | models.Manager[Model]:
                     """List all objects."""
-                    # qs = self.get_pre_filtered_queryset(kwargs)
-                    qs = self.get_queryset()
+                    request_details = RequestDetails[TDjangoModel](
+                        action="list",
+                        request=request,
+                        path_args=path_args,
+                        model_class=model_class,
+                    )
+
+                    if not self.has_permission(request_details):
+                        return self.get_403_error(request)
+
+                    qs = (
+                        self.get_pre_filtered_queryset(path_args)
+                        .filter(self.get_base_filter(request_details))
+                        .filter(self.get_filter_for_list(request_details))
+                    )
 
                     # Return the total count of objects in the response headers
                     response["x-total-count"] = qs.count()
 
+                    # Extract the related models from the ListSchema fields
+                    related_models: list[str] = []
+                    many_to_many_models: list[str] = []
+                    related_fields: list[str] = []
+                    for field_name, field in ListSchema.model_fields.items():
+                        django_field = model_class._meta.get_field(field_name)  # noqa: SLF001
+                        if isinstance(
+                            django_field,
+                            OneToOneField | ForeignKey,
+                        ):
+                            related_models.append(field_name)
+                            related_fields.extend(
+                                get_pydantic_fields(
+                                    ListSchema,
+                                    field_name,
+                                ),
+                            )
+
+                        elif isinstance(
+                            django_field,
+                            ManyToManyField,
+                        ):
+                            many_to_many_models.append(field_name)
+                            related_fields.extend(
+                                get_pydantic_fields(
+                                    ListSchema,
+                                    field_name,
+                                ),
+                            )
+                            # related_models.append(f"{field_name}__id")
+
+                    non_related_fields: list[str] = [
+                        field_name
+                        for field_name in ListSchema.model_fields.keys()
+                        if field_name not in related_models + many_to_many_models
+                    ]
+
+                    all_fields: list[str] = non_related_fields + related_fields
+
+                    qs = qs.select_related(*related_models).prefetch_related(
+                        *many_to_many_models,
+                    )  # To avoid N+1 queries
+                    qs = qs.values(*all_fields)
+                    print(qs.query)
+                    print(qs.all())
                     return qs
 
         for attr_name, attr_value in CrudlBase.__dict__.items():
@@ -562,7 +747,7 @@ class CrudlMeta(type):
         return super().__new__(cls, name, bases, dct)
 
 
-class Crudl(metaclass=CrudlMeta):
+class Crudl(CrudlBaseMixin, metaclass=CrudlMeta):
     """Base class for the CRUDL API."""
 
     class Meta:
