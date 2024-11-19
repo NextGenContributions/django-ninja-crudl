@@ -95,7 +95,7 @@ version_toml = [
     "pyproject.toml:project.version",
 ]
 version_variables = [
-    "django-ninja-crudl/__init__.py:__version__",
+    "django_ninja_crudl/__init__.py:__version__",
 ]
 
 [tool.semantic_release.branches.main]
