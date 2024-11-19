@@ -47,3 +47,11 @@ def type_check_with_pyre(session: nox.Session) -> None:
 def type_check_with_basedpyright(session: nox.Session) -> None:
     session.install("basedpyright")
     session.run("basedpyright")
+
+
+@nox.session
+def noop(session: nox.Session) -> None:
+    """Do nothing.
+
+    A dummy session that always passes.
+    """
