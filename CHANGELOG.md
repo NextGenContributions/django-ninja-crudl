@@ -1,7 +1,15 @@
 # CHANGELOG
 
 
+## v0.0.4 (2024-11-19)
+
+
 ## v0.0.3 (2024-11-19)
+
+### Bug Fixes
+
+- Funding link
+  ([`afe76f4`](https://github.com/NextGenContributions/django-ninja-crudl/commit/afe76f4a0644c2620bf3729c0e852ba586667db1))
 
 
 ## v0.0.2 (2024-11-19)
