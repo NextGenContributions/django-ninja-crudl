@@ -37,7 +37,7 @@ Repository = "https://github.com/NextGenContributions/django-ninja-crudl.git"
 Issues = "https://github.com/NextGenContributions/django-ninja-crudl/issues"
 Changelog = "https://github.com/NextGenContributions/django-ninja-crudl/blob/main/CHANGELOG.md"
 "Release Notes" = "https://github.com/NextGenContributions/django-ninja-crudl/releases"
-Funding = "https://github.com/NextGenContributions/sponsor"
+Funding = "https://github.com/sponsors/NextGenContributions"
 
 [build-system]
 requires = ["hatchling"]
