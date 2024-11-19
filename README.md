@@ -106,7 +106,10 @@ You need to explicitely override the following methods in the CRUDL controller. 
 
 ```python
 
+from django.db.models import Q
+from django_ninja_crudl.crudl import Crudl
 from django_ninja_crudl.types import RequestDetails
+
 
 class MyModelACrudl(Crudl):
     """A CRUDL controller for the Database model."""
@@ -189,6 +192,8 @@ Finally, you can define the permission classes to be used in the CRUDL controlle
 
 ```python
 
+from django_ninja_crudl.crudl import Crudl
+
 class MyModelACrudl(Crudl):
 
     class Meta:
@@ -205,6 +210,8 @@ With the pre and post hooks, you can execute custom code before and after each C
 - The post hooks are executed at the end of the operation.
 
 ```python
+
+from django_ninja_crudl.crudl import Crudl
 
 class MyModelACrudl(Crudl):
 
@@ -274,7 +281,7 @@ class MyModelACrudl(Crudl):
         model_class = MyModelA
 
     @http.get("/my_custom_endpoint")
-    def my_custom_endpoint(self, request: RequestDetails):
+    def my_custom_endpoint(self, request):
         """A custom endpoint."""
         return {"message": "Hello, world!"}
 
@@ -332,7 +339,7 @@ If you want to customize the validation, you can override or customize the full_
 # Ways to support this project
 
 - ⭐ Star this project on GitHub
-- Share this project with your friends, colleagues, and on social media
+- Share this project with your friends, colleagues, and on social media: [LinkedIn](https://www.linkedin.com/shareArticle?mini=true&url=https%3A//github.com/NextGenContributions/django-ninja-crudl), [Twitter](https://twitter.com/intent/tweet?text=I%20just%20found%20this%20cool%20library%20for%20Django%20which%20allows%20creating%20CRUD%20REST%20APIs%20quickly%3A%20https%3A//github.com/NextGenContributions/django-ninja-crudl%20), [Facebook](https://www.facebook.com/sharer/sharer.php?u=https%3A//github.com/NextGenContributions/django-ninja-crudl%20), [Telegram](https://t.me/share/url?url=https%3A//github.com/NextGenContributions/django-ninja-crudl%20&text=I%20just%20found%20this%20cool%20library%20for%20Django%20which%20allows%20creating%20CRUD%20REST%20APIs%20quickly)
 - [Contribute code, documentation, and tests](CONTRIBUTING.md)
-- Report bugs, issues, or feature requests
-- Sponsor this project
+- [Report bugs, issues, or feature requests](https://github.com/NextGenContributions/django-ninja-crudl/issues)
+- [Sponsor this project](https://github.com/sponsors/NextGenControbutions)
