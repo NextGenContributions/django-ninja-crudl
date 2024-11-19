@@ -20,7 +20,7 @@ jobs:
 
       - name: Run tests
         run: |
-          docker run --volume $(pwd):/app --workdir /app --rm django-ninja-crudl nox -s noop
+          docker run --volume $(pwd):/app --workdir /app --rm django-ninja-crudl nox -s pass
 
 
   release:
