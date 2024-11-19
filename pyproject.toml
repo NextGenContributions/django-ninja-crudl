@@ -39,12 +39,9 @@ Changelog = "https://github.com/NextGenContributions/django-ninja-crudl/blob/mai
 "Release Notes" = "https://github.com/NextGenContributions/django-ninja-crudl/releases"
 Funding = "https://github.com/NextGenContributions/sponsor"
 
-
-
-
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
