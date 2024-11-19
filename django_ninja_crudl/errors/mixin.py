@@ -59,14 +59,14 @@ class ErrorHandlerMixin:
         debug_details = str(exception) if settings.DEBUG else None
         if settings.DEBUG:
             # Log the exception in the console with full traceback.
-            print(exception)
             # full traceback
             import traceback
 
             traceback.print_exc()
 
         return 409, Conflict409Schema(
-            request_id=self.get_request_id(request), debug_details=debug_details
+            request_id=self.get_request_id(request),
+            debug_details=debug_details,
         )
 
     def get_503_error(

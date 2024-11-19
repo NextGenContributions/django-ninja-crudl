@@ -78,7 +78,6 @@ def validating_manager(model_class: type[T]) -> Generator[None, None, None]:
 
     def validating_save(self: T, *args: Any, **kwargs: Any) -> None:
         """Call full_clean() before saving."""
-        print(self)
         if not self.pk:
             self.full_clean()
         return original_save(self, *args, **kwargs)

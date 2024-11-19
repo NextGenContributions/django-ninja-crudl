@@ -18,7 +18,6 @@ def test_create_resource_with_post_works(client: Client) -> None:
             "address": "Some address",
         },
     )
-    print(response.content)
     assert response.status_code == status.HTTP_201_CREATED
     p = Publisher.objects.get(id=response.json()["id"])
     assert p.name == "Some publisher"

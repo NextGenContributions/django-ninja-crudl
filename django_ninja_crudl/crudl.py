@@ -30,6 +30,8 @@ from ninja_extra import (
 )
 from pydantic import BaseModel
 
+from django2pydantic import Infer, ModelFields
+from django2pydantic.schema import Schema
 from django_ninja_crudl.base import CrudlBaseMixin
 from django_ninja_crudl.errors.openapi_extras import (
     not_authorized_openapi_extra,
@@ -47,7 +49,6 @@ from django_ninja_crudl.errors.schemas import (
 from django_ninja_crudl.model_utils import get_pydantic_fields
 from django_ninja_crudl.types import PathArgs, RequestDetails
 from django_ninja_crudl.utils import add_function_arguments, validating_manager
-from superschema import Infer, ModelFields, SuperSchema
 
 if TYPE_CHECKING:
     from django.db.models.manager import BaseManager
@@ -143,36 +144,36 @@ class CrudlMeta[TDjangoModel](type):
         delete_operation_id = f"{name}_delete"
         list_operation_id = f"{name}_list"
 
-        class PathId(SuperSchema):
-            class Meta(SuperSchema.Meta):
+        class PathId(Schema):
+            class Meta(Schema.Meta):
                 model = model_class
                 name = f"{model_class.__name__}_PathId"
                 fields = {pk_name: Infer}
 
-        class CreateSchema(SuperSchema):
+        class CreateSchema(Schema):
             """Create schema for the model."""
 
-            class Meta(SuperSchema.Meta):
+            class Meta(Schema.Meta):
                 """Pydantic configuration."""
 
                 name = f"{model_class.__name__}_Create"
                 model = model_class
                 fields = create_fields if create_fields else None
 
-        class GetOneSchema(SuperSchema):
+        class GetOneSchema(Schema):
             """Get one schema for the model."""
 
-            class Meta(SuperSchema.Meta):
+            class Meta(Schema.Meta):
                 """Pydantic configuration."""
 
                 name = f"{model_class.__name__}_GetOne"
                 model = model_class
                 fields = get_one_fields if get_one_fields else None
 
-        class UpdateSchema(SuperSchema):
+        class UpdateSchema(Schema):
             """Update schema for the model."""
 
-            class Meta(SuperSchema.Meta):
+            class Meta(Schema.Meta):
                 """Pydantic configuration."""
 
                 name = f"{model_class.__name__}_Update"
@@ -181,10 +182,10 @@ class CrudlMeta[TDjangoModel](type):
 
         PartialUpdateSchema = PatchDict[UpdateSchema]
 
-        class ListSchema(SuperSchema):
+        class ListSchema(Schema):
             """List schema for the model."""
 
-            class Meta(SuperSchema.Meta):
+            class Meta(Schema.Meta):
                 """Pydantic configuration."""
 
                 name = f"{model_class.__name__}_List"
@@ -193,13 +194,13 @@ class CrudlMeta[TDjangoModel](type):
 
         create_response_name = f"{model_class.__name__}_CreateResponse"
 
-        class CreateResponseSchema(SuperSchema):
+        class CreateResponseSchema(Schema):
             """Response schema for the create operation.
 
             Only the id field is returned.
             """
 
-            class Meta(SuperSchema.Meta):
+            class Meta(Schema.Meta):
                 """Pydantic configuration."""
 
                 name = create_response_name
@@ -733,8 +734,6 @@ class CrudlMeta[TDjangoModel](type):
                         *many_to_many_models,
                     )  # To avoid N+1 queries
                     qs = qs.values(*all_fields)
-                    print(qs.query)
-                    print(qs.all())
                     return qs
 
         for attr_name, attr_value in CrudlBase.__dict__.items():

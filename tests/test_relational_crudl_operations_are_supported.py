@@ -173,7 +173,6 @@ def test_list_relation_works(client: Client) -> None:
     book.authors.set([author])
 
     response = client.get("/api/books/")
-    print(response.json())
     assert response.status_code == status.HTTP_200_OK
     assert len(response.json()) == 1
     assert response.json()[0]["title"] == "Some book"

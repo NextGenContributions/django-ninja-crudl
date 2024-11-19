@@ -2,7 +2,7 @@
 # Visit https://bit.ly/cffinit to generate yours today!
 
 cff-version: 1.2.0
-title: superschema
+title: django-ninja-crudl
 message: >-
   If you use this software, please cite it using the
   metadata from this file.
@@ -11,11 +11,14 @@ authors:
   - given-names: Jukka
     family-names: Hassinen
     email: jukka.hassinen@gmail.com
-repository-code: 'https://github.com/jhassine/superschema'
-abstract: Convert Django models to Pydantic models/schema
+repository-code: 'https://github.com/NextGenContributions/django-ninja-crudl'
+abstract: CRUDL REST API endpoints from Django ORM models using Django Ninja framework.
 keywords:
   - Django
-  - Pydantic
-  - model
-  - schema
+  - Ninja
+  - CRUD
+  - CRUDL
+  - REST
+  - API
+  - OpenAPI
 license: MIT

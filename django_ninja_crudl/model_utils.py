@@ -51,7 +51,6 @@ def get_pydantic_fields(
         field_name = f"{prefix}__{field_name}"
     related_fields: list[str] = []
     field_type = model.__annotations__[field_name]
-    print(f"field_name--->: {field_name}")
     if is_pydantic_model(model, field_name):
         field_type = extract_non_none_type(field_type)
         related_fields = [
@@ -60,11 +59,8 @@ def get_pydantic_fields(
         ]
     elif is_list_of_pydantic_models(model, field_name):
         field_type = extract_non_none_type(field_type)
-        print(f"field_type: {field_type}")
         for related_field_name in field_type.__args__[0].__annotations__:
-            print(f"related_field_name: {related_field_name}")
             related_fields.append(
                 f"{field_name}__{related_field_name}",
             )
-    print(f"related_fields: {related_fields}")
     return related_fields

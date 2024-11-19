@@ -1,22 +1,23 @@
 # Why this package?
 
-This package aims to be the most simplest way to expose Django models securely via RESTful API CRUDL (Create, Retrieve, Update, Delete, List) endpoints and provide the most complete OpenAPI documentation for the exposed endpoints.
+To provide the most simplest and quickest way to expose Django models securely as RESTful API CRUDL (Create, Retrieve, Update, Delete, List) endpoints and provide the most complete OpenAPI documentation for those endpoints.
 
 # What is it?
 
 The package provides a set of classes and methods to expose Django models via RESTful API CRUDL endpoints.
 
-Behind the scenes, the package uses the Django Ninja, Django Ninja Extra and SuperSchema packages.
+Behind the scenes, the package uses the [Django Ninja Extra](https://eadwincode.github.io/django-ninja-extra/) package which in turn uses [Django Ninja](https://django-ninja.dev/).
+For the input and output validation schemas, [django2pydantic](https://github.com/NextGenContributions/django2pydantic) package is used.
 
 # Tutorial on how to use
 
-## Define the model along the fields exposed via the CRUDL endpoints
+## Define the Django models along the fields exposed via the CRUDL endpoints
 
 You can define you Django model fields that are exposed via the CRUDL endpoints in the model itself using the `CrudlApiMeta` nested class inside your model:
 
 ```python
 
-from superschema import Infer, ModelFields
+from django2pydantic import Infer, ModelFields
 from django.db import models
 from django_ninja_crudl.crudl import CrudlApiBaseMeta # <-- Add this import if you want type checking
 
@@ -50,13 +51,9 @@ class MyModelA(models.Model):
 
 NOTE: In order to avoid accidentally exposing sensitive fields, you need to explicitly define the model fields that shall be exposed via the CRUDL endpoints. Some other libraries support exposing all fields (with optional exlude) which can lead to unintentional exposure of sensitive data.
 
-NOTE: The `Infer` class from the `SuperSchema` library is used to infer the field type and details from the Django model fields.
+NOTE: The `Infer` class from the `django2pydantic` library is used to infer the field type and details from the Django model fields.
 
-NOTE: The library allows using different schemas for the `create`, `update`/`partial update`, `get one`, and `list` operations. For example, this can have the following practical advantages:
-    - Allows that some fields can be used during create but cannot be updated after the creation
-    - The list operation can expose only the fields that are needed for the list view
-    - The get one operation can expose more fields than the list operation
-
+NOTE: The library allows using different schemas for the `create`, `update`/`partial update`, `get one`, and `list` operations. For example, this can have the following practical advantages: - Allows that some fields can be used during create but cannot be updated after the creation - The list operation can expose only the fields that are needed for the list view - The get one operation can expose more fields than the list operation
 
 ## Define the CRUDL endpoints for a model
 
@@ -74,7 +71,6 @@ class MyModelACrudl(Crudl):
     class Meta:
         model_class = MyModelA # <-- Add reference to your model class here that you defined previously
 ```
-
 
 ## Register the endpoint
 
@@ -99,13 +95,14 @@ In order to control what is exposed and operable via the CRUDL endpoints, you ca
 This serves as an additional layer of security and control.
 
 You can define:
-    - the base queryset filter that applies to all CRUDL operations
-    - the operation type specific filters that apply to the create, update, delete, list, and get_one operations separately.
 
-The filters are defined as Django model.Q objects. If you return an empty model.Q object, no additional filtering is applied.
+- the base queryset filter that applies to all CRUDL operations
+- the operation type specific filters that apply to the create, update, delete, list, and get_one operations separately.
+
+The filters are defined as [Django models.Q objects](https://docs.djangoproject.com/en/5.1/topics/db/queries/#complex-lookups-with-q-objects). If you return an empty model.Q object, no additional filtering is applied.
 
 For security reasons, the developer needs to explicitly define the filters for each operation type.
-You need to explicitely override the following methods in the CRUDL controller. If you do not override them, the not implemented error will be raised.
+You need to explicitely override the following methods in the CRUDL controller. If you do not override them, the "not implemented error" will be raised.
 
 ```python
 
@@ -150,9 +147,10 @@ The [`RequestDetails`](./django_ninja_crudl/types.py) object contains as much in
 ## Implement permission checks
 
 The permission checks are for checking if the user has permission to perform the CRUDL operations for:
-    - the resource (=model) type
-    - the object (=instance)
-    - the related object (=related instance)
+
+- the resource (=model) type
+- the object (=instance)
+- the related object (=related instance)
 
 ```python
 
@@ -198,7 +196,6 @@ class MyModelACrudl(Crudl):
         permission_classes = [ResourcePermission] # <-- Add the permission classes you wish to use here
 
 ```
-
 
 ## Implement the pre and post hooks (optional)
 
@@ -286,13 +283,12 @@ class MyModelACrudl(Crudl):
 ## Summary of functionality
 
 | Operation               | Base queryset filter applied | Queryset filter             | has_permission(...) | has_object_permission(...) | has_related_object_permission(...) | Model full_clean() method called | Pre and post hook methods     |
-|-------------------------|------------------------------|-----------------------------|---------------------|----------------------------|------------------------------------|----------------------------------|-------------------------------|
+| ----------------------- | ---------------------------- | --------------------------- | ------------------- | -------------------------- | ---------------------------------- | -------------------------------- | ----------------------------- |
 | Create                  | No                           | None                        | Yes                 | No                         | Yes                                | Yes                              | pre_create(), post_create()   |
 | Retrieve                | Yes                          | get_filter_for_get_one(...) | Yes                 | Yes                        | Yes                                | Yes                              | pre_get_one(), post_get_one() |
 | Update / Partial update | Yes                          | get_filter_for_update(...)  | Yes                 | Yes                        | Yes                                | Yes                              | pre_update(), post_update()   |
 | Delete                  | Yes                          | get_filter_for_delete(...)  | Yes                 | Yes                        | No                                 | No                               | pre_delete(), post_delete()   |
 | List                    | Yes                          | get_filter_for_list(...)    | Yes                 | No                         | No                                 | No                               | pre_list(), post_list()       |
-
 
 ## Create operation
 
@@ -318,14 +314,25 @@ class MyModelA(models.Model):
     objects = MyModelAManager()
 
 ```
+
 ## Validations
+
+The framework provides the following validations:
 
 ### Request validation
 
-The request payload structure is validated automatically using Pydantic. If the request payload does not match the expected structure, a 422 Unprocessable Entity response is returned.
+The request payload structure is validated automatically using Pydantic just like it is done in Django Ninja. If the request payload does not match the expected structure, a 422 Unprocessable Entity response is returned.
 
 ### Create and update validation
 
-The models are validated before creating or updating the object using the model's full_clean() method.
+The models are validated before creating or updating the object using the Django model's [full_clean() method](https://docs.djangoproject.com/en/5.1/ref/models/instances/#validating-objects).
 
-If you want to customize the validation, you can override or customize the full_clean method in the model.
+If you want to customize the validation, you can override or customize the full_clean method in the Django model.
+
+# Ways to support this project
+
+- ⭐ Star this project on GitHub
+- Share this project with your friends, colleagues, and on social media
+- [Contribute code, documentation, and tests](CONTRIBUTING.md)
+- Report bugs, issues, or feature requests
+- Sponsor this project

@@ -8,9 +8,11 @@
 		// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
 		"dockerfile": "../Dockerfile"
 	},
+	/*
 	"mounts": [
-		"source=/Users/jukkahassinen/dev/superschema/superschema,target=/workspaces/django-ninja-crudl/superschema,type=bind"
+		"source=/Users/jukkahassinen/dev/superschema/django2pydantic,target=/workspaces/django-ninja-crudl/django2pydantic,type=bind"
 	],
+	*/
 	"customizations": {
 		"vscode": {
 			"extensions": [
