@@ -3,7 +3,7 @@ name = "django-ninja-crudl"
 version = "0.0.1"
 description = "CRUDL REST API endpoints from Django ORM models using Django Ninja framework"
 authors = [
-    "Jukka Hassinen <jukka.hassinen@gmail.com>"
+  {name = "Jukka Hassinen", email = "jukka.hassinen@gmail.com"}
 ]
 license = "MIT"
 readme = "README.md"
