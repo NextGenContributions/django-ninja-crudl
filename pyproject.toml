@@ -93,6 +93,7 @@ version_toml = [
 ]
 version_variables = [
     "django_ninja_crudl/__init__.py:__version__",
+    "uv.lock:\"django-ninja-crudl\"\\nversion",
 ]
 
 [tool.semantic_release.branches.main]
