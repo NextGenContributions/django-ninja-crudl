@@ -1,6 +1,17 @@
 # CHANGELOG
 
 
+## v0.0.5 (2024-11-21)
+
+### Bug Fixes
+
+- Project depends on django2pydantic
+  ([`bc3c97c`](https://github.com/NextGenContributions/django-ninja-crudl/commit/bc3c97cac187e931df15fc6e26d9164afc421ddb))
+
+- Semantic release version_variables for uv.lock
+  ([`988ed43`](https://github.com/NextGenContributions/django-ninja-crudl/commit/988ed432509a7bfa4477e11dfcdddd5534e3e29f))
+
+
 ## v0.0.4 (2024-11-19)
 
 
