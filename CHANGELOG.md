@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.1.1 (2024-11-22)
+
+### Bug Fixes
+
+- Allow overriding Crudl class methods
+  ([`24bc2eb`](https://github.com/NextGenContributions/django-ninja-crudl/commit/24bc2eb60d16ebf6a0b13af2fc590f75e2b606f0))
+
+
 ## v0.1.0 (2024-11-22)
 
 
