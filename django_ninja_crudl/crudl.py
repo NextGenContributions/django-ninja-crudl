@@ -750,6 +750,11 @@ class CrudlMeta[TDjangoModel](type):
                     qs = qs.values(*all_fields)
                     return qs
 
+        # Add (overwrite if necessary) all dct attributes to the CrudlBase class
+        for attr_name, attr_value in dct.items():
+            if not attr_name.startswith("__"):
+                setattr(CrudlBase, attr_name, attr_value)
+
         for attr_name, attr_value in CrudlBase.__dict__.items():
             if not attr_name.startswith("__"):
                 dct[attr_name] = attr_value
