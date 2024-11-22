@@ -1,7 +1,8 @@
 [project]
 name = "django-ninja-crudl"
-version = "0.0.3"
+version = "0.0.5"
 description = "CRUDL REST API endpoints from Django ORM models using Django Ninja framework"
+requires-python = "==3.12.*"
 authors = [
   {name = "Jukka Hassinen", email = "jukka.hassinen@gmail.com"}
 ]
@@ -29,6 +30,18 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Typing :: Typed",
 ]
+
+dependencies = [
+    "django2pydantic",
+]
+
+[tool.uv.sources]
+django2pydantic = { index = "testpypi" }
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple"
+explicit = true
 
 [project.urls]
 Homepage = "https://github.com/NextGenContributions/django-ninja-crudl"
@@ -93,6 +106,7 @@ version_toml = [
 ]
 version_variables = [
     "django_ninja_crudl/__init__.py:__version__",
+    "uv.lock:\"django-ninja-crudl\"\\nversion",
 ]
 
 [tool.semantic_release.branches.main]
