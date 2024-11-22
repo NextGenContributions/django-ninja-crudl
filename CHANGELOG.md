@@ -1,6 +1,9 @@
 # CHANGELOG
 
 
+## v0.1.0 (2024-11-22)
+
+
 ## v0.0.5 (2024-11-21)
 
 ### Bug Fixes
@@ -13,6 +16,18 @@
 
 
 ## v0.0.4 (2024-11-19)
+
+### Features
+
+- Control whether each operation is exposed
+  ([`493ac8d`](https://github.com/NextGenContributions/django-ninja-crudl/commit/493ac8d626c158ce9a7dc252be22a67328fb9abd))
+
+- `delete_allowed` boolean to control whether DELETE method is enabled. - `create_fields`,
+  `update_fields`, `get_one_fields` or `list_fields` can be set to `None` or undefined which means
+  the operation endpoint will not be enabled
+
+Other updates: - Bubbling up some key django2pydantic elements via the public package interface -
+  Updated tutorial - Deleted an unneccesary file
 
 
 ## v0.0.3 (2024-11-19)
