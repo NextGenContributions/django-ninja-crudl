@@ -17,9 +17,10 @@ You can define you Django model fields that are exposed via the CRUDL endpoints 
 
 ```python
 
-from django2pydantic import Infer, ModelFields
+from typing import ClassVar
+
 from django.db import models
-from django_ninja_crudl.crudl import CrudlApiBaseMeta # <-- Add this import if you want type checking
+from django_ninja_crudl import CrudlApiBaseMeta, Infer, ModelFields # <-- Add this import if you want type checking
 
 class MyModelA(models.Model):
     """Some example model."""
@@ -28,7 +29,7 @@ class MyModelA(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
 
-    class CrudlApiMeta(CrudlApiBaseMeta): # <-- Add this nested class to your model
+    class CrudlApiMeta(Crudl.Meta): # <-- Add this nested class to your model
         create_fields: ClassVar[ModelFields] = {
             "name": Infer,
             "description": Infer,
@@ -46,14 +47,21 @@ class MyModelA(models.Model):
             "id": Infer,
             "name": Infer,
         }
-
+        delete_allowed = True
 ```
 
 NOTE: In order to avoid accidentally exposing sensitive fields, you need to explicitly define the model fields that shall be exposed via the CRUDL endpoints. Some other libraries support exposing all fields (with optional exlude) which can lead to unintentional exposure of sensitive data.
 
-NOTE: The `Infer` class from the `django2pydantic` library is used to infer the field type and details from the Django model fields.
+NOTE: If any of `create_fields`, `update_fields`, `get_one_fields`, or `list_fields` are not defined or is set as `None`, then that specific endpoint will not be exposed. If `delete_allowed` is not defined or set as `False`, then the delete endpoint will not be exposed.
 
-NOTE: The library allows using different schemas for the `create`, `update`/`partial update`, `get one`, and `list` operations. For example, this can have the following practical advantages: - Allows that some fields can be used during create but cannot be updated after the creation - The list operation can expose only the fields that are needed for the list view - The get one operation can expose more fields than the list operation
+NOTE: For delete operation, the currently only hard delete is supported. A possibility for [soft delete will be implemeted a bit later](https://github.com/NextGenContributions/django-ninja-crudl/issues/1).
+
+NOTE: The `Infer` class from the [django2pydantic](https://github.com/NextGenContributions/django2pydantic) library is used tell that the field type and other details shall be inferred from the Django model field.
+
+NOTE: As you can see from the above example, the library allows using different schemas for the `create`, `update`/`partial update`, `get one`, and `list` operations. For example, this can have the following practical advantages:
+* Allows that some fields can be used during create but cannot be updated after the creation
+* The `list` operation can expose only the fields that are needed for the list view
+* The `get one` operation can expose more details, like more details from related objects, than the `list` operation.
 
 ## Define the CRUDL endpoints for a model
 
@@ -61,14 +69,14 @@ Then you need to define the CRUDL controller for the model.
 
 ```python
 
-from django_ninja_crudl.crudl import Crudl
+from django_ninja_crudl import Crudl
 from .models import MyModelA
 
 
 class MyModelACrudl(Crudl):
     """A CRUDL controller for the model."""
 
-    class Meta:
+    class Meta(Crudl.Meta):
         model_class = MyModelA # <-- Add reference to your model class here that you defined previously
 ```
 
@@ -107,18 +115,21 @@ You need to explicitely override the following methods in the CRUDL controller. 
 ```python
 
 from django.db.models import Q
-from django_ninja_crudl.crudl import Crudl
-from django_ninja_crudl.types import RequestDetails
+from django_ninja_crudl import Crudl, RequestDetails
 
 
 class MyModelACrudl(Crudl):
     """A CRUDL controller for the Database model."""
 
-    class Meta:
+    class Meta(Crudl.Meta):
         model_class = MyModelA
 
+        # ... #
+
+    # ... #
+
     @override
-    def get_qs_base_filter(self, request: RequestDetails) -> Q:
+    def get_base_filter(self, request: RequestDetails) -> Q:
         """Return the base queryset filter that applies to all CRUDL operations."""
         return Q()
 
@@ -132,14 +143,17 @@ class MyModelACrudl(Crudl):
         """Return the queryset filter that applies to the update operation."""
         return Q()
 
+    @override
     def get_filter_for_delete(self, request: RequestDetails) -> Q:
         """Return the queryset filter that applies to the delete operation."""
         return Q()
 
+    @override
     def get_filter_for_list(self, request: RequestDetails) -> Q:
         """Return the queryset filter that applies to the list operation."""
         return Q()
 
+    @override
     def get_filter_for_get_one(self, request: RequestDetails) -> Q:
         """Return the queryset filter that applies to the get_one operation."""
         return Q()
@@ -157,7 +171,7 @@ The permission checks are for checking if the user has permission to perform the
 
 ```python
 
-from django_ninja_crudl.permissions import BasePermission
+from django_ninja_crudl import BasePermission, RequestDetails
 
 class ResourcePermission(BasePermission):
     def has_permission(self, request: RequestDetails) -> bool:
@@ -166,7 +180,7 @@ class ResourcePermission(BasePermission):
         If this method returns False, the operation is not executed.
         And the endpoint returns a 403 Forbidden response.
         """
-        return True
+        # implement your permission check here
 
     def has_object_permission(self, request: RequestDetails) -> bool:
         """Check if the user has permission for the object.
@@ -174,7 +188,7 @@ class ResourcePermission(BasePermission):
         If this method returns False, the operation is not executed.
         And the endpoint returns a 404 Not Found response.
         """
-        return True
+        # implement your permission check here
 
     def has_related_object_permission(self, request: RequestDetails) -> bool:
         """Check if the user has permission for the related object.
@@ -182,7 +196,7 @@ class ResourcePermission(BasePermission):
         If this method returns False, the operation is not executed.
         And the endpoint returns a 404 Not Found response.
         """
-        return True
+        # implement your permission check here
 
 ```
 
@@ -192,13 +206,15 @@ Finally, you can define the permission classes to be used in the CRUDL controlle
 
 ```python
 
-from django_ninja_crudl.crudl import Crudl
+from django_ninja_crudl import Crudl
 
 class MyModelACrudl(Crudl):
 
-    class Meta:
+    class Meta(Crudl.Meta):
         model_class = MyModelA
         permission_classes = [ResourcePermission] # <-- Add the permission classes you wish to use here
+
+        # ... #
 
 ```
 
@@ -206,54 +222,77 @@ class MyModelACrudl(Crudl):
 
 With the pre and post hooks, you can execute custom code before and after each CRUDL operation type.
 
-- The pre hooks are executed after the has_permission&has_object_permission check but before the operation itself
+This is ideal for implementing custom business logic, logging, or other custom operations that only need to apply when the objects are accessed via the REST API endpoints.
+If you need to implement custom logic that applies to all object access regardless where they are accessed from e.g. via Django Admin, Forms, REPL, etc., you might be better to customize the Django model or model manager methods and/or use signals.
+
+The pre and post hooks are executed in the following order:
+- The pre hooks are executed after the [`has_permission`&`has_object_permission`](#implement-permission-checks) check but before the operation itself.
 - The post hooks are executed at the end of the operation.
+
+The pre and post hooks are defined as methods in the CRUDL controller:
 
 ```python
 
-from django_ninja_crudl.crudl import Crudl
+from typing import override
+
+from django_ninja_crudl import Crudl, RequestDetails
+
 
 class MyModelACrudl(Crudl):
 
-    class Meta:
+    class Meta(Crudl.Meta):
         model_class = MyModelA
 
+        # ... #
+
+    # ... #
+
+    @override
     def pre_create(self, request: RequestDetails):
         """Do something before creating the object."""
         ...
 
+    @override
     def post_create(self, request: RequestDetails):
         """Do something after creating the object."""
         ...
 
+    @override
     def pre_update(self, request: RequestDetails):
         """Do something before updating the object."""
         ...
 
+    @override
     def post_update(self, request: RequestDetails):
         """Do something after updating the object."""
         ...
 
+    @override
     def pre_delete(self, request: RequestDetails):
         """Do something before deleting the object."""
         ...
 
+    @override
     def post_delete(self, request: RequestDetails):
         """Do something after deleting the object."""
         ...
 
+    @override
     def pre_list(self, request: RequestDetails):
         """Do something before listing the objects."""
         ...
 
+    @override
     def post_list(self, request: RequestDetails):
         """Do something after listing the objects."""
         ...
 
+    @override
     def pre_get_one(self, request: RequestDetails):
         """Do something before getting the object."""
         ...
 
+    @override
     def post_get_one(self, request: RequestDetails):
         """Do something after getting the object."""
         ...
@@ -264,26 +303,51 @@ Again, here too, the `RequestDetails` object contains as much information as pos
 
 ## Implement additional REST endpoints
 
-You can implement additional REST endpoints in the CRUDL controller.
+As `Crudl` class inherits Django Ninja Extra's `ControllerBase` & `APIController` decorator, you can implement additional REST endpoints in the your `Crudl` controller [this way](https://eadwincode.github.io/django-ninja-extra/api_controller/#quick-example):
 
 ```python
 
-from ninja_extra import NinjaExtraAPI
-from ninja_extra.crudl import Crudl
-from ninja_extra.types import RequestDetails
+from ninja_extra import http_get, http_post, http_put, http_delete, http_patch, http_generic
+from django_ninja_crudl import Crudl
 
 from .models import MyModelA
 
 class MyModelACrudl(Crudl):
     """A CRUDL controller for the Database model."""
 
-    class Meta:
+    class Meta(Crudl.Meta):
         model_class = MyModelA
 
-    @http.get("/my_custom_endpoint")
+        # ... #
+
+    # ... #
+
+    @http_get("/my_custom_endpoint")
     def my_custom_endpoint(self, request):
         """A custom endpoint."""
+        # Do something here
         return {"message": "Hello, world!"}
+
+    @http_post("/my_custom_create_endpoint")
+    def my_custom_create_endpoint(self, request):
+        """A custom create endpoint."""
+        # Do something here
+
+    @http_put("/my_custom_update_endpoint")
+    def my_custom_update_endpoint(self, request):
+        """A custom update endpoint."""
+        # Do something here
+
+    @http_patch("/my_custom_partial_update_endpoint")
+    def my_custom_partial_update_endpoint(self, request):
+        """A custom partial update endpoint."""
+        # Do something here
+
+    @http_delete("/my_custom_delete_endpoint")
+    def my_custom_delete_endpoint(self, request):
+        """A custom delete endpoint."""
+        # Do something here
+
 
 ```
 
@@ -297,9 +361,11 @@ class MyModelACrudl(Crudl):
 | Delete                  | Yes                          | get_filter_for_delete(...)  | Yes                 | Yes                        | No                                 | No                               | pre_delete(), post_delete()   |
 | List                    | Yes                          | get_filter_for_list(...)    | Yes                 | No                         | No                                 | No                               | pre_list(), post_list()       |
 
-## Create operation
+## Customizing certain operations
 
-The create operation is done through the Django model manager create method.
+### Customizing the create operation
+
+The create operation is done through the Django model manager `create()` method.
 
 If you want to customize the create operation, you can override the create method in the model manager.
 
@@ -322,13 +388,34 @@ class MyModelA(models.Model):
 
 ```
 
+### Customizing the delete operation
+
+The delete operation is done through the Django models' `delete()` method.
+
+If you want to customize the delete operation, you can [override the delete method in the model](https://docs.djangoproject.com/en/5.1/topics/db/models/#overriding-predefined-model-methods).
+
+```python
+
+from django.db import models
+
+class MyModelA(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=255)
+    description = models.TextField()
+
+    def delete(self, using=None, keep_parents=False):
+        # Custom delete logic here
+        return super().delete(using=using, keep_parents=keep_parents)
+
+```
+
 ## Validations
 
 The framework provides the following validations:
 
 ### Request validation
 
-The request payload structure is validated automatically using Pydantic just like it is done in Django Ninja. If the request payload does not match the expected structure, a 422 Unprocessable Entity response is returned.
+The HTTP API request payload (JSON) structure is validated automatically using Pydantic just like it is done in Django Ninja. If the request payload does not match the expected structure, a 422 Unprocessable Entity response is returned.
 
 ### Create and update validation
 

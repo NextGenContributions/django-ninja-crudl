@@ -1,5 +1,7 @@
 """Base classes for the CRUDL API."""
 
+from abc import abstractmethod
+
 from django.db.models import Model, Q
 
 from django_ninja_crudl.errors.mixin import ErrorHandlerMixin
@@ -14,7 +16,7 @@ class CrudlBaseMixin[TDjangoModel: Model](ErrorHandlerMixin):
 
     def has_permission(
         self,
-        request: RequestDetails,
+        request: RequestDetails[TDjangoModel],
     ) -> bool:
         """Check if the user has permission to perform the action."""
         # loop through all permission classes
@@ -29,7 +31,7 @@ class CrudlBaseMixin[TDjangoModel: Model](ErrorHandlerMixin):
 
     def has_object_permission(
         self,
-        request: RequestDetails,
+        request: RequestDetails[TDjangoModel],
     ) -> bool:
         """Check if the user has permission to perform the action on the object."""
         for permission_class in self._permission_classes:
@@ -41,8 +43,9 @@ class CrudlBaseMixin[TDjangoModel: Model](ErrorHandlerMixin):
 
     def has_related_object_permission(
         self,
-        request: RequestDetails,
+        request: RequestDetails[TDjangoModel],
     ) -> bool:
+        """Check if the user has permission to perform the action on the related object."""
         for permission_class in self._permission_classes:
             if not permission_class.__abstractmethods__:
                 permission_instance = permission_class()
@@ -51,7 +54,7 @@ class CrudlBaseMixin[TDjangoModel: Model](ErrorHandlerMixin):
                 return False
         return True
 
-    def pre_create(self, request: RequestDetails) -> None:
+    def pre_create(self, request: RequestDetails[TDjangoModel]) -> None:
         """Pre-create hook.
 
         Can be used to perform some actions or checks  before creating the object.
@@ -59,14 +62,14 @@ class CrudlBaseMixin[TDjangoModel: Model](ErrorHandlerMixin):
 
     def post_create(
         self,
-        request: RequestDetails,
+        request: RequestDetails[TDjangoModel],
     ) -> None:
         """Post-create hook.
 
         Can be used to perform some actions after creating the object.
         """
 
-    def pre_update(self, request: RequestDetails) -> None:
+    def pre_update(self, request: RequestDetails[TDjangoModel]) -> None:
         """Pre-update hook.
 
         Can be used to perform some actions or checks before updating the object.
@@ -74,7 +77,7 @@ class CrudlBaseMixin[TDjangoModel: Model](ErrorHandlerMixin):
 
     def post_update(
         self,
-        request: RequestDetails,
+        request: RequestDetails[TDjangoModel],
     ) -> None:
         """Post-update hook.
 
@@ -83,7 +86,7 @@ class CrudlBaseMixin[TDjangoModel: Model](ErrorHandlerMixin):
 
     def pre_patch(
         self,
-        request: RequestDetails,
+        request: RequestDetails[TDjangoModel],
     ) -> None:
         """Pre-patch hook.
 
@@ -92,56 +95,61 @@ class CrudlBaseMixin[TDjangoModel: Model](ErrorHandlerMixin):
 
     def post_patch(
         self,
-        request: RequestDetails,
+        request: RequestDetails[TDjangoModel],
     ) -> None:
         """Post-patch hook.
 
         Can be used to perform some actions after patching the object.
         """
 
-    def pre_delete(self, request: RequestDetails) -> None:
+    def pre_delete(self, request: RequestDetails[TDjangoModel]) -> None:
         """Pre-delete hook.
 
         Can be used to perform some actions or checks before deleting the object.
         """
 
-    def post_delete(self, request: RequestDetails) -> None:
+    def post_delete(self, request: RequestDetails[TDjangoModel]) -> None:
         """Post-delete hook.
 
         Can be used to perform some actions after deleting the object.
         """
 
+    @abstractmethod
     def get_base_filter(
         self,
-        request: RequestDetails,
+        request: RequestDetails[TDjangoModel],
     ) -> Q:
         """Return the base filter for all types of operations."""
-        return Q()
+        raise NotImplementedError
 
+    @abstractmethod
     def get_filter_for_list(
         self,
-        request: RequestDetails,
+        request: RequestDetails[TDjangoModel],
     ) -> Q:
         """Return the filter specific to the list operation."""
-        return Q()
+        raise NotImplementedError
 
+    @abstractmethod
     def get_filter_for_update(
         self,
-        request: RequestDetails,
+        request: RequestDetails[TDjangoModel],
     ) -> Q:
         """Return the filter specific to the update operation."""
-        return Q()
+        raise NotImplementedError
 
+    @abstractmethod
     def get_filter_for_delete(
         self,
-        request: RequestDetails,
+        request: RequestDetails[TDjangoModel],
     ) -> Q:
         """Return the filter specific to the delete operation."""
-        return Q()
+        raise NotImplementedError
 
+    @abstractmethod
     def get_filter_for_get_one(
         self,
-        request: RequestDetails,
+        request: RequestDetails[TDjangoModel],
     ) -> Q:
         """Return the filter specific to the get one operation."""
-        return Q()
+        raise NotImplementedError

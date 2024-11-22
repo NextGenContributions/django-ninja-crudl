@@ -47,6 +47,7 @@ from django_ninja_crudl.errors.schemas import (
     UnprocessableEntity422Schema,
 )
 from django_ninja_crudl.model_utils import get_pydantic_fields
+from django_ninja_crudl.permissions import BasePermission
 from django_ninja_crudl.types import PathArgs, RequestDetails
 from django_ninja_crudl.utils import add_function_arguments, validating_manager
 
@@ -57,10 +58,14 @@ if TYPE_CHECKING:
 class CrudlApiBaseMeta:
     """Base meta class for the CRUDL API configuration."""
 
-    create_fields: ClassVar[ModelFields | None] = None
-    update_fields: ClassVar[ModelFields | None] = None
-    get_one_fields: ClassVar[ModelFields | None] = None
-    list_fields: ClassVar[ModelFields | None] = None
+    model_class: type[Model]
+    create_fields: ClassVar[ModelFields] = None
+    update_fields: ClassVar[ModelFields] = None
+    get_one_fields: ClassVar[ModelFields] = None
+    delete_allowed: bool = False
+    list_fields: ClassVar[ModelFields] = None
+    permission_classes: ClassVar[list[type[BasePermission]]] = []
+    base_path: str | None = None
 
 
 DjangoRelationFields = (
@@ -99,9 +104,9 @@ class CrudlMeta[TDjangoModel](type):
 
         model_class: type[Model] = _meta.model_class
 
-        api_meta = getattr(model_class, "CrudlApiMeta", None)
+        api_meta = getattr(model_class, "CrudlApiMeta", _meta)
         if api_meta is None:
-            msg = f"CrudlApiMeta is required for model '{name}'"
+            msg = f"CrudlApiMeta is required for model '{name}' or in the model itself"
             raise ValueError(msg)
 
         if issubclass(api_meta, CrudlApiBaseMeta):
@@ -109,7 +114,7 @@ class CrudlMeta[TDjangoModel](type):
             update_fields: ModelFields | None = api_meta.update_fields
             get_one_fields: ModelFields | None = api_meta.get_one_fields
             list_fields: ModelFields | None = api_meta.list_fields
-            search_fields: list[str] | None = getattr(api_meta, "search_fields", None)
+            delete_allowed: bool = api_meta.delete_allowed
         else:
             msg = f"CrudlApiMeta class of '{name}' needs to inherit CrudlApiBaseMeta"
             raise TypeError(msg)
@@ -132,7 +137,6 @@ class CrudlMeta[TDjangoModel](type):
         id_string = f"{{{pk_type}:{pk_name}}}"
         create_path = f"{base_path}/"
         get_one_path = f"{base_path}/{id_string}"
-        get_one_path_with_pk = f"{base_path}/{{id}}"
         update_path = f"{base_path}/{id_string}"
         delete_path = f"{base_path}/{id_string}"
         list_path = f"{base_path}/"
@@ -147,105 +151,112 @@ class CrudlMeta[TDjangoModel](type):
         class PathId(Schema):
             class Meta(Schema.Meta):
                 model = model_class
-                name = f"{model_class.__name__}_PathId"
+                name: str | None = f"{model_class.__name__}_PathId"
                 fields = {pk_name: Infer}
 
-        class CreateSchema(Schema):
-            """Create schema for the model."""
+        if create_fields:
 
-            class Meta(Schema.Meta):
-                """Pydantic configuration."""
+            class CreateSchema(Schema):
+                """Create schema for the model."""
 
-                name = f"{model_class.__name__}_Create"
-                model = model_class
-                fields = create_fields if create_fields else None
+                class Meta(Schema.Meta):
+                    """Pydantic configuration."""
 
-        class GetOneSchema(Schema):
-            """Get one schema for the model."""
+                    name = f"{model_class.__name__}_Create"
+                    model = model_class
+                    fields = create_fields if create_fields else None
 
-            class Meta(Schema.Meta):
-                """Pydantic configuration."""
+            create_response_name = f"{model_class.__name__}_CreateResponse"
 
-                name = f"{model_class.__name__}_GetOne"
-                model = model_class
-                fields = get_one_fields if get_one_fields else None
+            class CreateResponseSchema(Schema):
+                """Response schema for the create operation.
 
-        class UpdateSchema(Schema):
-            """Update schema for the model."""
+                Only the id field is returned.
+                """
 
-            class Meta(Schema.Meta):
-                """Pydantic configuration."""
+                class Meta(Schema.Meta):
+                    """Pydantic configuration."""
 
-                name = f"{model_class.__name__}_Update"
-                model = model_class
-                fields = update_fields if update_fields else None
+                    name = create_response_name
+                    model = model_class
+                    fields: ClassVar[ModelFields | None] = {"id": Infer}
 
-        PartialUpdateSchema = PatchDict[UpdateSchema]
-
-        class ListSchema(Schema):
-            """List schema for the model."""
-
-            class Meta(Schema.Meta):
-                """Pydantic configuration."""
-
-                name = f"{model_class.__name__}_List"
-                model = model_class
-                fields = list_fields if list_fields else None
-
-        create_response_name = f"{model_class.__name__}_CreateResponse"
-
-        class CreateResponseSchema(Schema):
-            """Response schema for the create operation.
-
-            Only the id field is returned.
-            """
-
-            class Meta(Schema.Meta):
-                """Pydantic configuration."""
-
-                name = create_response_name
-                model = model_class
-                fields: ClassVar[ModelFields | None] = {"id": Infer}
-
-        create_schema_extra = {
-            "responses": {
-                201: {
-                    "description": "Created",
-                    "content": {
-                        "application/json": {
-                            # "schema": CreateResponseSchema.model_json_schema(),
-                            "schema": {
-                                "$ref": f"#/components/schemas/{create_response_name}",
+            create_schema_extra = {
+                "responses": {
+                    201: {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": f"#/components/schemas/{create_response_name}",
+                                },
+                            },
+                        },
+                        "links": {
+                            "UpdateById": {
+                                "operationId": update_operation_id,
+                                "parameters": {"id": "$response.body#/id"},
+                                "description": f"Update {resource_name} by id",
+                            },
+                            "DeleteById": {
+                                "operationId": delete_operation_id,
+                                "parameters": {"id": "$response.body#/id"},
+                                "description": f"Delete {resource_name} by id",
+                            },
+                            "GetById": {
+                                "operationId": get_one_operation_id,
+                                "parameters": {"id": "$response.body#/id"},
+                                "description": f"Get {resource_name} by id",
+                            },
+                            "PatchById": {
+                                "operationId": patch_operation_id,
+                                "parameters": {"id": "$response.body#/id"},
+                                "description": f"Patch {resource_name} by id",
                             },
                         },
                     },
-                    "links": {
-                        "UpdateById": {
-                            "operationId": update_operation_id,
-                            "parameters": {"id": "$response.body#/id"},
-                            "description": f"Update {resource_name} by id",
-                        },
-                        "DeleteById": {
-                            "operationId": delete_operation_id,
-                            "parameters": {"id": "$response.body#/id"},
-                            "description": f"Delete {resource_name} by id",
-                        },
-                        "GetById": {
-                            "operationId": get_one_operation_id,
-                            "parameters": {"id": "$response.body#/id"},
-                            "description": f"Get {resource_name} by id",
-                        },
-                        "PatchById": {
-                            "operationId": patch_operation_id,
-                            "parameters": {"id": "$response.body#/id"},
-                            "description": f"Patch {resource_name} by id",
-                        },
-                    },
+                    **not_authorized_openapi_extra,
+                    **throttle_openapi_extra,
                 },
-                **not_authorized_openapi_extra,
-                **throttle_openapi_extra,
-            },
-        }
+            }
+
+        if get_one_fields:
+
+            class GetOneSchema(Schema):
+                """Get one schema for the model."""
+
+                class Meta(Schema.Meta):
+                    """Pydantic configuration."""
+
+                    name = f"{model_class.__name__}_GetOne"
+                    model = model_class
+                    fields = get_one_fields if get_one_fields else None
+
+        if update_fields:
+
+            class UpdateSchema(Schema):
+                """Update schema for the model."""
+
+                class Meta(Schema.Meta):
+                    """Pydantic configuration."""
+
+                    name = f"{model_class.__name__}_Update"
+                    model = model_class
+                    fields = update_fields if update_fields else None
+
+            PartialUpdateSchema = PatchDict[UpdateSchema]
+
+        if list_fields:
+
+            class ListSchema(Schema):
+                """List schema for the model."""
+
+                class Meta(Schema.Meta):
+                    """Pydantic configuration."""
+
+                    name = f"{model_class.__name__}_List"
+                    model = model_class
+                    fields = list_fields if list_fields else None
 
         name = model_class.__name__.lower()
         tags = [name]
@@ -468,6 +479,7 @@ class CrudlMeta[TDjangoModel](type):
                     )
                     if not self.has_permission(request_details):
                         return self.get_403_error(request)
+
                     obj = (
                         self.get_pre_filtered_queryset(path_args)
                         .filter(self.get_base_filter(request_details))
@@ -586,50 +598,52 @@ class CrudlMeta[TDjangoModel](type):
                     self.post_patch(request_details)
                     return obj
 
-            @http_delete(
-                path=delete_path,
-                operation_id=delete_operation_id,
-                tags=tags,
-                response={
-                    status.HTTP_204_NO_CONTENT: None,
-                    status.HTTP_401_UNAUTHORIZED: Unauthorized401Schema,
-                    status.HTTP_403_FORBIDDEN: Forbidden403Schema,
-                    status.HTTP_404_NOT_FOUND: ResourceNotFound404Schema,
-                    status.HTTP_422_UNPROCESSABLE_ENTITY: UnprocessableEntity422Schema,
-                    status.HTTP_503_SERVICE_UNAVAILABLE: ServiceUnavailable503Schema,
-                },
-            )
-            @transaction.atomic
-            @add_function_arguments(delete_path)
-            def delete(
-                self,
-                request: HttpRequest,
-                **path_args: PathArgs,
-            ) -> tuple[Literal[403, 404], ErrorSchema] | tuple[Literal[204], None]:
-                """Delete the object by id."""
-                request_details = RequestDetails[TDjangoModel](
-                    action="delete",
-                    request=request,
-                    path_args=path_args,
-                    model_class=model_class,
-                )
-                if not self.has_permission(request_details):
-                    return self.get_403_error(request)
+            if delete_allowed:
 
-                obj = (
-                    self.get_pre_filtered_queryset(path_args)
-                    .filter(self.get_filter_for_delete(request_details))
-                    .first()
+                @http_delete(
+                    path=delete_path,
+                    operation_id=delete_operation_id,
+                    tags=tags,
+                    response={
+                        status.HTTP_204_NO_CONTENT: None,
+                        status.HTTP_401_UNAUTHORIZED: Unauthorized401Schema,
+                        status.HTTP_403_FORBIDDEN: Forbidden403Schema,
+                        status.HTTP_404_NOT_FOUND: ResourceNotFound404Schema,
+                        status.HTTP_422_UNPROCESSABLE_ENTITY: UnprocessableEntity422Schema,
+                        status.HTTP_503_SERVICE_UNAVAILABLE: ServiceUnavailable503Schema,
+                    },
                 )
-                if obj is None:
-                    return self.get_404_error(request)
-                request_details.object = obj
-                if not self.has_object_permission(request_details):
-                    return self.get_404_error(request)
-                self.pre_delete(request_details)
-                obj.delete()
-                self.post_delete(request_details)
-                return 204, None
+                @transaction.atomic
+                @add_function_arguments(delete_path)
+                def delete(
+                    self,
+                    request: HttpRequest,
+                    **path_args: PathArgs,
+                ) -> tuple[Literal[403, 404], ErrorSchema] | tuple[Literal[204], None]:
+                    """Delete the object by id."""
+                    request_details = RequestDetails[TDjangoModel](
+                        action="delete",
+                        request=request,
+                        path_args=path_args,
+                        model_class=model_class,
+                    )
+                    if not self.has_permission(request_details):
+                        return self.get_403_error(request)
+
+                    obj = (
+                        self.get_pre_filtered_queryset(path_args)
+                        .filter(self.get_filter_for_delete(request_details))
+                        .first()
+                    )
+                    if obj is None:
+                        return self.get_404_error(request)
+                    request_details.object = obj
+                    if not self.has_object_permission(request_details):
+                        return self.get_404_error(request)
+                    self.pre_delete(request_details)
+                    obj.delete()
+                    self.post_delete(request_details)
+                    return 204, None
 
             if list_fields:
                 openapi_extra = {
@@ -749,7 +763,7 @@ class CrudlMeta[TDjangoModel](type):
 class Crudl(CrudlBaseMixin, metaclass=CrudlMeta):
     """Base class for the CRUDL API."""
 
-    class Meta:
+    class Meta(CrudlApiBaseMeta):
         """Configuration for the CRUDL API."""
 
         abstract = True
