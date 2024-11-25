@@ -3,9 +3,10 @@
 To provide the most simplest, quickest and complete way to expose [Django models](https://docs.djangoproject.com/en/5.1/topics/db/models/) securely as [RESTful API CRUDL (Create, Retrieve, Update, Delete, List)](https://en.wikipedia.org/wiki/Create,_read,_update_and_delete#RESTful_APIs) endpoints and provide the most complete OpenAPI documentation for those endpoints.
 
 The key objectives of this package, that make it unique and different from other similar packages, are:
-. Handles the model relationships and related objects in the most complete way: This includes the one-to-one, one-to-many and many-to-many relationships, and the reverse relationships of those, etc. during the CRUDL operations.
-. The most complete and accurate OpenAPI documentation for the CRUDL endpoints: This applies to the field types and details, query parameters, error responses etc.
-. Enough flexibility to customize the CRUDL endpoints to meet the most of the use cases: The developer can define exposable fields per operation/endpoint type, the permission checks, pre and post hooks, and additional REST endpoints in the CRUDL controller.
+
+* Handles the model relationships and related objects in the most complete way: This includes the one-to-one, one-to-many and many-to-many relationships, and the reverse relationships of those, etc. during the CRUDL operations.
+* The most complete and accurate OpenAPI documentation for the CRUDL endpoints: This applies to the field types and details, query parameters, error responses etc.
+* Enough flexibility to customize the CRUDL endpoints to meet the most of the use cases: The developer can define exposable fields per operation/endpoint type, the permission checks, pre and post hooks, and additional REST endpoints in the CRUDL controller.
 
 # What is it?
 
