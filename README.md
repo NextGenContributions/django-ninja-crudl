@@ -1,60 +1,120 @@
 # Why this package?
 
-To provide the most simplest and quickest way to expose Django models securely as RESTful API CRUDL (Create, Retrieve, Update, Delete, List) endpoints and provide the most complete OpenAPI documentation for those endpoints.
+To provide the most simplest, quickest and complete way to expose [Django models](https://docs.djangoproject.com/en/5.1/topics/db/models/) securely as [RESTful API CRUDL (Create, Retrieve, Update, Delete, List)](https://en.wikipedia.org/wiki/Create,_read,_update_and_delete#RESTful_APIs) endpoints and provide the most complete OpenAPI documentation for those endpoints.
+
+The key objectives of this package, that make it unique and different from other similar packages, are:
+. Handles the model relationships and related objects in the most complete way: This includes the one-to-one, one-to-many and many-to-many relationships, and the reverse relationships of those, etc. during the CRUDL operations.
+. The most complete and accurate OpenAPI documentation for the CRUDL endpoints: This applies to the field types and details, query parameters, error responses etc.
+. Enough flexibility to customize the CRUDL endpoints to meet the most of the use cases: The developer can define exposable fields per operation/endpoint type, the permission checks, pre and post hooks, and additional REST endpoints in the CRUDL controller.
 
 # What is it?
 
 The package provides a set of classes and methods to expose Django models via RESTful API CRUDL endpoints.
 
 Behind the scenes, the package uses the [Django Ninja Extra](https://eadwincode.github.io/django-ninja-extra/) package which in turn uses [Django Ninja](https://django-ninja.dev/).
-For the input and output validation schemas, [django2pydantic](https://github.com/NextGenContributions/django2pydantic) package is used.
+For generating the input and output validation schemas, [django2pydantic](https://github.com/NextGenContributions/django2pydantic) package is used.
+
+Currently Python 3.12+, Django 5.1+, Pydantic 2.9 are supported. We are expanding the official support to other versions once the cross version test suite is in place.
 
 # Tutorial on how to use
 
-## Define the Django models along the fields exposed via the CRUDL endpoints
+## Installation
 
-You can define you Django model fields that are exposed via the CRUDL endpoints in the model itself using the `CrudlApiMeta` nested class inside your model:
+Until [the first release version](https://github.com/NextGenContributions/django-ninja-crudl/milestone/1) is published on PyPI, you need to install it directly from the GitHub repository:
+
+With Pip:
+```bash
+pip install git+https://github.com/NextGenContributions/django-ninja-crudl.git
+```
+
+With Poetry:
+```bash
+poetry add git+https://github.com/NextGenContributions/django-ninja-crudl.git
+```
+
+With uv:
+```bash
+uv add git+https://github.com/NextGenContributions/django-ninja-crudl
+```
+
+
+## Define the Django model and the CRUDL controller class along the fields exposed via the CRUDL endpoints
+
+Lets assume you have the following Django models:
 
 ```python
 
-from typing import ClassVar
+# models.py:
 
 from django.db import models
-from django_ninja_crudl import CrudlApiBaseMeta, Infer, ModelFields # <-- Add this import if you want type checking
 
-class MyModelA(models.Model):
-    """Some example model."""
+class SomeRelatedModel(models.Model):
+
+    id = models.AutoField(primary_key=True)
+    details = models.CharField(max_length=255)
+
+
+class MyModel(models.Model):
 
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
     description = models.TextField()
+    some_related_model = models.ForeignKey(MyModelB, on_delete=models.CASCADE)
 
-    class CrudlApiMeta(Crudl.Meta): # <-- Add this nested class to your model
-        create_fields: ClassVar[ModelFields] = {
+```
+
+Then you need to define the CRUDL controller for the model:
+
+```python
+
+# crudl.py:
+
+from typing import ClassVar
+
+from django_ninja_crudl import Crudl, Infer, ModelFields
+
+
+class MyModelCrudl(Crudl):
+    """A CRUDL controller for the model."""
+
+    class Meta(Crudl.Meta):
+        model_class = MyModel # <-- Add reference to your model class here that you defined previously
+
+        # Here you define the fields that shall be exposed via the CRUDL endpoints:
+        create_fields: ClassVar[ModelFields] = { # <-- These will be used for the create (POST) endpoint:
+            "name": Infer,
+            "description": Infer,
+            "some_related_model_id": Infer, # <-- This is the related object field
+        }
+        update_fields: ClassVar[ModelFields] = { # <-- These will be used for the update (PUT) and partial update (PATCH) endpoint:
             "name": Infer,
             "description": Infer,
         }
-        update_fields: ClassVar[ModelFields] = {
-            "name": Infer,
-            "description": Infer,
-        }
-        get_one_fields: ClassVar[ModelFields] = {
+        get_one_fields: ClassVar[ModelFields] = { # <-- These will be used for the get one (GET) endpoint:
             "id": Infer,
             "name": Infer,
             "description": Infer,
+            "some_related_model": { # These are the related object fields you want to expose:
+                "id": Infer,
+                "details": Infer,
+            },
         }
-        list_fields: ClassVar[ModelFields] = {
+        list_fields: ClassVar[ModelFields] = { # <-- These will be used for the list (GET) endpoint:
             "id": Infer,
             "name": Infer,
+            "some_related_model": { # These are the related object fields you want to expose:
+                "id": Infer,
+            },
         }
-        delete_allowed = True
+        delete_allowed = True # <-- This enables the delete (DELETE) endpoint
 ```
 
 NOTE: In order to avoid accidentally exposing sensitive fields, you need to explicitly define the model fields that shall be exposed via the CRUDL endpoints. Some other libraries support exposing all fields (with optional exlude) which can lead to unintentional exposure of sensitive data.
 
 NOTE: If any of `create_fields`, `update_fields`, `get_one_fields`, or `list_fields` are not defined or is set as `None`, then that specific endpoint will not be exposed. If `delete_allowed` is not defined or set as `False`, then the delete endpoint will not be exposed.
 
-NOTE: For delete operation, the currently only hard delete is supported. A possibility for [soft delete will be implemeted a bit later](https://github.com/NextGenContributions/django-ninja-crudl/issues/1).
+NOTE: For delete operation, the currently it performs a hard delete by default. You might customize the delete operation to perform a soft delete by [overriding the delete method in the model]().
+
 
 NOTE: The `Infer` class from the [django2pydantic](https://github.com/NextGenContributions/django2pydantic) library is used tell that the field type and other details shall be inferred from the Django model field.
 
@@ -63,38 +123,36 @@ NOTE: As you can see from the above example, the library allows using different 
 * The `list` operation can expose only the fields that are needed for the list view
 * The `get one` operation can expose more details, like more details from related objects, than the `list` operation.
 
-## Define the CRUDL endpoints for a model
-
-Then you need to define the CRUDL controller for the model.
-
-```python
-
-from django_ninja_crudl import Crudl
-from .models import MyModelA
-
-
-class MyModelACrudl(Crudl):
-    """A CRUDL controller for the model."""
-
-    class Meta(Crudl.Meta):
-        model_class = MyModelA # <-- Add reference to your model class here that you defined previously
-```
-
 ## Register the endpoint
 
-Then you need to register the CRUDL controller in the API itself.
+Then you need to register the CRUDL controller in the API itself for Django.
 
 ```python
+
+# api.py:
+
 from ninja_extra import NinjaExtraAPI
 
-from .api import MyModelACrudl
+from .crudl import MyModelCrudl
 
 api = NinjaExtraAPI()
 
-api.register_controllers(MyModelACrudl)
+api.register_controllers(MyModelCrudl)
+
+# urls.py:
+
+from django.contrib import admin
+from django.urls import path
+from .api import api
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("api/", api.urls),
+]
+
 ```
 
-Further instructions: https://eadwincode.github.io/django-ninja-extra/tutorial/
+[Further instructions](https://eadwincode.github.io/django-ninja-extra/tutorial/#first-steps).
 
 ## Define the queryset filters for the CRUDL endpoints
 
@@ -118,11 +176,11 @@ from django.db.models import Q
 from django_ninja_crudl import Crudl, RequestDetails
 
 
-class MyModelACrudl(Crudl):
+class MyModelCrudl(Crudl):
     """A CRUDL controller for the Database model."""
 
     class Meta(Crudl.Meta):
-        model_class = MyModelA
+        model_class = MyModel
 
         # ... #
 
@@ -165,9 +223,9 @@ The [`RequestDetails`](./django_ninja_crudl/types.py) object contains as much in
 
 The permission checks are for checking if the user has permission to perform the CRUDL operations for:
 
-- the resource (=model) type
-- the object (=instance)
-- the related object (=related instance)
+- the resource (=Django model) type
+- the object (=single Django model object instance)
+- the related object (=related model object instance instance)
 
 ```python
 
@@ -208,10 +266,10 @@ Finally, you can define the permission classes to be used in the CRUDL controlle
 
 from django_ninja_crudl import Crudl
 
-class MyModelACrudl(Crudl):
+class MyModelCrudl(Crudl):
 
     class Meta(Crudl.Meta):
-        model_class = MyModelA
+        model_class = MyModel
         permission_classes = [ResourcePermission] # <-- Add the permission classes you wish to use here
 
         # ... #
@@ -238,10 +296,10 @@ from typing import override
 from django_ninja_crudl import Crudl, RequestDetails
 
 
-class MyModelACrudl(Crudl):
+class MyModelCrudl(Crudl):
 
     class Meta(Crudl.Meta):
-        model_class = MyModelA
+        model_class = MyModel
 
         # ... #
 
@@ -310,13 +368,13 @@ As `Crudl` class inherits Django Ninja Extra's `ControllerBase` & `APIController
 from ninja_extra import http_get, http_post, http_put, http_delete, http_patch, http_generic
 from django_ninja_crudl import Crudl
 
-from .models import MyModelA
+from .models import MyModel
 
-class MyModelACrudl(Crudl):
+class MyModelCrudl(Crudl):
     """A CRUDL controller for the Database model."""
 
     class Meta(Crudl.Meta):
-        model_class = MyModelA
+        model_class = MyModel
 
         # ... #
 
@@ -373,18 +431,18 @@ If you want to customize the create operation, you can override the create metho
 
 from django.db import models
 
-class MyModelAManager(models.Manager):
+class MyModelManager(models.Manager):
 
     def create(self, **kwargs):
         # Do something before creating the object
         return super().create(**kwargs)
 
-class MyModelA(models.Model):
+class MyModel(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
     description = models.TextField()
 
-    objects = MyModelAManager()
+    objects = MyModelManager()
 
 ```
 
@@ -398,14 +456,14 @@ If you want to customize the delete operation, you can [override the delete meth
 
 from django.db import models
 
-class MyModelA(models.Model):
+class MyModel(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
     description = models.TextField()
 
     def delete(self, using=None, keep_parents=False):
-        # Custom delete logic here
-        return super().delete(using=using, keep_parents=keep_parents)
+        # Put custom delete logic here
+        # return super().delete(using=using, keep_parents=keep_parents)
 
 ```
 
@@ -421,7 +479,15 @@ The HTTP API request payload (JSON) structure is validated automatically using P
 
 The models are validated before creating or updating the object using the Django model's [full_clean() method](https://docs.djangoproject.com/en/5.1/ref/models/instances/#validating-objects).
 
-If you want to customize the validation, you can override or customize the full_clean method in the Django model.
+If you want to customize the validation, you can override or customize the Django model's full_clean method in the Django model. If you need to customize the related object validation, you can override the related object's full_clean method. With many-to-many relationships, you might need to create the through model and override the full_clean method there.
+
+# Get help, support or discuss
+
+If you need help, support or want to discuss or contribute, you can reach out via the following channels:
+
+- join the [Discord server](https://discord.gg/M47ArXyRUV)
+- join the [Slack workspace](https://join.slack.com/t/nextgencontributions/shared_invite/zt-2v9eadxzl-92l9Y0TaAwz8LVXZKHnFyw)
+- discuss in the [GitHub Discussions](https://github.com/NextGenContributions/django-ninja-crudl/discussions)
 
 # Ways to support this project
 

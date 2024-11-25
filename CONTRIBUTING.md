@@ -12,6 +12,7 @@ If you like this project and want to support it, you can:
 - Contribute code, documentation, or tests.
 - Sponsor the project on GitHub.
 
+More information how to [support the project](README.md#Ways-to-support-this-project).
 
 ## Reporting issues
 
@@ -26,7 +27,7 @@ If you are using Visual Studio Code, you can use the included devcontainer in or
 
 ### Discuss your changes
 
-If you are planning to make a significant change, it is a good idea to discuss it first with the project authors. You can open an issue to discuss your changes or discuss it with other contributors the project's discussion channels.
+If you are planning to make a significant change, it is a good idea to discuss it first with the project authors. You can open an issue to discuss your changes or discuss it with other contributors in one of [the project's discussion channels](README.md#Get-help-support-or-discuss).
 
 ### Implement your changes
 
