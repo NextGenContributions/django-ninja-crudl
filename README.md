@@ -4,9 +4,9 @@ To provide the most simplest, quickest and complete way to expose [Django models
 
 The key objectives of this package, that make it unique and different from other similar packages, are:
 
-* Handles the model relationships and related objects in the most complete way: This includes the one-to-one, one-to-many and many-to-many relationships, and the reverse relationships of those, etc. during the CRUDL operations.
-* The most complete and accurate OpenAPI documentation for the CRUDL endpoints: This applies to the field types and details, query parameters, error responses etc.
-* Enough flexibility to customize the CRUDL endpoints to meet the most of the use cases: The developer can define exposable fields per operation/endpoint type, the permission checks, pre and post hooks, and additional REST endpoints in the CRUDL controller.
+- Handles the model relationships and related objects in the most complete way: This includes the one-to-one, one-to-many and many-to-many relationships, and the reverse relationships of those, etc. during the CRUDL operations.
+- The most complete and accurate OpenAPI documentation for the CRUDL endpoints: This applies to the field types and details, query parameters, error responses etc.
+- Enough flexibility to customize the CRUDL endpoints to meet the most of the use cases: The developer can define exposable fields per operation/endpoint type, the permission checks, pre and post hooks, and additional REST endpoints in the CRUDL controller.
 
 # What is it?
 
@@ -24,20 +24,22 @@ Currently Python 3.12+, Django 5.1+, Pydantic 2.9 are supported. We are expandin
 Until [the first release version](https://github.com/NextGenContributions/django-ninja-crudl/milestone/1) is published on PyPI, you need to install it directly from the GitHub repository:
 
 With Pip:
+
 ```bash
 pip install git+https://github.com/NextGenContributions/django-ninja-crudl.git
 ```
 
 With Poetry:
+
 ```bash
 poetry add git+https://github.com/NextGenContributions/django-ninja-crudl.git
 ```
 
 With uv:
+
 ```bash
 uv add git+https://github.com/NextGenContributions/django-ninja-crudl
 ```
-
 
 ## Define the Django model and the CRUDL controller class along the fields exposed via the CRUDL endpoints
 
@@ -116,13 +118,13 @@ NOTE: If any of `create_fields`, `update_fields`, `get_one_fields`, or `list_fie
 
 NOTE: For delete operation, the currently it performs a hard delete by default. You might customize the delete operation to perform a soft delete by [overriding the delete method in the model]().
 
-
 NOTE: The `Infer` class from the [django2pydantic](https://github.com/NextGenContributions/django2pydantic) library is used tell that the field type and other details shall be inferred from the Django model field.
 
 NOTE: As you can see from the above example, the library allows using different schemas for the `create`, `update`/`partial update`, `get one`, and `list` operations. For example, this can have the following practical advantages:
-* Allows that some fields can be used during create but cannot be updated after the creation
-* The `list` operation can expose only the fields that are needed for the list view
-* The `get one` operation can expose more details, like more details from related objects, than the `list` operation.
+
+- Allows that some fields can be used during create but cannot be updated after the creation
+- The `list` operation can expose only the fields that are needed for the list view
+- The `get one` operation can expose more details, like more details from related objects, than the `list` operation.
 
 ## Register the endpoint
 
@@ -285,6 +287,7 @@ This is ideal for implementing custom business logic, logging, or other custom o
 If you need to implement custom logic that applies to all object access regardless where they are accessed from e.g. via Django Admin, Forms, REPL, etc., you might be better to customize the Django model or model manager methods and/or use signals.
 
 The pre and post hooks are executed in the following order:
+
 - The pre hooks are executed after the [`has_permission`&`has_object_permission`](#implement-permission-checks) check but before the operation itself.
 - The post hooks are executed at the end of the operation.
 
@@ -366,11 +369,12 @@ As `Crudl` class inherits Django Ninja Extra's `ControllerBase` & `APIController
 
 ```python
 
-from ninja_extra import http_get, http_post, http_put, http_delete, http_patch, http_generic
+from ninja_extra import api_controller, http_get, http_post, http_put, http_delete, http_patch, http_generic
 from django_ninja_crudl import Crudl
 
 from .models import MyModel
 
+@api_controller() # <-- This is required to make the additional endpoints work
 class MyModelCrudl(Crudl):
     """A CRUDL controller for the Database model."""
 
