@@ -1,12 +1,33 @@
 # CHANGELOG
 
 
+## v0.2.0 (2024-11-29)
+
+### Documentation
+
+- Added ref to @api_controller + styling
+  ([`8fc5eb2`](https://github.com/NextGenContributions/django-ninja-crudl/commit/8fc5eb2f89f01a91b56601335455c229825adf22))
+
+- Update some styling
+  ([`17d0adc`](https://github.com/NextGenContributions/django-ninja-crudl/commit/17d0adcdb06a6c059ff453bd3674245c9abda1a1))
+
+### Features
+
+- Support property decorated method fields in the list endpoint
+  ([`65fe9fc`](https://github.com/NextGenContributions/django-ninja-crudl/commit/65fe9fced4db786bf0effdf58907164b9ad9763f))
+
+
 ## v0.1.1 (2024-11-22)
 
 ### Bug Fixes
 
 - Allow overriding Crudl class methods
   ([`24bc2eb`](https://github.com/NextGenContributions/django-ninja-crudl/commit/24bc2eb60d16ebf6a0b13af2fc590f75e2b606f0))
+
+### Documentation
+
+- Updating docs + added project communication channels
+  ([`99192dc`](https://github.com/NextGenContributions/django-ninja-crudl/commit/99192dc48e0654ab8c042067de5f4312bdedb4d8))
 
 
 ## v0.1.0 (2024-11-22)
