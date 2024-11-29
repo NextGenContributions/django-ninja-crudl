@@ -1,5 +1,6 @@
 """CRUDL API base class."""
 
+import logging
 from enum import Enum, IntEnum
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, cast
 from uuid import UUID
@@ -53,6 +54,8 @@ from django_ninja_crudl.utils import add_function_arguments, validating_manager
 
 if TYPE_CHECKING:
     from django.db.models.manager import BaseManager
+
+logger = logging.getLogger("django_ninja_crudl")
 
 
 class CrudlApiBaseMeta:
@@ -709,7 +712,24 @@ class CrudlMeta[TDjangoModel](type):
                     related_models: list[str] = []
                     many_to_many_models: list[str] = []
                     related_fields: list[str] = []
+                    property_fields: list[str] = []
+
                     for field_name, field in ListSchema.model_fields.items():
+                        attr = getattr(model_class, field_name, None)
+
+                        # Skip @property methods here
+                        if attr and isinstance(attr, property):
+                            property_fields.append(field_name)
+                            # TODO: Implement a way to avoid N+1 queries when using @property methods
+                            logger.debug(
+                                "Detected use of @property method %s of the model %s in"
+                                " list_fields definition which"
+                                " may cause N+1 queries and cause performance degradation.",
+                                field_name,
+                                model_class,
+                            )
+                            return qs
+
                         django_field = model_class._meta.get_field(field_name)  # noqa: SLF001
                         if isinstance(
                             django_field,
@@ -739,7 +759,8 @@ class CrudlMeta[TDjangoModel](type):
                     non_related_fields: list[str] = [
                         field_name
                         for field_name in ListSchema.model_fields.keys()
-                        if field_name not in related_models + many_to_many_models
+                        if field_name
+                        not in related_models + many_to_many_models + property_fields
                     ]
 
                     all_fields: list[str] = non_related_fields + related_fields
