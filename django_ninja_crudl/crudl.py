@@ -58,10 +58,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger("django_ninja_crudl")
 
 
-class CrudlApiBaseMeta:
+class CrudlApiBaseMeta[TDjangoModel: Model]:
     """Base meta class for the CRUDL API configuration."""
 
-    model_class: type[Model]
+    model_class: type[TDjangoModel]
     create_fields: ClassVar[ModelFields] = None
     update_fields: ClassVar[ModelFields] = None
     get_one_fields: ClassVar[ModelFields] = None
@@ -70,23 +70,26 @@ class CrudlApiBaseMeta:
     permission_classes: ClassVar[list[type[BasePermission]]] = []
     base_path: str | None = None
 
+    def __getitem__(self, item: str) -> Any:
+        return getattr(self, item)
+
 
 DjangoRelationFields = (
     ManyToManyField[Model, Model] | ManyToManyRel | ManyToOneRel | OneToOneRel
 )
 
 
-class CrudlMeta[TDjangoModel](type):
+class CrudlMeta[TDjangoModel: Model](type):
     """Metaclass for the CRUDL API."""
 
     @classmethod
     def _get_pk_name(cls, model_class: type[TDjangoModel]) -> str:
-        return model_class._meta.pk.name
+        return model_class._meta.pk.name  # noqa: SLF001, WPS437
 
     @classmethod
     def _get_pk_type(cls, model_class: type[TDjangoModel]) -> str:
         """Get the primary key type."""
-        field = model_class._meta.pk
+        field = model_class._meta.pk  # noqa: SLF001, WPS437
         if isinstance(
             field,
             models.AutoField | models.BigAutoField | models.SmallAutoField,
@@ -100,16 +103,32 @@ class CrudlMeta[TDjangoModel](type):
     def __new__(cls, name: str, bases: tuple[type, ...], dct: dict[str, Any]) -> type:
         """Create a new class."""
         # quit if this is the base class
-        if name == "Crudl":
+        if name == "Crudl" or not dct.get("Meta"):
             return super().__new__(cls, name, bases, dct)
 
-        _meta = dct.get("Meta")
+        meta = dct.get("Meta")
 
-        model_class: type[Model] = _meta.model_class
+        if not meta:
+            msg = "Meta class is required"
+            raise ValueError(msg)
 
-        api_meta = getattr(model_class, "CrudlApiMeta", _meta)
+        if not isinstance(meta, type):
+            msg = "Meta class must be a class"
+            raise TypeError(msg)
+
+        if not issubclass(meta, CrudlApiBaseMeta):
+            msg = "Meta class must inherit CrudlApiBaseMeta"
+            raise TypeError(msg)
+
+        if not getattr(meta, "model_class", None):
+            msg = "model_class is required"
+            raise ValueError(msg)
+
+        model_class: type[Model] = meta.model_class
+
+        api_meta = getattr(model_class, "CrudlApiMeta", meta)
         if api_meta is None:
-            msg = f"CrudlApiMeta is required for model '{name}' or in the model itself"
+            msg = f"CrudlApiMeta is required for model '{name}' or in the model itself."
             raise ValueError(msg)
 
         if issubclass(api_meta, CrudlApiBaseMeta):
@@ -119,30 +138,30 @@ class CrudlMeta[TDjangoModel](type):
             list_fields: ModelFields | None = api_meta.list_fields
             delete_allowed: bool = api_meta.delete_allowed
         else:
-            msg = f"CrudlApiMeta class of '{name}' needs to inherit CrudlApiBaseMeta"
+            msg = f"CrudlApiMeta class of '{name}' needs to inherit CrudlApiBaseMeta."
             raise TypeError(msg)
 
         pk_name = cls._get_pk_name(model_class)
         pk_type = cls._get_pk_type(model_class)
 
-        if getattr(_meta, "base_path", None) is None or not isinstance(
-            _meta.base_path,
+        if getattr(meta, "base_path", None) is None or not isinstance(
+            meta.base_path,
             str,
         ):
             msg = f"base_path is required for model '{name}'"
             raise ValueError(msg)
 
-        base_path = _meta.base_path
-        permission_classes = getattr(_meta, "permission_classes", [])
+        base_path = meta.base_path
+        permission_classes = getattr(meta, "permission_classes", [])
 
         resource_name = model_class.__name__.lower()
 
         id_string = f"{{{pk_type}:{pk_name}}}"
-        create_path = f"{base_path}/"
+        create_path = f"{base_path}"
         get_one_path = f"{base_path}/{id_string}"
         update_path = f"{base_path}/{id_string}"
         delete_path = f"{base_path}/{id_string}"
-        list_path = f"{base_path}/"
+        list_path = f"{base_path}"
 
         create_operation_id = f"{name}_create"
         get_one_operation_id = f"{name}_retrieve"
@@ -151,27 +170,31 @@ class CrudlMeta[TDjangoModel](type):
         delete_operation_id = f"{name}_delete"
         list_operation_id = f"{name}_list"
 
-        class PathId(Schema):
+        class PathId(Schema):  # pyright: ignore[reportUnusedClass] NOSONAR # noqa: WPS431
+            """Path schema for the model."""
+
             class Meta(Schema.Meta):
-                model = model_class
+                """Configuration."""
+
+                model: type[Model] | None = model_class
                 name: str | None = f"{model_class.__name__}_PathId"
-                fields = {pk_name: Infer}
+                fields: ClassVar[ModelFields | None] = {pk_name: Infer}
 
         if create_fields:
 
-            class CreateSchema(Schema):
+            class CreateSchema(Schema):  # noqa: WPS431
                 """Create schema for the model."""
 
                 class Meta(Schema.Meta):
                     """Pydantic configuration."""
 
-                    name = f"{model_class.__name__}_Create"
-                    model = model_class
+                    name: str | None = f"{model_class.__name__}_Create"
+                    model: type[Model] = model_class
                     fields = create_fields if create_fields else None
 
             create_response_name = f"{model_class.__name__}_CreateResponse"
 
-            class CreateResponseSchema(Schema):
+            class CreateResponseSchema(Schema):  # noqa: WPS431
                 """Response schema for the create operation.
 
                 Only the id field is returned.
@@ -225,7 +248,7 @@ class CrudlMeta[TDjangoModel](type):
 
         if get_one_fields:
 
-            class GetOneSchema(Schema):
+            class GetOneSchema(Schema):  # noqa: WPS431
                 """Get one schema for the model."""
 
                 class Meta(Schema.Meta):
@@ -237,7 +260,7 @@ class CrudlMeta[TDjangoModel](type):
 
         if update_fields:
 
-            class UpdateSchema(Schema):
+            class UpdateSchema(Schema):  # noqa: WPS431
                 """Update schema for the model."""
 
                 class Meta(Schema.Meta):
@@ -247,11 +270,11 @@ class CrudlMeta[TDjangoModel](type):
                     model = model_class
                     fields = update_fields if update_fields else None
 
-            PartialUpdateSchema = PatchDict[UpdateSchema]
+            PartialUpdateSchema = PatchDict[UpdateSchema]  # pyright: ignore[reportInvalidTypeArguments]  # noqa: N806 # NOSONAR
 
         if list_fields:
 
-            class ListSchema(Schema):
+            class ListSchema(Schema):  # noqa: WPS431
                 """List schema for the model."""
 
                 class Meta(Schema.Meta):
@@ -265,19 +288,21 @@ class CrudlMeta[TDjangoModel](type):
         tags = [name]
 
         @api_controller(tags=tags)
-        class CrudlBase[TDjangoModelBase: models.Model](
+        class CrudlBase[TDjangoModelBase: models.Model](  # noqa: WPS431
             ControllerBase,
-            CrudlBaseMixin,
+            CrudlBaseMixin[TDjangoModelBase],
         ):
             """Base class for the CRUDL API."""
 
-            _permission_classes = permission_classes
+            _permission_classes: ClassVar[list[type[BasePermission]]] = (
+                permission_classes
+            )
 
-            def _get_related_model(self, field_name: str) -> type[Model]:
+            def _get_related_model(self, field_name: str) -> Model:
                 """Return the related model class for a field name."""
-                field = model_class._meta.get_field(field_name)  # noqa: SLF001
+                field = model_class._meta.get_field(field_name)  # noqa: SLF001, WPS437
                 if isinstance(field, ForeignObjectRel):
-                    return cast(type[Model], field.related_model)
+                    return field.related_model
                 if isinstance(field, OneToOneRel):
                     return cast(type[Model], field.related_model)
                 if isinstance(field, ManyToManyRel):
@@ -287,7 +312,10 @@ class CrudlMeta[TDjangoModel](type):
                 if isinstance(field, ManyToManyField):
                     return cast(type[Model], field.related_model)
 
-                msg = f"Field name '{field_name}' and type '{type(field)}' is not a relation"
+                msg = (
+                    f"Field name '{field_name}' and type '{type(field)}' "
+                    "is not a relation."
+                )
                 raise ValueError(msg)
 
             def get_model_filter_args(
@@ -324,11 +352,20 @@ class CrudlMeta[TDjangoModel](type):
                 # Get the appropriate filtering method based on the field name
                 filter_method_name = f"get_related_filter_for_field_{field_name}"
                 filter_method = getattr(self, filter_method_name, None)
-                if not filter_method:
-                    msg = f"Filter method {filter_method_name} not found"
-                    raise ValueError(msg)
+                if not callable(filter_method):
+                    filter_not_callable_msg = (
+                        f"Filter method {filter_method_name} is not callable."
+                    )
+                    raise TypeError(filter_not_callable_msg)
 
-                return filter_method(request, field_name)
+                result = filter_method(request, field_name)
+                if not isinstance(result, models.Q):
+                    result_type = type(result)
+                    expected_type_not_q_msg = (
+                        f"Expected return type 'Q', got {result_type}."
+                    )
+                    raise TypeError(expected_type_not_q_msg)
+                return result
 
             if create_fields:
 
@@ -337,7 +374,7 @@ class CrudlMeta[TDjangoModel](type):
                     operation_id=create_operation_id,
                     tags=tags,
                     response={
-                        status.HTTP_201_CREATED: CreateResponseSchema,
+                        status.HTTP_201_CREATED: CreateResponseSchema,  # pyright: ignore[reportPossiblyUnboundVariable]
                         status.HTTP_401_UNAUTHORIZED: Unauthorized401Schema,
                         status.HTTP_403_FORBIDDEN: Forbidden403Schema,
                         status.HTTP_404_NOT_FOUND: ResourceNotFound404Schema,
@@ -346,38 +383,39 @@ class CrudlMeta[TDjangoModel](type):
                         status.HTTP_503_SERVICE_UNAVAILABLE: ServiceUnavailable503Schema,
                     },
                     openapi_extra=create_schema_extra,
+                    by_alias=True,
                 )
                 @transaction.atomic
                 @add_function_arguments(create_path)
                 def create(
                     self,
                     request: HttpRequest,
-                    payload: CreateSchema,
+                    payload: CreateSchema,  # pyright: ignore[reportPossiblyUnboundVariable]
                     **path_args: PathArgs,
                 ) -> (
                     tuple[Literal[403], Forbidden403Schema]
                     | tuple[Literal[409], Conflict409Schema]
                     | tuple[Literal[201], Model]
                 ):
-                    request_details = RequestDetails[model_class](
+                    """Create a new object."""
+                    request_details = RequestDetails[Model](
                         action="create",
                         request=request,
                         schema=CreateSchema,
                         path_args=path_args,
-                        payload=payload,
+                        payload=payload,  # pyright: ignore[reportPossiblyUnboundVariable]
                         model_class=model_class,
                     )
-                    """Create a new object."""
                     if not self.has_permission(request_details):
-                        return self.get_403_error(request)
+                        return self.get_403_error(request)  # noqa: WPS220
                     self.pre_create(request_details)
 
-                    obj_fields_to_set: list[tuple[str, Any]] = []
-                    m2m_fields_to_set: list[tuple[str, Any]] = []
+                    obj_fields_to_set: list[tuple[str, Any]] = []  # pyright: ignore[reportExplicitAny]
+                    m2m_fields_to_set: list[tuple[str, Any]] = []  # pyright: ignore[reportExplicitAny]
 
                     for field, field_value in payload.model_dump().items():
                         if isinstance(field_value, Enum | IntEnum):
-                            field_value = field_value.value  # noqa: PLW2901
+                            field_value = field_value.value  # noqa: PLW2901, WPS220
                         if isinstance(
                             model_class._meta.get_field(field),  # noqa: SLF001, WPS437
                             ManyToManyField
@@ -385,20 +423,20 @@ class CrudlMeta[TDjangoModel](type):
                             | ManyToOneRel
                             | OneToOneRel,
                         ):
-                            m2m_fields_to_set.append((field, field_value))
+                            m2m_fields_to_set.append((field, field_value))  # noqa: WPS220
                         else:
                             # Handle foreign key fields:
-                            if isinstance(
+                            if isinstance(  # noqa: WPS220, WPS337
                                 model_class._meta.get_field(field),  # noqa: SLF001, WPS437
                                 ForeignKey,
                             ) and not field.endswith("_id"):
-                                field_name = f"{field}_id"
+                                field_name = f"{field}_id"  # noqa: WPS220
                             else:  # Non-relational fields
-                                field_name = field
+                                field_name = field  # noqa: WPS220
 
-                            obj_fields_to_set.append((field_name, field_value))
+                            obj_fields_to_set.append((field_name, field_value))  # noqa: WPS220
                     try:
-                        with validating_manager(model_class):
+                        with validating_manager(model_class):  # noqa: WPS220
                             created_obj: Model = model_class.objects.create(
                                 **dict(obj_fields_to_set),
                             )
@@ -407,15 +445,15 @@ class CrudlMeta[TDjangoModel](type):
                         transaction.set_rollback(True)
                         return self.get_409_error(request, exception=integrity_error)
 
-                    for m2m_field, m2m_field_value in m2m_fields_to_set:
+                    for m2m_field, m2m_field_value in m2m_fields_to_set:  # pyright: ignore[reportAny]
                         related_model_class = self._get_related_model(m2m_field)
 
-                        if isinstance(m2m_field_value, list):
+                        if isinstance(m2m_field_value, list):  # noqa: WPS220
                             for m2m_field_value_item in m2m_field_value:
                                 related_obj = related_model_class.objects.get(
                                     id=m2m_field_value_item,
                                 )
-                                request_details_related = request_details
+                                request_details_related = request_details  # noqa: WPS220
                                 request_details_related.related_model_class = (
                                     related_model_class
                                 )
@@ -437,15 +475,15 @@ class CrudlMeta[TDjangoModel](type):
                         try:
                             getattr(created_obj, m2m_field).set(m2m_field_value)
                         except IntegrityError:
-                            transaction.set_rollback(True)
+                            transaction.set_rollback(True)  # noqa: WPS220
                             return self.get_409_error(request)
 
                     # Perform full_clean() on the created object and raise an exception if it fails
                     try:
-                        created_obj.full_clean()
+                        created_obj.full_clean()  # noqa: WPS220
                     except ValidationError as validation_error:
                         # revert the transaction
-                        transaction.set_rollback(True)
+                        transaction.set_rollback(True)  # noqa: WPS220
                         return self.get_409_error(request, exception=validation_error)
 
                     request_details.object = created_obj
@@ -457,7 +495,7 @@ class CrudlMeta[TDjangoModel](type):
                 @http_get(
                     path=get_one_path,
                     response={
-                        status.HTTP_200_OK: GetOneSchema,
+                        status.HTTP_200_OK: GetOneSchema,  # pyright: ignore[reportPossiblyUnboundVariable]
                         status.HTTP_401_UNAUTHORIZED: Unauthorized401Schema,
                         status.HTTP_403_FORBIDDEN: Forbidden403Schema,
                         status.HTTP_404_NOT_FOUND: ErrorSchema,
@@ -465,6 +503,7 @@ class CrudlMeta[TDjangoModel](type):
                         status.HTTP_503_SERVICE_UNAVAILABLE: ServiceUnavailable503Schema,
                     },
                     operation_id=get_one_operation_id,
+                    by_alias=True,
                 )
                 @add_function_arguments(get_one_path)
                 def get_one(
@@ -473,7 +512,7 @@ class CrudlMeta[TDjangoModel](type):
                     **path_args: PathArgs,
                 ) -> tuple[Literal[403, 404], ErrorSchema] | Model:
                     """Retrieve an object."""
-                    request_details = RequestDetails(
+                    request_details = RequestDetails[Model](
                         action="get_one",
                         request=request,
                         schema=GetOneSchema,
@@ -481,7 +520,7 @@ class CrudlMeta[TDjangoModel](type):
                         model_class=model_class,
                     )
                     if not self.has_permission(request_details):
-                        return self.get_403_error(request)
+                        return self.get_403_error(request)  # noqa: WPS220
 
                     obj = (
                         self.get_pre_filtered_queryset(path_args)
@@ -490,10 +529,10 @@ class CrudlMeta[TDjangoModel](type):
                         .first()
                     )
                     if obj is None:
-                        return self.get_404_error(request)
+                        return self.get_404_error(request)  # noqa: WPS220
                     request_details.object = obj
                     if not self.has_object_permission(request_details):
-                        return self.get_404_error(request)
+                        return self.get_404_error(request)  # noqa: WPS220
                     return obj
 
             if update_fields:
@@ -502,33 +541,34 @@ class CrudlMeta[TDjangoModel](type):
                     path=update_path,
                     operation_id=update_operation_id,
                     response={
-                        status.HTTP_200_OK: UpdateSchema,
+                        status.HTTP_200_OK: UpdateSchema,  # pyright: ignore[reportPossiblyUnboundVariable]
                         status.HTTP_401_UNAUTHORIZED: Unauthorized401Schema,
                         status.HTTP_403_FORBIDDEN: Forbidden403Schema,
                         status.HTTP_404_NOT_FOUND: ErrorSchema,
                         status.HTTP_422_UNPROCESSABLE_ENTITY: UnprocessableEntity422Schema,
                         status.HTTP_503_SERVICE_UNAVAILABLE: ServiceUnavailable503Schema,
                     },
+                    by_alias=True,
                 )
                 @transaction.atomic
                 @add_function_arguments(update_path)
                 def update(
                     self,
                     request: HttpRequest,
-                    payload: UpdateSchema,
+                    payload: UpdateSchema,  # pyright: ignore[reportPossiblyUnboundVariable]
                     **path_args: PathArgs,
                 ) -> tuple[Literal[403, 404], ErrorSchema] | Model:
                     """Update an object."""
-                    request_details = RequestDetails[TDjangoModel](
+                    request_details = RequestDetails[Model](
                         action="put",
                         request=request,
                         schema=UpdateSchema,
                         path_args=path_args,
-                        payload=payload,
+                        payload=payload,  # pyright: ignore[reportPossiblyUnboundVariable]
                         model_class=model_class,
                     )
                     if not self.has_permission(request_details):
-                        return self.get_403_error(request)
+                        return self.get_403_error(request)  # noqa: WPS220
                     obj = (
                         self.get_pre_filtered_queryset(path_args)
                         .filter(self.get_base_filter(request_details))
@@ -537,14 +577,14 @@ class CrudlMeta[TDjangoModel](type):
                     )
 
                     if obj is None:
-                        return self.get_404_error(request)
+                        return self.get_404_error(request)  # noqa: WPS220
                     request_details.object = obj
                     if not self.has_object_permission(request_details):
-                        self.get_404_error(request)
+                        self.get_404_error(request)  # noqa: WPS220
                     self.pre_update(request_details)
 
                     for attr_name, attr_value in payload.model_dump().items():
-                        setattr(obj, attr_name, attr_value)
+                        setattr(obj, attr_name, attr_value)  # noqa: WPS220
                     obj.save()
                     self.post_update(request_details)
                     return obj
@@ -555,7 +595,7 @@ class CrudlMeta[TDjangoModel](type):
                     path=update_path,
                     operation_id=patch_operation_id,
                     response={
-                        status.HTTP_200_OK: UpdateSchema,
+                        status.HTTP_200_OK: UpdateSchema,  # pyright: ignore[reportPossiblyUnboundVariable]
                         status.HTTP_401_UNAUTHORIZED: Unauthorized401Schema,
                         status.HTTP_403_FORBIDDEN: Forbidden403Schema,
                         status.HTTP_404_NOT_FOUND: ResourceNotFound404Schema,
@@ -563,26 +603,27 @@ class CrudlMeta[TDjangoModel](type):
                         status.HTTP_503_SERVICE_UNAVAILABLE: ServiceUnavailable503Schema,
                     },
                     exclude_unset=True,
+                    by_alias=True,
                 )
                 @transaction.atomic
                 @add_function_arguments(update_path)
                 def patch(
                     self,
                     request: HttpRequest,
-                    payload: PartialUpdateSchema,
+                    payload: PartialUpdateSchema,  # pyright: ignore[reportInvalidTypeForm, reportUnknownParameterType]
                     **path_args: PathArgs,
                 ) -> tuple[Literal[403, 404], ErrorSchema] | Model:
-                    """Patch an object."""
-                    request_details = RequestDetails[TDjangoModel](
+                    """Partial update an object."""
+                    request_details = RequestDetails[Model](
                         action="patch",
                         request=request,
-                        schema=PartialUpdateSchema,
+                        schema=PartialUpdateSchema,  # pyright: ignore[reportPossiblyUnboundVariable]
                         path_args=path_args,
-                        payload=payload,
+                        payload=payload,  # pyright: ignore[reportUnknownArgumentType]
                         model_class=model_class,
                     )
                     if not self.has_permission(request_details):
-                        return self.get_403_error(request)
+                        return self.get_403_error(request)  # noqa: WPS220
                     obj: Model | None = (
                         self.get_pre_filtered_queryset(path_args)
                         .filter(self.get_base_filter(request_details))
@@ -590,13 +631,13 @@ class CrudlMeta[TDjangoModel](type):
                         .first()
                     )
                     if obj is None:
-                        return self.get_404_error(request)
+                        return self.get_404_error(request)  # noqa: WPS220
                     request_details.object = obj
                     if not self.has_object_permission(request_details):
-                        return self.get_404_error(request)
+                        return self.get_404_error(request)  # noqa: WPS220
 
                     for attr_name, attr_value in payload.items():
-                        setattr(obj, attr_name, attr_value)
+                        setattr(obj, attr_name, attr_value)  # noqa: WPS220
                     obj.save()
                     self.post_patch(request_details)
                     return obj
@@ -615,6 +656,7 @@ class CrudlMeta[TDjangoModel](type):
                         status.HTTP_422_UNPROCESSABLE_ENTITY: UnprocessableEntity422Schema,
                         status.HTTP_503_SERVICE_UNAVAILABLE: ServiceUnavailable503Schema,
                     },
+                    by_alias=True,
                 )
                 @transaction.atomic
                 @add_function_arguments(delete_path)
@@ -624,14 +666,14 @@ class CrudlMeta[TDjangoModel](type):
                     **path_args: PathArgs,
                 ) -> tuple[Literal[403, 404], ErrorSchema] | tuple[Literal[204], None]:
                     """Delete the object by id."""
-                    request_details = RequestDetails[TDjangoModel](
+                    request_details = RequestDetails[Model](
                         action="delete",
                         request=request,
                         path_args=path_args,
                         model_class=model_class,
                     )
                     if not self.has_permission(request_details):
-                        return self.get_403_error(request)
+                        return self.get_403_error(request)  # noqa: WPS220
 
                     obj = (
                         self.get_pre_filtered_queryset(path_args)
@@ -639,17 +681,17 @@ class CrudlMeta[TDjangoModel](type):
                         .first()
                     )
                     if obj is None:
-                        return self.get_404_error(request)
+                        return self.get_404_error(request)  # noqa: WPS220
                     request_details.object = obj
                     if not self.has_object_permission(request_details):
-                        return self.get_404_error(request)
+                        return self.get_404_error(request)  # noqa: WPS220
                     self.pre_delete(request_details)
                     obj.delete()
                     self.post_delete(request_details)
                     return 204, None
 
             if list_fields:
-                openapi_extra = {
+                openapi_extra: dict[str, Any] = {  # pyright: ignore[reportExplicitAny]
                     "responses": {
                         status.HTTP_200_OK: {
                             "description": "Successful response",
@@ -669,7 +711,7 @@ class CrudlMeta[TDjangoModel](type):
                 @http_get(
                     path=list_path,
                     response={
-                        200: list[ListSchema],
+                        200: list[ListSchema],  # pyright: ignore[reportPossiblyUnboundVariable]
                         401: Unauthorized401Schema,
                         status.HTTP_403_FORBIDDEN: Forbidden403Schema,
                         422: UnprocessableEntity422Schema,
@@ -678,18 +720,19 @@ class CrudlMeta[TDjangoModel](type):
                     operation_id=list_operation_id,
                     tags=tags,
                     openapi_extra=openapi_extra,
+                    by_alias=True,
                 )
                 # @paginate
                 # @searching(Searching, search_fields=search_fields)
                 @add_function_arguments(list_path)
-                def get_many(
+                def get_many(  # noqa: WPS210
                     self,
                     request: HttpRequest,
                     response: HttpResponse,
                     **path_args: PathArgs,
                 ) -> tuple[Literal[403], ErrorSchema] | models.Manager[Model]:
                     """List all objects."""
-                    request_details = RequestDetails[TDjangoModel](
+                    request_details = RequestDetails[Model](
                         action="list",
                         request=request,
                         path_args=path_args,
@@ -697,7 +740,7 @@ class CrudlMeta[TDjangoModel](type):
                     )
 
                     if not self.has_permission(request_details):
-                        return self.get_403_error(request)
+                        return self.get_403_error(request)  # noqa: WPS220
 
                     qs = (
                         self.get_pre_filtered_queryset(path_args)
@@ -714,41 +757,41 @@ class CrudlMeta[TDjangoModel](type):
                     related_fields: list[str] = []
                     property_fields: list[str] = []
 
-                    for field_name, field in ListSchema.model_fields.items():
-                        attr = getattr(model_class, field_name, None)
+                    for field_name in ListSchema.model_fields:
+                        attr = getattr(model_class, field_name, None)  # noqa: WPS220
 
                         # Skip @property methods here
                         if attr and isinstance(attr, property):
-                            property_fields.append(field_name)
+                            property_fields.append(field_name)  # noqa: WPS220
                             # TODO: Implement a way to avoid N+1 queries when using @property methods
-                            logger.debug(
+                            logger.debug(  # noqa: WPS220
                                 "Detected use of @property method %s of the model %s in"
                                 " list_fields definition which"
                                 " may cause N+1 queries and cause performance degradation.",
                                 field_name,
                                 model_class,
                             )
-                            return qs
+                            return qs  # noqa: WPS220
 
                         django_field = model_class._meta.get_field(field_name)  # noqa: SLF001
                         if isinstance(
                             django_field,
                             OneToOneField | ForeignKey,
                         ):
-                            related_models.append(field_name)
-                            related_fields.extend(
+                            related_models.append(field_name)  # noqa: WPS220
+                            related_fields.extend(  # noqa: WPS220
                                 get_pydantic_fields(
                                     ListSchema,
                                     field_name,
                                 ),
                             )
 
-                        elif isinstance(
+                        elif isinstance(  # noqa: WPS220
                             django_field,
                             ManyToManyField,
                         ):
-                            many_to_many_models.append(field_name)
-                            related_fields.extend(
+                            many_to_many_models.append(field_name)  # noqa: WPS220
+                            related_fields.extend(  # noqa: WPS220
                                 get_pydantic_fields(
                                     ListSchema,
                                     field_name,
@@ -771,6 +814,14 @@ class CrudlMeta[TDjangoModel](type):
                     qs = qs.values(*all_fields)
                     return qs
 
+        # Add (overwrite if necessary) all mro attributes to the CrudlBase class
+        # This allows the CrudlBase class to inherit all attributes from
+        # parent class of the `Crudl` class.
+        for base in bases:
+            for attr_name, attr_value in base.__dict__.items():
+                if not attr_name.startswith("__"):
+                    setattr(CrudlBase, attr_name, attr_value)
+
         # Add (overwrite if necessary) all dct attributes to the CrudlBase class
         for attr_name, attr_value in dct.items():
             if not attr_name.startswith("__"):
@@ -786,10 +837,8 @@ class CrudlMeta[TDjangoModel](type):
         return super().__new__(cls, name, bases, dct)
 
 
-class Crudl(CrudlBaseMixin, metaclass=CrudlMeta):
+class Crudl[TDjangoModel: Model](CrudlBaseMixin[TDjangoModel], metaclass=CrudlMeta):
     """Base class for the CRUDL API."""
 
     class Meta(CrudlApiBaseMeta):
         """Configuration for the CRUDL API."""
-
-        abstract = True

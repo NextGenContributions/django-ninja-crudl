@@ -1,18 +1,19 @@
 """Base classes for the CRUDL API."""
 
 from abc import abstractmethod
+from typing import ClassVar
 
-from django.db.models import Model, Q
+from django.db.models import Model, Q  # noqa: WPS347
 
 from django_ninja_crudl.errors.mixin import ErrorHandlerMixin
 from django_ninja_crudl.permissions import BasePermission
 from django_ninja_crudl.types import RequestDetails
 
 
-class CrudlBaseMixin[TDjangoModel: Model](ErrorHandlerMixin):
+class CrudlBaseMixin[TDjangoModel: Model](ErrorHandlerMixin):  # noqa: WPS214
     """Mixin for the CRUDL API."""
 
-    _permission_classes: list[type[BasePermission]] = []
+    _permission_classes: ClassVar[list[type[BasePermission]]] = []
 
     def has_permission(
         self,
@@ -54,7 +55,7 @@ class CrudlBaseMixin[TDjangoModel: Model](ErrorHandlerMixin):
                 return False
         return True
 
-    def pre_create(self, request: RequestDetails[TDjangoModel]) -> None:
+    def pre_create(self, request: RequestDetails[TDjangoModel]) -> None:  # pyright: ignore[reportUnusedParameter]
         """Pre-create hook.
 
         Can be used to perform some actions or checks  before creating the object.
@@ -62,14 +63,14 @@ class CrudlBaseMixin[TDjangoModel: Model](ErrorHandlerMixin):
 
     def post_create(
         self,
-        request: RequestDetails[TDjangoModel],
+        request: RequestDetails[TDjangoModel],  # pyright: ignore[reportUnusedParameter]
     ) -> None:
         """Post-create hook.
 
         Can be used to perform some actions after creating the object.
         """
 
-    def pre_update(self, request: RequestDetails[TDjangoModel]) -> None:
+    def pre_update(self, request: RequestDetails[TDjangoModel]) -> None:  # pyright: ignore[reportUnusedParameter]
         """Pre-update hook.
 
         Can be used to perform some actions or checks before updating the object.
@@ -77,7 +78,7 @@ class CrudlBaseMixin[TDjangoModel: Model](ErrorHandlerMixin):
 
     def post_update(
         self,
-        request: RequestDetails[TDjangoModel],
+        request: RequestDetails[TDjangoModel],  # pyright: ignore[reportUnusedParameter]
     ) -> None:
         """Post-update hook.
 
@@ -86,7 +87,7 @@ class CrudlBaseMixin[TDjangoModel: Model](ErrorHandlerMixin):
 
     def pre_patch(
         self,
-        request: RequestDetails[TDjangoModel],
+        request: RequestDetails[TDjangoModel],  # pyright: ignore[reportUnusedParameter]
     ) -> None:
         """Pre-patch hook.
 
@@ -95,20 +96,20 @@ class CrudlBaseMixin[TDjangoModel: Model](ErrorHandlerMixin):
 
     def post_patch(
         self,
-        request: RequestDetails[TDjangoModel],
+        request: RequestDetails[TDjangoModel],  # pyright: ignore[reportUnusedParameter]
     ) -> None:
         """Post-patch hook.
 
         Can be used to perform some actions after patching the object.
         """
 
-    def pre_delete(self, request: RequestDetails[TDjangoModel]) -> None:
+    def pre_delete(self, request: RequestDetails[TDjangoModel]) -> None:  # pyright: ignore[reportUnusedParameter]
         """Pre-delete hook.
 
         Can be used to perform some actions or checks before deleting the object.
         """
 
-    def post_delete(self, request: RequestDetails[TDjangoModel]) -> None:
+    def post_delete(self, request: RequestDetails[TDjangoModel]) -> None:  # pyright: ignore[reportUnusedParameter]
         """Post-delete hook.
 
         Can be used to perform some actions after deleting the object.
