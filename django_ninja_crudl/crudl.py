@@ -635,6 +635,7 @@ class CrudlMeta[TDjangoModel: Model](type):
                     request_details.object = obj
                     if not self.has_object_permission(request_details):
                         return self.get_404_error(request)  # noqa: WPS220
+                    self.pre_patch(request_details)
 
                     for attr_name, attr_value in payload.items():
                         setattr(obj, attr_name, attr_value)  # noqa: WPS220
