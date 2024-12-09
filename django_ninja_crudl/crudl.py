@@ -544,7 +544,7 @@ class CrudlMeta[TDjangoModel: Model](type):
                         status.HTTP_200_OK: UpdateSchema,  # pyright: ignore[reportPossiblyUnboundVariable]
                         status.HTTP_401_UNAUTHORIZED: Unauthorized401Schema,
                         status.HTTP_403_FORBIDDEN: Forbidden403Schema,
-                        status.HTTP_404_NOT_FOUND: ErrorSchema,
+                        status.HTTP_404_NOT_FOUND: ResourceNotFound404Schema,
                         status.HTTP_422_UNPROCESSABLE_ENTITY: UnprocessableEntity422Schema,
                         status.HTTP_503_SERVICE_UNAVAILABLE: ServiceUnavailable503Schema,
                     },
@@ -580,7 +580,7 @@ class CrudlMeta[TDjangoModel: Model](type):
                         return self.get_404_error(request)  # noqa: WPS220
                     request_details.object = obj
                     if not self.has_object_permission(request_details):
-                        self.get_404_error(request)  # noqa: WPS220
+                        return self.get_404_error(request)  # noqa: WPS220
                     self.pre_update(request_details)
 
                     for attr_name, attr_value in payload.model_dump().items():
