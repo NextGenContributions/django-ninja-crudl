@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.2.1 (2024-12-09)
+
+### Bug Fixes
+
+- Missing return and incorrect return schema
+  ([`35547c4`](https://github.com/NextGenContributions/django-ninja-crudl/commit/35547c440d0515ff6ce3c96fffb8ffe4498e2784))
+
+
 ## v0.2.0 (2024-11-29)
 
 ### Documentation
