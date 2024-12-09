@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.2.2 (2024-12-09)
+
+### Bug Fixes
+
+- Missing pre_patch hook
+  ([`7c9596d`](https://github.com/NextGenContributions/django-ninja-crudl/commit/7c9596d43beff13c2819483a5704a81229e82dde))
+
+
 ## v0.2.1 (2024-12-09)
 
 ### Bug Fixes
