@@ -1,7 +1,6 @@
-from typing import TYPE_CHECKING, Any, Dict, Optional, Type
+from typing import TYPE_CHECKING, Annotated, Any, Dict, Type
 
 from pydantic_core import core_schema
-from typing_extensions import Annotated
 
 from ninja import Body
 from ninja.utils import is_optional_type
