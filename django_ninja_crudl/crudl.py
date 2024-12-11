@@ -18,7 +18,6 @@ from django.db.models import (
     OneToOneRel,
 )
 from django.http import HttpRequest, HttpResponse
-from ninja import PatchDict
 from ninja_extra import (
     ControllerBase,
     api_controller,
@@ -48,6 +47,7 @@ from django_ninja_crudl.errors.schemas import (
     UnprocessableEntity422Schema,
 )
 from django_ninja_crudl.model_utils import get_pydantic_fields
+from django_ninja_crudl.patch_dict import PatchDict
 from django_ninja_crudl.permissions import BasePermission
 from django_ninja_crudl.types import PathArgs, RequestDetails
 from django_ninja_crudl.utils import add_function_arguments, validating_manager
@@ -125,6 +125,7 @@ class CrudlMeta[TDjangoModel: Model](type):
             raise ValueError(msg)
 
         model_class: type[Model] = meta.model_class
+
 
         api_meta = getattr(model_class, "CrudlApiMeta", meta)
         if api_meta is None:
@@ -595,14 +596,13 @@ class CrudlMeta[TDjangoModel: Model](type):
                     path=update_path,
                     operation_id=patch_operation_id,
                     response={
-                        status.HTTP_200_OK: UpdateSchema,  # pyright: ignore[reportPossiblyUnboundVariable]
+                        status.HTTP_200_OK: PartialUpdateSchema,  # pyright: ignore[reportPossiblyUnboundVariable]
                         status.HTTP_401_UNAUTHORIZED: Unauthorized401Schema,
                         status.HTTP_403_FORBIDDEN: Forbidden403Schema,
                         status.HTTP_404_NOT_FOUND: ResourceNotFound404Schema,
                         status.HTTP_422_UNPROCESSABLE_ENTITY: UnprocessableEntity422Schema,
                         status.HTTP_503_SERVICE_UNAVAILABLE: ServiceUnavailable503Schema,
                     },
-                    exclude_unset=True,
                     by_alias=True,
                 )
                 @transaction.atomic
