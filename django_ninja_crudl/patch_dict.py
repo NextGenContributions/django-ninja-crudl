@@ -1,14 +1,14 @@
-from typing import TYPE_CHECKING, Annotated, Any, Dict, Type
-
-from pydantic_core import core_schema
+from copy import deepcopy
+from typing import TYPE_CHECKING, Annotated, Any
 
 from ninja import Body
 from ninja.utils import is_optional_type
+from pydantic_core import core_schema
 
 
 class ModelToDict(dict):
     _wrapped_model: Any = None
-    _wrapped_model_dump_params: Dict[str, Any] = {}
+    _wrapped_model_dump_params: dict[str, Any] = {}
 
     @classmethod
     def __get_pydantic_core_schema__(cls, _source: Any, _handler: Any) -> Any:
@@ -22,18 +22,15 @@ class ModelToDict(dict):
         return input_value.model_dump(**cls._wrapped_model_dump_params)
 
 
-def create_patch_schema(schema_cls: Type[Any]) -> Type[ModelToDict]:
-    values, annotations = {}, {}
-    for f in schema_cls.__fields__.keys():
-        t = schema_cls.__annotations__[f]
+def create_patch_schema(schema_cls: type[Any]) -> type[ModelToDict]:
+    # Turn required fields into optional by assigning a default None value
+    schema_cls_copy = deepcopy(schema_cls)
+    for f in schema_cls_copy.__pydantic_fields__.values():
+        t = f.annotation
         if not is_optional_type(t):
-            values[f] = getattr(schema_cls, f, None)
-            # 't' should not be annotated as 'Optional'
-            # This is the only difference compared to the original 'patch_dict.py' from 'django-ninja'
-            # https://github.com/vitalik/django-ninja/blob/b1ecd36e1c9b096ca68ca458cce687593d6173af/ninja/patch_dict.py#L32
-            annotations[f] = t
-    values["__annotations__"] = annotations
-    OptionalSchema = type(f"{schema_cls.__name__}Patch", (schema_cls,), values)
+            f.default = None
+    # The cloned schema should be recreated for the changes to take effect
+    OptionalSchema = type(f"{schema_cls.__name__}Patch", (schema_cls,), {})
 
     class OptionalDictSchema(ModelToDict):
         _wrapped_model = OptionalSchema
