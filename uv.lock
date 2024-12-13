@@ -375,7 +375,7 @@ wheels = [
 
 [[package]]
 name = "django-ninja-crudl"
-version = "0.2.2"
+version = "0.2.3"
 source = { editable = "." }
 dependencies = [
     { name = "django2pydantic" },

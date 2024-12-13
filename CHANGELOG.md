@@ -1,6 +1,20 @@
 # CHANGELOG
 
 
+## v0.2.3 (2024-12-13)
+
+### Bug Fixes
+
+- Partial payload patch ([#9](https://github.com/NextGenContributions/django-ninja-crudl/pull/9),
+  [`ba5bda5`](https://github.com/NextGenContributions/django-ninja-crudl/commit/ba5bda5be54e50ebe5eaa0ea482517e9d43db5c7))
+
+* fix: Partial payload patch
+
+* chore: Optimize import
+
+* fix: Patch schema did not have original field's metadata and validations
+
+
 ## v0.2.2 (2024-12-09)
 
 ### Bug Fixes
