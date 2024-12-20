@@ -2,10 +2,10 @@
 
 from typing import ClassVar, override
 
+from django2pydantic import Infer, ModelFields
 from django.contrib.auth.models import User
 from django.db import models
 
-from django2pydantic import Infer, ModelFields
 from django_ninja_crudl.crudl import CrudlApiBaseMeta
 
 

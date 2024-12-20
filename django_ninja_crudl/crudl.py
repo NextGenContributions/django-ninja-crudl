@@ -5,6 +5,8 @@ from enum import Enum, IntEnum
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, cast
 from uuid import UUID
 
+from django2pydantic import Infer, ModelFields
+from django2pydantic.schema import Schema
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, models, transaction
 from django.db.models import (
@@ -30,8 +32,6 @@ from ninja_extra import (
 )
 from pydantic import BaseModel
 
-from django2pydantic import Infer, ModelFields
-from django2pydantic.schema import Schema
 from django_ninja_crudl.base import CrudlBaseMixin
 from django_ninja_crudl.errors.openapi_extras import (
     not_authorized_openapi_extra,
@@ -125,7 +125,6 @@ class CrudlMeta[TDjangoModel: Model](type):
             raise ValueError(msg)
 
         model_class: type[Model] = meta.model_class
-
 
         api_meta = getattr(model_class, "CrudlApiMeta", meta)
         if api_meta is None:
