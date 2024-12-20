@@ -38,15 +38,21 @@ class ResourceNotFound404Schema(ErrorSchema):
     """The default resource not found schema."""
 
     code: str = "ResourceNotFound"
-    message: str = "The requested resource was not found or you do not have permission to access it."
-    user_friendly_message: str = "The requested resource was not found or you do not have permission to access it."
+    message: str = (
+        "The requested resource was not found or you do not have permission to access it."
+    )
+    user_friendly_message: str = (
+        "The requested resource was not found or you do not have permission to access it."
+    )
 
 
 class Conflict409Schema(ErrorSchema):
     """The default conflict schema."""
 
     code: str = "Conflict"
-    message: str = "The request could not be completed due to a conflict with the current state of the resource."
+    message: str = (
+        "The request could not be completed due to a conflict with the current state of the resource."
+    )
 
 
 class UnprocessableEntity422Schema(ErrorSchema):
@@ -73,7 +79,9 @@ class ServiceUnavailable503Schema(ErrorSchema):
     """The default service unavailable schema."""
 
     code: str = "ServiceUnavailable"
-    message: str = "The server is currently unable to handle the request due to a temporary overloading or maintenance of the server."
+    message: str = (
+        "The server is currently unable to handle the request due to a temporary overloading or maintenance of the server."
+    )
     user_friendly_message: str = (
         "The server is currently unavailable. Please try again later."
     )
