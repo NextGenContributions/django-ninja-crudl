@@ -2,7 +2,9 @@
 
 from ninja_extra import status
 
-not_authorized_openapi_extra = {
+from django_ninja_crudl.types import JSON
+
+not_authorized_openapi_extra: JSON = {  # pyre-ignore[11]
     status.HTTP_401_UNAUTHORIZED: {
         "description": "Unauthorized",
         "headers": {
@@ -16,7 +18,7 @@ not_authorized_openapi_extra = {
     },
 }
 
-throttle_openapi_extra = {
+throttle_openapi_extra: JSON = {
     status.HTTP_429_TOO_MANY_REQUESTS: {
         "description": "Too many requests",
         "headers": {
