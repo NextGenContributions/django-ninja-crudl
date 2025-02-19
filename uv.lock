@@ -546,7 +546,7 @@ dev = [
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "isort", specifier = ">=5.13.2" },
     { name = "mypy", specifier = ">=1.13.0" },
-    { name = "nitpick", git = "https://github.com/NextGenContributions/nitpick?rev=develop-ng" },
+    { name = "nitpick", git = "https://github.com/NextGenContributions/nitpick?rev=cb116b89b1bbdda1e69163788da1927d5b495e8f" },
     { name = "nox", specifier = ">=2024.10.9" },
     { name = "nplusone", specifier = ">=1.0.0" },
     { name = "pre-commit", specifier = ">=4.1.0" },
@@ -1447,7 +1447,7 @@ wheels = [
 [[package]]
 name = "nitpick"
 version = "0.35.0"
-source = { git = "https://github.com/NextGenContributions/nitpick?rev=develop-ng#cb116b89b1bbdda1e69163788da1927d5b495e8f" }
+source = { git = "https://github.com/NextGenContributions/nitpick?rev=cb116b89b1bbdda1e69163788da1927d5b495e8f#cb116b89b1bbdda1e69163788da1927d5b495e8f" }
 dependencies = [
     { name = "attrs" },
     { name = "autorepr" },
