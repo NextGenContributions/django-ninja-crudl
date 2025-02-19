@@ -7,9 +7,11 @@ from functools import wraps
 from typing import Any, TypeVar
 from uuid import UUID
 
+from beartype import beartype
 from django.db.models import Model
 
 
+@beartype
 def extract_arguments_from_path_spec(path_spec: str) -> dict[str, type]:
     """Extract arguments from the path spec.
 
@@ -34,7 +36,10 @@ def extract_arguments_from_path_spec(path_spec: str) -> dict[str, type]:
     return args_with_types
 
 
-def add_function_arguments(path_spec: str) -> Callable[[Callable], Callable]:
+@beartype
+def add_function_arguments(
+    path_spec: str,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Add function arguments to the decorated function."""
     new_args_with_types: dict[str, type] = extract_arguments_from_path_spec(path_spec)
 
@@ -71,6 +76,7 @@ T = TypeVar("T", bound=Model)
 SaveMethod = Callable[..., None]
 
 
+@beartype
 @contextmanager
 def validating_manager(model_class: type[T]) -> Generator[None, None, None]:
     """Replace the save method of a model class with a version that calls full_clean() before save."""

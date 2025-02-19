@@ -1,10 +1,12 @@
 """Super schema packages."""
 
-from django2pydantic import Infer, ModelFields  # hoisting/bubble up
+from django2pydantic import Infer, ModelFields  # hoisting/bubbling up
+from ninja_extra import ControllerBase, status  # hoisting/bubbling up
 
-from django_ninja_crudl.crudl import Crudl, CrudlApiBaseMeta
-from django_ninja_crudl.patch_dict import PatchDict
+from django_ninja_crudl.config import CrudlConfig
+from django_ninja_crudl.crudl_controller import CrudlController
 from django_ninja_crudl.permissions import BasePermission
+from django_ninja_crudl.schema import Schema
 from django_ninja_crudl.types import (
     ObjectlessActions,
     PathArgs,
@@ -15,14 +17,16 @@ from django_ninja_crudl.types import (
 __version__ = "0.2.3"
 
 __all__ = [
-    "Crudl",
-    "CrudlApiBaseMeta",
+    "BasePermission",
+    "ControllerBase",
+    "CrudlConfig",
+    "CrudlController",
+    "Infer",
+    "ModelFields",
     "ObjectlessActions",
-    "WithObjectActions",
-    "PatchDict",
     "PathArgs",
     "RequestDetails",
-    "BasePermission",
-    "ModelFields",
-    "Infer",
+    "Schema",
+    "WithObjectActions",
+    "status",
 ]
