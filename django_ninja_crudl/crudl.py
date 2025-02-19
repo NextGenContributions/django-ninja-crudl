@@ -322,7 +322,7 @@ class CrudlMeta(ABCMeta):
                         return self.get_404_error(request)  # noqa: WPS220
                     request_details.object = obj
                     if not self.has_object_permission(request_details):
-                        self.get_404_error(request)  # noqa: WPS220
+                        return self.get_404_error(request)  # noqa: WPS220
                     self.pre_update(request_details)
 
                     for attr_name, attr_value in payload.model_dump().items():
@@ -345,7 +345,6 @@ class CrudlMeta(ABCMeta):
                         status.HTTP_422_UNPROCESSABLE_ENTITY: Error422UnprocessableEntitySchema,
                         status.HTTP_503_SERVICE_UNAVAILABLE: Error503ServiceUnavailableSchema,
                     },
-                    exclude_unset=True,
                     by_alias=True,
                 )
                 @transaction.atomic
@@ -378,6 +377,7 @@ class CrudlMeta(ABCMeta):
                     request_details.object = obj
                     if not self.has_object_permission(request_details):
                         return self.get_404_error(request)  # noqa: WPS220
+                    self.pre_patch(request_details)
 
                     for attr_name, attr_value in payload.items():
                         setattr(obj, attr_name, attr_value)  # noqa: WPS220

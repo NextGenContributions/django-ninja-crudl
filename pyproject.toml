@@ -1,6 +1,6 @@
 [project]
 name = "django-ninja-crudl"
-version = "0.2.0"
+version = "0.2.3"
 description = "CRUDL REST API endpoints from Django ORM models using Django Ninja framework"
 requires-python = "==3.12.*"
 authors = [

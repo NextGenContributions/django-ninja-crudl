@@ -14,7 +14,7 @@ from django_ninja_crudl.types import (
     WithObjectActions,
 )
 
-__version__ = "0.2.0"
+__version__ = "0.2.3"
 
 __all__ = [
     "BasePermission",
