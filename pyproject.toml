@@ -3,20 +3,10 @@ name = "django-ninja-crudl"
 version = "0.2.3"
 description = "CRUDL REST API endpoints from Django ORM models using Django Ninja framework"
 requires-python = "==3.12.*"
-authors = [
-  {name = "Jukka Hassinen", email = "jukka.hassinen@gmail.com"}
-]
+authors = [{ name = "Jukka Hassinen", email = "jukka.hassinen@gmail.com" }]
 license = "MIT"
 readme = "README.md"
-keywords = [
-    "Django",
-    "Ninja",
-    "REST",
-    "API",
-    "CRUD",
-    "CRUDL",
-    "OpenAPI",
-]
+keywords = ["Django", "Ninja", "REST", "API", "CRUD", "CRUDL", "OpenAPI"]
 
 classifiers = [
     "License :: OSI Approved :: MIT License",
@@ -68,10 +58,21 @@ dev = [
     "schemathesis>=3.38.5",
     "wemake-python-styleguide>=0.19.2",
     "semgrep>=1.85.0",
+    "nitpick",
+    "django-stubs-ext>=5.1.1",
+    "django-stubs[compatible-mypy]>=5.1.1",
+    "beartype>=0.19.0",
+    "typeguard>=4.4.1",
+    "wemake-python-styleguide>=1.0.0",
+    "taplo>=0.9.3",
+    "project-config>=0.9.7",
+    "pre-commit>=4.1.0",
+    "python-semantic-release>=9.14.0",
 ]
 
 [tool.uv.sources]
 django2pydantic = { index = "testpypi" }
+nitpick = { git = "https://github.com/NextGenContributions/nitpick", rev = "develop-ng" }
 
 [[tool.uv.index]]
 name = "testpypi"
@@ -101,9 +102,7 @@ major_on_zero = true
 allow_zero_version = true
 no_git_verify = false
 tag_format = "v{version}"
-version_toml = [
-    "pyproject.toml:project.version",
-]
+version_toml = ["pyproject.toml:project.version"]
 version_variables = [
     "django_ninja_crudl/__init__.py:__version__",
     "uv.lock:\"django-ninja-crudl\"\\nversion",
@@ -116,16 +115,16 @@ prerelease = false
 
 [tool.semantic_release.changelog]
 exclude_commit_patterns = [
-  '''chore(?:\([^)]*?\))?: .+''',
-  '''ci(?:\([^)]*?\))?: .+''',
-  '''refactor(?:\([^)]*?\))?: .+''',
-  '''style(?:\([^)]*?\))?: .+''',
-  '''test(?:\([^)]*?\))?: .+''',
-  '''build\((?!deps\): .+)''',
-  '''Merged? .*''',
-  '''Initial Commit.*''',
-  # Old semantic-release version commits
-  '''^\d+\.\d+\.\d+''',
+    '''chore(?:\([^)]*?\))?: .+''',
+    '''ci(?:\([^)]*?\))?: .+''',
+    '''refactor(?:\([^)]*?\))?: .+''',
+    '''style(?:\([^)]*?\))?: .+''',
+    '''test(?:\([^)]*?\))?: .+''',
+    '''build\((?!deps\): .+)''',
+    '''Merged? .*''',
+    '''Initial Commit.*''',
+    # Old semantic-release version commits
+    '''^\d+\.\d+\.\d+''',
 ]
 mode = "init"
 insertion_flag = "<!-- version list -->"
@@ -157,7 +156,18 @@ default = "semantic-release <semantic-release>"
 [tool.semantic_release.commit_parser_options]
 minor_tags = ["feat"]
 patch_tags = ["fix", "perf"]
-allowed_tags = ["feat", "fix", "perf", "build", "chore", "ci", "docs", "style", "refactor", "test"]
+allowed_tags = [
+    "feat",
+    "fix",
+    "perf",
+    "build",
+    "chore",
+    "ci",
+    "docs",
+    "style",
+    "refactor",
+    "test",
+]
 default_bump_level = 0
 
 [tool.semantic_release.remote]
@@ -169,4 +179,3 @@ insecure = false
 [tool.semantic_release.publish]
 dist_glob_patterns = ["dist/*"]
 upload_to_vcs_release = true
-
