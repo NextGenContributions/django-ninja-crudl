@@ -25,10 +25,7 @@ from django_ninja_crudl.errors.openapi_extras import (
     not_authorized_openapi_extra,
     throttle_openapi_extra,
 )
-from django_ninja_crudl.types import (
-    JSON,
-    DictStrAny,
-)
+from django_ninja_crudl.types import JSON, DictStrAny
 
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 

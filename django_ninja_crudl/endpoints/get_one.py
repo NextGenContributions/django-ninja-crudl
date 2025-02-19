@@ -12,10 +12,7 @@ from django.db.models import (
     OneToOneRel,
 )
 from django.http import HttpRequest
-from ninja_extra import (
-    http_get,
-    status,
-)
+from ninja_extra import http_get, status
 
 from django_ninja_crudl import CrudlConfig
 from django_ninja_crudl.base import CrudlBaseMethodsMixin

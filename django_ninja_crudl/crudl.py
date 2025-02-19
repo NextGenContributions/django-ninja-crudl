@@ -21,9 +21,9 @@ from django.db.models import (
 )
 from django.http import HttpRequest, HttpResponse
 from ninja import PatchDict
+from ninja_extra import api_controller  # pyright: ignore[reportUnknownVariableType]
 from ninja_extra import (
     ControllerBase,
-    api_controller,  # pyright: ignore[reportUnknownVariableType]
     http_delete,
     http_get,
     http_patch,
@@ -182,7 +182,10 @@ class CrudlMeta(ABCMeta):
                         transaction.set_rollback(True)
                         return self.get_409_error(request, exception=integrity_error)
 
-                    for m2m_field, m2m_field_value in m2m_fields_to_set:  # pyright: ignore[reportAny]
+                    for (
+                        m2m_field,
+                        m2m_field_value,
+                    ) in m2m_fields_to_set:  # pyright: ignore[reportAny]
                         related_model_class = self._get_related_model(m2m_field)
 
                         if isinstance(m2m_field_value, list):  # noqa: WPS220

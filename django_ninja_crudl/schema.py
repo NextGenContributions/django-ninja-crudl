@@ -4,6 +4,7 @@ from typing import Generic, final
 
 from django2pydantic import BaseSchema, ModelFields
 from django2pydantic.schema import SchemaConfig
+
 from django_ninja_crudl.types import TDjangoModel, TDjangoModel_co
 
 

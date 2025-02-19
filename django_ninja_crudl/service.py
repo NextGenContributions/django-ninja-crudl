@@ -17,16 +17,12 @@ from django.db.models import (
     OneToOneRel,
 )
 from django.http import HttpRequest, HttpResponse
-from ninja_extra import (
-    api_controller,
-)
+from ninja_extra import api_controller
 from pydantic import BaseModel
 
 from django_ninja_crudl.base import CrudlBaseMethodsMixin
 from django_ninja_crudl.config import CrudlConfig
-from django_ninja_crudl.errors.schemas import (
-    ErrorSchema,
-)
+from django_ninja_crudl.errors.schemas import ErrorSchema
 from django_ninja_crudl.model_utils import get_pydantic_fields
 from django_ninja_crudl.types import PathArgs, RequestDetails, TDjangoModel_co
 from django_ninja_crudl.utils import validating_manager
@@ -98,7 +94,10 @@ class CreateEndpoint(
             transaction.set_rollback(True)
             return self.get_409_error(request, exception=integrity_error)
 
-        for m2m_field, m2m_field_value in m2m_fields_to_set:  # pyright: ignore[reportAny]
+        for (
+            m2m_field,
+            m2m_field_value,
+        ) in m2m_fields_to_set:  # pyright: ignore[reportAny]
             related_model_class = self._get_related_model(m2m_field)  # pyright: ignore[reportPrivateUsage]
 
             if isinstance(m2m_field_value, list):

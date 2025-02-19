@@ -15,10 +15,7 @@ from django.db.models import (
     OneToOneRel,
 )
 from django.http import HttpRequest
-from ninja_extra import (
-    http_post,
-    status,
-)
+from ninja_extra import http_post, status
 
 from django_ninja_crudl.base import CrudlBaseMethodsMixin
 from django_ninja_crudl.config import CrudlConfig
@@ -114,7 +111,10 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                 transaction.set_rollback(True)
                 return self.get_409_error(request, exception=integrity_error)
 
-            for m2m_field, m2m_field_value in m2m_fields_to_set:  # pyright: ignore[reportAny]
+            for (
+                m2m_field,
+                m2m_field_value,
+            ) in m2m_fields_to_set:  # pyright: ignore[reportAny]
                 related_model_class = self._get_related_model(m2m_field)  # pyright: ignore[reportPrivateUsage]
 
                 if isinstance(m2m_field_value, list):

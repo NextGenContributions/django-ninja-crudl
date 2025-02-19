@@ -4,14 +4,9 @@ from abc import ABC
 from typing import Literal
 
 from django.db import transaction
-from django.db.models import (
-    Model,
-)
+from django.db.models import Model
 from django.http import HttpRequest
-from ninja_extra import (
-    http_delete,
-    status,
-)
+from ninja_extra import http_delete, status
 
 from django_ninja_crudl import CrudlConfig
 from django_ninja_crudl.base import CrudlBaseMethodsMixin
