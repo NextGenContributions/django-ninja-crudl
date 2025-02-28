@@ -7,15 +7,15 @@
 version: 2
 enable-beta-ecosystems: true
 updates:
- - package-ecosystem: "devcontainers"
-   directory: "/"
-   schedule:
-     interval: weekly
- - package-ecosystem: "docker"
-   directory: "/"
-   schedule:
-     interval: weekly
- - package-ecosystem: "uv"
-   directory: "/" # Location of package manifests
-   schedule:
-     interval: daily
+  - package-ecosystem: "devcontainers"
+    directory: "/"
+    schedule:
+      interval: weekly
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: weekly
+  - package-ecosystem: "uv"
+    directory: "/" # Location of package manifests
+    schedule:
+      interval: daily
