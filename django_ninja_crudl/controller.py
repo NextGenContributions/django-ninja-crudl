@@ -94,6 +94,7 @@ class CrudlMeta(ABCMeta):
 
         return dynamic_class
 
+    # TODO(phuongfi91): use this where it needed
     @classmethod
     def _create_schema_extra(
         cls,

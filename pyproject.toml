@@ -52,7 +52,8 @@ dev = [
     "pytest-instafail>=0.5.0",
     "pytest-testmon>=2.1.1",
     "pytest-watch>=4.2.0",
-    "pytype>=2024.10.11",
+    # TODO(phuongfi91): pytype causes issue with overlapping ninja packages
+#    "pytype>=2024.10.11",
     "rich>=13.9.4",
     "ruff>=0.7.3",
     "schemathesis>=3.38.5",
@@ -71,7 +72,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-django2pydantic = { index = "testpypi" }
+django2pydantic = { git = "https://github.com/NextGenContributions/django2pydantic", branch = "main" }
 nitpick = { git = "https://github.com/NextGenContributions/nitpick", branch = "develop-ng" }
 
 [[tool.uv.index]]
