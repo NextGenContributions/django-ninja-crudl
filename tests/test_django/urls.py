@@ -90,6 +90,7 @@ class PublisherCrudl(CrudlController[Publisher]):
                 "address": Infer,
             }
         ),
+        delete_allowed=True,
     )
 
 
