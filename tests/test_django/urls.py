@@ -1,12 +1,16 @@
 """URL configuration for the Django test project."""
 
+from typing import override
+
 from django.contrib import admin
+from django.db.models import Q
 from django.urls import path
 from django.urls.resolvers import URLResolver
 from django2pydantic import Infer
 from ninja_extra import NinjaExtraAPI
 
-from django_ninja_crudl import CrudlConfig, CrudlController, Schema
+from django_ninja_crudl import CrudlConfig, CrudlController, RequestDetails, Schema
+from django_ninja_crudl.mixins.filters import FiltersMixin
 from tests.test_django.app.models import (
     Author,
     Book,
@@ -17,7 +21,38 @@ from tests.test_django.app.models import (
 )
 
 
-class AuthorCrudl(CrudlController[Author]):
+class DefaultFilter(FiltersMixin):
+    @override
+    def get_base_filter(self, request: RequestDetails) -> Q:
+        """Return the base queryset filter that applies to all CRUDL operations."""
+        return Q()
+
+    @override
+    def get_filter_for_update(self, request: RequestDetails) -> Q:
+        """Return the queryset filter that applies to the update operation."""
+        # return self.get_filter(request, 'change')
+        return Q()
+
+    @override
+    def get_filter_for_delete(self, request: RequestDetails) -> Q:
+        """Return the queryset filter that applies to the delete operation."""
+        # return self.get_filter(request, 'delete')
+        return Q()
+
+    @override
+    def get_filter_for_list(self, request: RequestDetails) -> Q:
+        """Return the queryset filter that applies to the list operation."""
+        # return self.get_filter(request, "view")
+        return Q()
+
+    @override
+    def get_filter_for_get_one(self, request: RequestDetails) -> Q:
+        """Return the queryset filter that applies to the get_one operation."""
+        # return self.get_filter(request, 'view')
+        return Q()
+
+
+class AuthorCrudl(CrudlController[Author], DefaultFilter):
     config = CrudlConfig[Author](
         model=Author,
         base_path="/authors",
@@ -55,7 +90,7 @@ class AuthorCrudl(CrudlController[Author]):
     )
 
 
-class PublisherCrudl(CrudlController[Publisher]):
+class PublisherCrudl(CrudlController[Publisher], DefaultFilter):
     config = CrudlConfig[Publisher](
         model=Publisher,
         base_path="/publishers",
@@ -148,7 +183,7 @@ class BookCrudl(CrudlController[Book]):
     )
 
 
-class LibraryCrudl(CrudlController[Library]):
+class LibraryCrudl(CrudlController[Library], DefaultFilter):
     config = CrudlConfig[Library](
         model=Library,
         base_path="/libraries",
@@ -181,7 +216,7 @@ class LibraryCrudl(CrudlController[Library]):
     )
 
 
-class BookCopyCrudl(CrudlController[BookCopy]):
+class BookCopyCrudl(CrudlController[BookCopy], DefaultFilter):
     config = CrudlConfig[BookCopy](
         model=BookCopy,
         base_path="/book_copies",
@@ -218,7 +253,7 @@ class BookCopyCrudl(CrudlController[BookCopy]):
     )
 
 
-class BorrowingCrudl(CrudlController[Borrowing]):
+class BorrowingCrudl(CrudlController[Borrowing], DefaultFilter):
     config = CrudlConfig[Borrowing](
         model=Borrowing,
         base_path="/borrowings",

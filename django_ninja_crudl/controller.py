@@ -44,7 +44,6 @@ class CrudlMeta(ABCMeta):
         """Create a new class."""
         # quit if this is an abstract base class
         if not dct.get("config") or name == "CrudlController":
-            print("No config", cls, name, bases, dct)
             return super().__new__(cls, name, bases, dct)
 
         config = dct.get("config")
@@ -79,11 +78,26 @@ class CrudlMeta(ABCMeta):
             delete_endpoint = get_delete_endpoint(config)
             endpoints += (delete_endpoint,)
 
-        bases = (APIController, ControllerBase, CrudlBaseMethodsMixin)
+
+        # Add (overwrite if necessary) all mro attributes to the controller class
+        # This allows the controller class to inherit all attributes from
+        # parent class of the `Crudl` class.
+        bases_dct = {}
+        for base in bases:
+            for attr_name, attr_value in base.__dict__.items():
+                if not attr_name.startswith("__"):
+                    bases_dct[attr_name] = attr_value
+
+        # Add all attributes to dct, while allowing the child's attributes to overwrite
+        # parents' attributes
+        for attr_name, attr_value in bases_dct.items():
+            dct = bases_dct | dct
+
+        # Contruct the final API controller class
+        # bases = (APIController, ControllerBase, CrudlBaseMethodsMixin)
+        # TODO(phuongfi91): ^ why did we have APIController here?
+        bases = (ControllerBase, CrudlBaseMethodsMixin)
         final_bases = endpoints + bases
-
-        print("final_bases", final_bases)
-
         dynamic_class = api_controller(tags=config.tags)(
             type(
                 name,
@@ -91,7 +105,6 @@ class CrudlMeta(ABCMeta):
                 dct,
             )
         )
-
         return dynamic_class
 
     # TODO(phuongfi91): use this where it needed

@@ -55,6 +55,7 @@ def pytest_configure(
             "django.contrib.sessions",
             "django.contrib.sites",
             "django.contrib.staticfiles",
+            "ninja_extra",
             "tests.test_django.app",
         ),
         PASSWORD_HASHERS=("django.contrib.auth.hashers.MD5PasswordHasher",),
