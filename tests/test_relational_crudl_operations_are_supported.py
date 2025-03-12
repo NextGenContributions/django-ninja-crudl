@@ -20,7 +20,7 @@ def test_create_relation_with_post_works(client: Client) -> None:
     )
 
     response = client.post(
-        "/api/books/",
+        "/api/books",
         content_type="application/json",
         data={
             "title": "Some book",
@@ -172,7 +172,7 @@ def test_list_relation_works(client: Client) -> None:
     )
     book.authors.set([author])
 
-    response = client.get("/api/books/")
+    response = client.get("/api/books")
     assert response.status_code == status.HTTP_200_OK
     assert len(response.json()) == 1
     assert response.json()[0]["title"] == "Some book"

@@ -11,7 +11,7 @@ from tests.test_django.app.models import Publisher
 def test_create_resource_with_post_works(client: Client) -> None:
     """Test creating a resource with POST request."""
     response = client.post(
-        "/api/publishers/",
+        "/api/publishers",
         content_type="application/json",
         data={
             "name": "Some publisher",
@@ -47,7 +47,7 @@ def test_list_resources_works(client: Client) -> None:
         name="Some publisher",
         address="Some address",
     )
-    response = client.get("/api/publishers/")
+    response = client.get("/api/publishers")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == [
         {

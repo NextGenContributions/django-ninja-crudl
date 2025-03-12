@@ -2,7 +2,7 @@
 
 from typing import Generic, final
 
-from django2pydantic import BaseSchema, ModelFields
+from django2pydantic import BaseSchema, ModelFields, ModelFieldsCompact
 from django2pydantic.schema import SchemaConfig
 
 from django_ninja_crudl.types import TDjangoModel, TDjangoModel_co
@@ -11,9 +11,9 @@ from django_ninja_crudl.types import TDjangoModel, TDjangoModel_co
 class Schema(Generic[TDjangoModel_co]):
     """Deferred Schema for the CRUDL classes."""
 
-    def __init__(self, fields: ModelFields) -> None:
+    def __init__(self, fields: ModelFields | ModelFieldsCompact) -> None:
         """Initialize the Schema class."""
-        self.fields: ModelFields = fields
+        self.fields: ModelFields | ModelFieldsCompact = fields
         super().__init__()
 
     def create_pydantic_model(

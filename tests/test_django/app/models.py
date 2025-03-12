@@ -1,12 +1,9 @@
 """Models for the Django test project."""
 
-from typing import ClassVar, override
+from typing import override
 
 from django.contrib.auth.models import User
 from django.db import models
-
-from django2pydantic import Infer, ModelFields
-from django_ninja_crudl.crudl import CrudlApiBaseMeta
 
 
 class Author(models.Model):
@@ -43,33 +40,6 @@ class Author(models.Model):
         """Return the count of books written by the author."""
         return self.books.count()
 
-    class CrudlApiMeta(CrudlApiBaseMeta):
-        """Configuration for the CRUDL API."""
-
-        create_fields: ClassVar[ModelFields | None] = {
-            "name": Infer,
-            "birth_date": Infer,
-        }
-        update_fields: ClassVar[ModelFields | None] = {
-            "name": Infer,
-            "birth_date": Infer,
-        }
-        get_one_fields: ClassVar[ModelFields | None] = {
-            "id": Infer,
-            "name": Infer,
-            "birth_date": Infer,
-            "age": Infer,
-            "books_count": Infer,
-            "books": {"id": Infer, "title": Infer},
-        }
-        list_fields: ClassVar[ModelFields | None] = {
-            "id": Infer,
-            "name": Infer,
-            "birth_date": Infer,
-            "age": Infer,
-            "books_count": Infer,
-        }
-
 
 class Publisher(models.Model):
     """Model for a book publisher."""
@@ -83,28 +53,6 @@ class Publisher(models.Model):
         """Meta options for the model."""
 
         default_related_name = "publishers"
-
-    class CrudlApiMeta(CrudlApiBaseMeta):
-        """Configuration for the CRUDL API."""
-
-        create_fields: ClassVar[ModelFields | None] = {
-            "name": Infer,
-            "address": Infer,
-        }
-        update_fields: ClassVar[ModelFields | None] = {
-            "name": Infer,
-            "address": Infer,
-        }
-        get_one_fields: ClassVar[ModelFields | None] = {
-            "id": Infer,
-            "name": Infer,
-            "address": Infer,
-        }
-        list_fields: ClassVar[ModelFields | None] = {
-            "id": Infer,
-            "name": Infer,
-            "address": Infer,
-        }
 
     @override
     def __str__(self) -> str:
@@ -151,48 +99,6 @@ class Book(models.Model):
         """Return the count of book copies of the book."""
         return self.book_copies.count()
 
-    class CrudlApiMeta(CrudlApiBaseMeta):
-        """Configuration for the CRUDL API."""
-
-        create_fields: ClassVar[ModelFields | None] = {
-            "title": Infer,
-            "isbn": Infer,
-            "publication_date": Infer,
-            "publisher_id": Infer,
-            "authors": Infer,
-        }
-        update_fields: ClassVar[ModelFields | None] = {
-            "title": Infer,
-            "isbn": Infer,
-            "publication_date": Infer,
-            "publisher_id": Infer,
-            "authors": Infer,
-            "publisher": Infer,
-        }
-        get_one_fields: ClassVar[ModelFields | None] = {
-            "id": Infer,
-            "title": Infer,
-            "isbn": Infer,
-            "publication_date": Infer,
-            "authors": {"id": Infer, "name": Infer, "birth_date": Infer},
-            "publisher": {"id": Infer, "name": Infer},
-        }
-        list_fields: ClassVar[ModelFields | None] = {
-            "id": Infer,
-            "title": Infer,
-            "isbn": Infer,
-            "publication_date": Infer,
-            "publisher": {"id": Infer, "name": Infer},
-            "authors": {"id": Infer, "name": Infer},
-        }
-        search_fields: ClassVar[list[str]] = [
-            "title",
-            "isbn",
-            "authors__name",
-            "publisher__name",
-            "publication_date",
-        ]
-
 
 class Library(models.Model):
     """Model for a library."""
@@ -204,28 +110,6 @@ class Library(models.Model):
         """Meta options for the model."""
 
         default_related_name = "libraries"
-
-    class CrudlApiMeta(CrudlApiBaseMeta):
-        """Configuration for the CRUDL API."""
-
-        create_fields: ClassVar[ModelFields | None] = {
-            "name": Infer,
-            "address": Infer,
-        }
-        update_fields: ClassVar[ModelFields | None] = {
-            "name": Infer,
-            "address": Infer,
-        }
-        get_one_fields: ClassVar[ModelFields | None] = {
-            "id": Infer,
-            "name": Infer,
-            "address": Infer,
-        }
-        list_fields: ClassVar[ModelFields | None] = {
-            "id": Infer,
-            "name": Infer,
-            "address": Infer,
-        }
 
     @override
     def __str__(self) -> str:
@@ -248,32 +132,6 @@ class BookCopy(models.Model):
 
         default_related_name = "book_copies"
 
-    class CrudlApiMeta(CrudlApiBaseMeta):
-        """Configuration for the CRUDL API."""
-
-        create_fields: ClassVar[ModelFields | None] = {
-            "book_id": Infer,
-            "library_id": Infer,
-            "inventory_number": Infer,
-        }
-        update_fields: ClassVar[ModelFields | None] = {
-            "book_id": Infer,
-            "library_id": Infer,
-            "inventory_number": Infer,
-        }
-        get_one_fields: ClassVar[ModelFields | None] = {
-            "id": Infer,
-            "book": {"id": Infer, "title": Infer},
-            "library": {"id": Infer, "name": Infer, "address": Infer},
-            "inventory_number": Infer,
-        }
-        list_fields: ClassVar[ModelFields | None] = {
-            "id": Infer,
-            "book": {"id": Infer, "title": Infer},
-            "library": {"id": Infer, "name": Infer},
-            "inventory_number": Infer,
-        }
-
     @override
     def __str__(self) -> str:
         """Return the string representation of the book copy."""
@@ -295,32 +153,6 @@ class Borrowing(models.Model):
         """Meta options for the model."""
 
         default_related_name = "borrowings"
-
-    class CrudlApiMeta(CrudlApiBaseMeta):
-        """Configuration for the CRUDL API."""
-
-        create_fields: ClassVar[ModelFields | None] = {
-            "user_id": Infer,
-            "book_copy_id": Infer,
-            "borrow_date": Infer,
-        }
-        update_fields: ClassVar[ModelFields | None] = {
-            "return_date": Infer,
-        }
-        get_one_fields: ClassVar[ModelFields | None] = {
-            "id": Infer,
-            "user": {"id": Infer},
-            "book_copy": {"id": Infer},
-            "borrow_date": Infer,
-            "return_date": Infer,
-        }
-        list_fields: ClassVar[ModelFields | None] = {
-            "id": Infer,
-            "user": {"id": Infer},
-            "book_copy": {"id": Infer},
-            "borrow_date": Infer,
-            "return_date": Infer,
-        }
 
     @override
     def __str__(self) -> str:

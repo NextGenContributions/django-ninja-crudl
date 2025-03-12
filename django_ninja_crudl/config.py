@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from typing import Generic, final, overload, override
 
 from beartype import beartype
+from django.db import models
 from django2pydantic import BaseSchema
 from django2pydantic.schema import SchemaConfig
-from django.db import models
 from ninja import PatchDict
 from pydantic import BaseModel
 
@@ -187,12 +187,12 @@ class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instanc
         """Get the path class."""
 
         @final
-        class PathId(BaseSchema):
+        class PathId(BaseSchema[models.Model]):
             """Path ID class."""
 
-            config = SchemaConfig(
+            config = SchemaConfig[models.Model](
                 model=model_class,
-                fields={cls._get_pk_name(model_class)},
+                fields=[cls._get_pk_name(model_class)],
             )
 
         return PathId
@@ -232,7 +232,11 @@ class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instanc
     @beartype
     @staticmethod
     def _get_pk_name(model_class: type[models.Model]) -> str:
-        return model_class._meta.pk.name  # noqa: SLF001, WPS437
+        pk = model_class._meta.pk  # noqa: SLF001
+        if pk is None:
+            msg = f"Model {model_class.__name__} doesn't have a primary key"
+            raise ValueError(msg)
+        return pk.name
 
     @beartype
     @staticmethod
@@ -259,7 +263,7 @@ class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instanc
 
             config = SchemaConfig[models.Model](
                 model=model_class,
-                fields={"id"},
+                fields=["id"],
             )
 
         return CreateResponseSchema
