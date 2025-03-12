@@ -78,7 +78,6 @@ class CrudlMeta(ABCMeta):
             delete_endpoint = get_delete_endpoint(config)
             endpoints += (delete_endpoint,)
 
-
         # Add (overwrite if necessary) all mro attributes to the controller class
         # This allows the controller class to inherit all attributes from
         # parent class of the `Crudl` class.
