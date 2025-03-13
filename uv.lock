@@ -575,7 +575,7 @@ dev = [
 
 [[package]]
 name = "django-ninja-extra"
-version = "0.22.0"
+version = "0.22.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asgiref" },
