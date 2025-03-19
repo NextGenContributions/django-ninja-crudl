@@ -2,7 +2,7 @@
 
 import logging
 from abc import ABC
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from django.db import transaction
 from django.db.models import (
@@ -32,6 +32,9 @@ from django_ninja_crudl.types import (
     TDjangoModel_co,
 )
 from django_ninja_crudl.utils import add_function_arguments
+
+if TYPE_CHECKING:
+    from django.db.models.fields.related_descriptors import ManyRelatedManager
 
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 
@@ -79,7 +82,7 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             if not self.has_permission(request_details):
                 return self.get_403_error(request)  # noqa: WPS220
             obj: Model | None = (
-                self.get_pre_filtered_queryset(path_args)
+                self.get_pre_filtered_queryset(config.model, path_args)
                 .filter(self.get_base_filter(request_details))
                 .filter(self.get_filter_for_update(request_details))
                 .first()
@@ -91,7 +94,15 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                 return self.get_404_error(request)  # noqa: WPS220
 
             for attr_name, attr_value in payload.items():
-                setattr(obj, attr_name, attr_value)  # noqa: WPS220
+                try:
+                    setattr(obj, attr_name, attr_value)
+                except TypeError as e:
+                    msg = "Direct assignment to the forward side of a many-to-many set is prohibited."
+                    if msg in str(e):
+                        m2m_manager: ManyRelatedManager[Model] = getattr(obj, attr_name)
+                        m2m_manager.set(attr_value)
+                    else:
+                        raise
             obj.save()
             self.post_patch(request_details)
             return obj

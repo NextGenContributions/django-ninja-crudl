@@ -129,7 +129,7 @@ class PublisherCrudl(CrudlController[Publisher], DefaultFilter):
     )
 
 
-class BookCrudl(CrudlController[Book]):
+class BookCrudl(CrudlController[Book], DefaultFilter):
     config = CrudlConfig[Book](
         model=Book,
         base_path="/books",
@@ -149,7 +149,9 @@ class BookCrudl(CrudlController[Book]):
                 "publication_date": Infer,
                 "publisher_id": Infer,
                 "authors": Infer,
-                "publisher": Infer,
+                # TODO(phuongfi91): support 'publisher' and infer it as 'publisher_id'
+                #  adding 'publisher' field now would cause HTTP 422
+                # "publisher": Infer,
             }
         ),
         get_one_schema=Schema[Book](

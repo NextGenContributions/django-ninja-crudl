@@ -115,7 +115,7 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                 m2m_field,
                 m2m_field_value,
             ) in m2m_fields_to_set:  # pyright: ignore[reportAny]
-                related_model_class = self._get_related_model(m2m_field)  # pyright: ignore[reportPrivateUsage]
+                related_model_class = self._get_related_model(config.model, m2m_field)  # pyright: ignore[reportPrivateUsage]
 
                 if isinstance(m2m_field_value, list):
                     for m2m_field_value_item in m2m_field_value:

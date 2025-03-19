@@ -79,7 +79,7 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                 return self.get_403_error(request)
 
             qs = (
-                self.get_pre_filtered_queryset(path_args)
+                self.get_pre_filtered_queryset(config.model, path_args)
                 .filter(self.get_base_filter(request_details))
                 .filter(self.get_filter_for_list(request_details))
             )

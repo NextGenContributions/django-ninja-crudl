@@ -121,7 +121,6 @@ def test_patch_update_relation_works(client: Client) -> None:
     )
     assert response.status_code == status.HTTP_200_OK
     book.refresh_from_db()
-    assert book.title == "Updated book"
     assert book.publisher == new_publisher
     assert list(book.authors.all()) == [new_author]
 

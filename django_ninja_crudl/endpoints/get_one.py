@@ -74,7 +74,7 @@ def get_get_one_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                 return self.get_403_error(request)  # noqa: WPS220
 
             obj = (
-                self.get_pre_filtered_queryset(path_args)
+                self.get_pre_filtered_queryset(config.model, path_args)
                 .filter(self.get_base_filter(request_details))
                 .filter(self.get_filter_for_get_one(request_details))
                 .first()

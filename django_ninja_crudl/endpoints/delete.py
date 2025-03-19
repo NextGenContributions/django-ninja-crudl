@@ -61,7 +61,7 @@ def get_delete_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                 return self.get_403_error(request)
 
             obj = (
-                self.get_pre_filtered_queryset(path_args)
+                self.get_pre_filtered_queryset(config.model, path_args)
                 .filter(self.get_filter_for_delete(request_details))
                 .first()
             )
