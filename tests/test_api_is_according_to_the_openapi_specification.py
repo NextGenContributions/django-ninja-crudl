@@ -31,15 +31,13 @@ def after_load_schema(
     context: schemathesis.hooks.HookContext,
     schema: BaseOpenAPISchema,
 ) -> None:
-    print('after_load_schema')
+    print("after_load_schema")
     schema.add_link(
         source=schema["/api/publishers"]["POST"],
         target=schema["/api/books"]["POST"],
         status_code="201",
         # parameters={"publisher_id": "$response.body#/id"},
-        request_body={
-            "publisher_id": "$response.body#/id"
-        }
+        request_body={"publisher_id": "$response.body#/id"},
     )
     schema.add_link(
         source=schema["/api/authors"]["POST"],
@@ -49,9 +47,10 @@ def after_load_schema(
         request_body={
             # TODO(phuongfi91): Does this work with multiple authors?
             "authors": "$response.body#/id"
-        }
+        },
     )
-    print('after_added_link')
+    print("after_added_link")
+
 
 @pytest.mark.django_db
 @schema.parametrize()  # pyright: ignore[reportUnknownMemberType, reportUntypedFunctionDecorator]

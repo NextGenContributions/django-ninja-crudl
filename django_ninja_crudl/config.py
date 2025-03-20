@@ -260,7 +260,6 @@ class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instanc
         @final
         class CreateResponseSchema(BaseSchema[models.Model]):
             """Create response schema."""
-            
 
             config = SchemaConfig[models.Model](
                 model=model_class,

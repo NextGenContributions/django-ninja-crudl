@@ -96,6 +96,7 @@ def _create_schema_extra(
         },
     }
 
+
 def get_create_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
     """Create the create endpoint class for the CRUDL operations."""
     create_schema = config.create_schema
