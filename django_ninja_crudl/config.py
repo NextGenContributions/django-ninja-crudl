@@ -149,8 +149,8 @@ class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instanc
 
         self.delete_allowed = delete_allowed
 
-        self.create_response_name = f"{self.model.__name__}_CreateResponse"
         self.create_response_schema = self._get_create_response_schema(model)
+        self.create_response_name = self.create_response_schema.__name__
 
         pk_name = self._get_pk_name(model)
         pk_type = self._get_pk_type(model)
@@ -260,10 +260,12 @@ class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instanc
         @final
         class CreateResponseSchema(BaseSchema[models.Model]):
             """Create response schema."""
+            
 
             config = SchemaConfig[models.Model](
                 model=model_class,
                 fields=["id"],
+                name=f"Create{model_class.__name__}Response",
             )
 
         return CreateResponseSchema

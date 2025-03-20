@@ -174,6 +174,7 @@ class BookCrudl(CrudlController[Book], DefaultFilter):
                 "authors": {"id": Infer, "name": Infer},
             }
         ),
+        delete_allowed=True,
         # TODO(phuongfi91): implement 'search_fields'
         #     search_fields: ClassVar[list[str]] = [
         #         "title",

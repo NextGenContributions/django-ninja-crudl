@@ -6,6 +6,8 @@ import schemathesis
 # Generate and save the OpenAPI schema in a file
 # by running Django DRF management command:
 from pytest_django.live_server_helper import LiveServer
+from schemathesis.lazy import LazySchema
+from schemathesis.schemas import BaseSchema
 from schemathesis.specs.openapi.schemas import BaseOpenAPISchema
 
 schemathesis.experimental.OPEN_API_3_1.enable()
@@ -21,8 +23,35 @@ def web_app(live_server: LiveServer) -> BaseOpenAPISchema:
     return schemathesis.from_uri(api_spec_url)
 
 
-schema = schemathesis.from_pytest_fixture("web_app")
+schema: LazySchema = schemathesis.from_pytest_fixture("web_app")
 
+
+@schemathesis.hook
+def after_load_schema(
+    context: schemathesis.hooks.HookContext,
+    schema: BaseOpenAPISchema,
+) -> None:
+    print('after_load_schema')
+    schema.add_link(
+        source=schema["/api/publishers"]["POST"],
+        target=schema["/api/books"]["POST"],
+        status_code="201",
+        # parameters={"publisher_id": "$response.body#/id"},
+        request_body={
+            "publisher_id": "$response.body#/id"
+        }
+    )
+    schema.add_link(
+        source=schema["/api/authors"]["POST"],
+        target=schema["/api/books"]["POST"],
+        status_code="201",
+        # parameters={"publisher_id": "$response.body#/id"},
+        request_body={
+            # TODO(phuongfi91): Does this work with multiple authors?
+            "authors": "$response.body#/id"
+        }
+    )
+    print('after_added_link')
 
 @pytest.mark.django_db
 @schema.parametrize()  # pyright: ignore[reportUnknownMemberType, reportUntypedFunctionDecorator]

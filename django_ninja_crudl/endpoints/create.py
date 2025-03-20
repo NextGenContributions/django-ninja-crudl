@@ -169,6 +169,9 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             except IntegrityError as integrity_error:
                 transaction.set_rollback(True)
                 return self.get_409_error(request, exception=integrity_error)
+            except ValidationError as validation_error:
+                transaction.set_rollback(True)
+                return self.get_409_error(request, exception=validation_error)
 
             for (
                 m2m_field,
