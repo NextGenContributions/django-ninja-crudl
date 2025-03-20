@@ -19,6 +19,10 @@ from ninja_extra import http_post, status
 
 from django_ninja_crudl.base import CrudlBaseMethodsMixin
 from django_ninja_crudl.config import CrudlConfig
+from django_ninja_crudl.errors.openapi_extras import (
+    not_authorized_openapi_extra,
+    throttle_openapi_extra,
+)
 from django_ninja_crudl.errors.schemas import (
     Error401UnauthorizedSchema,
     Error403ForbiddenSchema,
@@ -29,6 +33,7 @@ from django_ninja_crudl.errors.schemas import (
     ErrorSchema,
 )
 from django_ninja_crudl.types import (
+    JSON,
     PathArgs,
     RequestDetails,
     TDjangoModel,
@@ -36,6 +41,60 @@ from django_ninja_crudl.types import (
 )
 from django_ninja_crudl.utils import add_function_arguments, validating_manager
 
+
+def _create_schema_extra(
+    config: CrudlConfig[TDjangoModel_co],
+) -> JSON:
+    """Create the OpenAPI links for the create operation.
+
+    Ref: https://swagger.io/docs/specification/v3_0/links/
+    """
+    get_one_operation_id: str = config.get_one_operation_id
+    update_operation_id: str = config.update_operation_id
+    partial_update_operation_id: str = config.partial_update_operation_id
+    delete_operation_id: str = config.delete_operation_id
+    create_response_name: str = config.create_response_name
+    resource_name: str = config.model.__name__.lower()
+
+    res_body_id = "$response.body#/id"
+    return {
+        "responses": {
+            201: {
+                "description": "Created",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": f"#/components/schemas/{create_response_name}",
+                        },
+                    },
+                },
+                "links": {
+                    "UpdateById": {
+                        "operationId": update_operation_id,
+                        "parameters": {"id": res_body_id},
+                        "description": f"Update {resource_name} by id",
+                    },
+                    "DeleteById": {
+                        "operationId": delete_operation_id,
+                        "parameters": {"id": res_body_id},
+                        "description": f"Delete {resource_name} by id",
+                    },
+                    "GetById": {
+                        "operationId": get_one_operation_id,
+                        "parameters": {"id": res_body_id},
+                        "description": f"Get {resource_name} by id",
+                    },
+                    "PatchById": {
+                        "operationId": partial_update_operation_id,
+                        "parameters": {"id": res_body_id},
+                        "description": f"Patch {resource_name} by id",
+                    },
+                },
+            },
+            **not_authorized_openapi_extra,
+            **throttle_openapi_extra,
+        },
+    }
 
 def get_create_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
     """Create the create endpoint class for the CRUDL operations."""
@@ -56,7 +115,7 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                 status.HTTP_422_UNPROCESSABLE_ENTITY: Error422UnprocessableEntitySchema,
                 status.HTTP_503_SERVICE_UNAVAILABLE: Error503ServiceUnavailableSchema,
             },
-            # openapi_extra=config.create_schema_extra,
+            openapi_extra=_create_schema_extra(config),
         )
         @transaction.atomic
         @add_function_arguments(config.create_path)

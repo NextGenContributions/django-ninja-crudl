@@ -21,10 +21,6 @@ from django_ninja_crudl.endpoints.get_one import get_get_one_endpoint
 from django_ninja_crudl.endpoints.list import get_get_many_endpoint
 from django_ninja_crudl.endpoints.partial_update import get_partial_update_endpoint
 from django_ninja_crudl.endpoints.update import get_update_endpoint
-from django_ninja_crudl.errors.openapi_extras import (
-    not_authorized_openapi_extra,
-    throttle_openapi_extra,
-)
 from django_ninja_crudl.types import JSON, DictStrAny
 
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
@@ -105,58 +101,3 @@ class CrudlMeta(ABCMeta):
             )
         )
         return dynamic_class
-
-    # TODO(phuongfi91): use this where it needed
-    @classmethod
-    def _create_schema_extra(
-        cls,
-        get_one_operation_id: str,
-        update_operation_id: str,
-        partial_update_operation_id: str,
-        delete_operation_id: str,
-        create_response_name: str,
-        resource_name: str,
-    ) -> JSON:
-        """Create the OpenAPI links for the create operation.
-
-        Ref: https://swagger.io/docs/specification/v3_0/links/
-        """
-        res_body_id = "$response.body#/id"
-        return {
-            "responses": {
-                201: {
-                    "description": "Created",
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": f"#/components/schemas/{create_response_name}",
-                            },
-                        },
-                    },
-                    "links": {
-                        "UpdateById": {
-                            "operationId": update_operation_id,
-                            "parameters": {"id": res_body_id},
-                            "description": f"Update {resource_name} by id",
-                        },
-                        "DeleteById": {
-                            "operationId": delete_operation_id,
-                            "parameters": {"id": res_body_id},
-                            "description": f"Delete {resource_name} by id",
-                        },
-                        "GetById": {
-                            "operationId": get_one_operation_id,
-                            "parameters": {"id": res_body_id},
-                            "description": f"Get {resource_name} by id",
-                        },
-                        "PatchById": {
-                            "operationId": partial_update_operation_id,
-                            "parameters": {"id": res_body_id},
-                            "description": f"Patch {resource_name} by id",
-                        },
-                    },
-                },
-                **not_authorized_openapi_extra,
-                **throttle_openapi_extra,
-            },
-        }
