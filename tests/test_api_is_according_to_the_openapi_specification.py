@@ -29,28 +29,27 @@ schema: LazySchema = schemathesis.from_pytest_fixture("web_app")
 @schemathesis.hook
 def after_load_schema(
     context: schemathesis.hooks.HookContext,
-    schema: BaseOpenAPISchema,
+    loaded_schema: BaseOpenAPISchema,
 ) -> None:
-    print("after_load_schema")
-    schema.add_link(
-        source=schema["/api/publishers"]["POST"],
-        target=schema["/api/books"]["POST"],
+    loaded_schema.add_link(
+        source=loaded_schema["/api/publishers"]["POST"],
+        target=loaded_schema["/api/books"]["POST"],
         status_code="201",
-        # parameters={"publisher_id": "$response.body#/id"},
-        request_body={"publisher_id": "$response.body#/id"},
+        request_body={
+            "publisher_id": "$response.body#/id"
+        }
     )
-    schema.add_link(
-        source=schema["/api/authors"]["POST"],
-        target=schema["/api/books"]["POST"],
+    loaded_schema.add_link(
+        source=loaded_schema["/api/authors"]["POST"],
+        target=loaded_schema["/api/books"]["POST"],
         status_code="201",
-        # parameters={"publisher_id": "$response.body#/id"},
         request_body={
             # TODO(phuongfi91): Does this work with multiple authors?
-            "authors": "$response.body#/id"
-        },
+            "authors": [
+                "$response.body#/id"
+            ]
+        }
     )
-    print("after_added_link")
-
 
 @pytest.mark.django_db
 @schema.parametrize()  # pyright: ignore[reportUnknownMemberType, reportUntypedFunctionDecorator]

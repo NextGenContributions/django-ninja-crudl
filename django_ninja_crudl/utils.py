@@ -40,12 +40,36 @@ def extract_arguments_from_path_spec(path_spec: str) -> dict[str, type]:
 def add_function_arguments(
     path_spec: str,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """Add function arguments to the decorated function."""
+    """Add function arguments to the decorated function.
+
+    Args:
+        path_spec (str): The path spec. For example: "/{uuid:organization}/resource/{uuid:id}"
+
+    Returns:
+        Callable[[Callable[..., Any]], Callable[..., Any]]: A decorator that adds the extracted arguments to the function signature.
+    """
     new_args_with_types: dict[str, type] = extract_arguments_from_path_spec(path_spec)
 
     def decorator(func: Callable) -> Callable:
+        """Decorator that adds the extracted arguments to the function signature.
+
+        Args:
+            func (Callable): The function to be decorated.
+
+        Returns:
+            Callable: The decorated function with the new arguments added to its signature.
+        """
         @wraps(func)
         def wrapper(*args, **path_args):
+            """Wrapper function that calls the original function with the new arguments.
+
+            Args:
+                *args: Positional arguments for the original function.
+                **path_args: Keyword arguments extracted from the path spec.
+
+            Returns:
+                Any: The result of the original function call.
+            """
             return func(*args, **path_args)
 
         new_signature = inspect.signature(func)

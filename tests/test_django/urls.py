@@ -4,7 +4,8 @@ from typing import override
 
 from django.contrib import admin
 from django.db.models import Q
-from django.urls import path
+from django.http import HttpResponse, HttpRequest
+from django.urls import path, Resolver404
 from django.urls.resolvers import URLResolver
 from django2pydantic import Infer
 from ninja_extra import NinjaExtraAPI
@@ -307,3 +308,16 @@ urlpatterns: list[URLResolver] = [
     path("api/", api.urls),
     path("admin/", admin.site.urls),
 ]
+
+
+# def handle_django_url_resolver_404(request: HttpRequest, exception: Resolver404) -> HttpResponse:
+#     """Handle 404 raised by URL resolvers."""
+#     from django_ninja_crudl.errors.schemas import Error404NotFoundSchema
+#     return api.create_response(
+#         request=request,
+#         # TODO(phuongfi91): reuse get_request_id from ErrorHandlerMixin
+#         data=Error404NotFoundSchema(request_id=request.headers.get("X-Request-ID", "")),
+#         status=404,
+#     )
+#
+# handler404 = handle_django_url_resolver_404

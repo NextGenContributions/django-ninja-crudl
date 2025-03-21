@@ -182,9 +182,14 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
 
                 if isinstance(m2m_field_value, list):
                     for m2m_field_value_item in m2m_field_value:
-                        related_obj = related_model_class._default_manager.get(
-                            id=m2m_field_value_item,
-                        )
+                        try:
+                            related_obj = related_model_class._default_manager.get(
+                                id=m2m_field_value_item,
+                            )
+                        except related_model_class.DoesNotExist:
+                            transaction.set_rollback(True)
+                            return self.get_404_error(request)
+                        
                         request_details_related = request_details  # noqa: WPS220
                         request_details_related.related_model_class = (
                             related_model_class

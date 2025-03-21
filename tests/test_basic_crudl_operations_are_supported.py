@@ -18,7 +18,7 @@ def test_create_resource_with_post_works(client: Client) -> None:
             "address": "Some address",
         },
     )
-    assert response.status_code == status.HTTP_201_CREATED
+    assert response.status_code == status.HTTP_201_CREATED, response.json()
     p = Publisher.objects.get(id=response.json()["id"])
     assert p.name == "Some publisher"
     assert p.address == "Some address"
@@ -31,8 +31,11 @@ def test_get_resource_works(client: Client) -> None:
         name="Some publisher",
         address="Some address",
     )
-    response = client.get(f"/api/publishers/{p.id}")
-    assert response.status_code == status.HTTP_200_OK
+
+    # response = client.get(f"/api/publishers/{p.id}")
+    response = client.get(f"/api/publishers/-1")
+    # response = client.get(f"/api/publishers/2")
+    assert response.status_code == status.HTTP_200_OK, response.json()
     assert response.json() == {
         "id": p.id,
         "name": "Some publisher",
@@ -48,7 +51,7 @@ def test_list_resources_works(client: Client) -> None:
         address="Some address",
     )
     response = client.get("/api/publishers")
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_200_OK, response.json()
     assert response.json() == [
         {
             "id": p.id,
@@ -73,7 +76,7 @@ def test_update_resource_with_put_works(client: Client) -> None:
             "address": "Updated address",
         },
     )
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_200_OK, response.json()
     p.refresh_from_db()
     assert p.name == "Updated publisher"
     assert p.address == "Updated address"
@@ -93,7 +96,7 @@ def test_update_resource_with_patch_works(client: Client) -> None:
             "name": "Updated publisher",
         },
     )
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_200_OK, response.json()
     p.refresh_from_db()
     assert p.name == "Updated publisher"
     assert p.address == "Some address"
@@ -107,6 +110,6 @@ def test_delete_resource_works(client: Client) -> None:
         address="Some address",
     )
     response = client.delete(f"/api/publishers/{p.id}")
-    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert response.status_code == status.HTTP_204_NO_CONTENT, response.json()
     with pytest.raises(Publisher.DoesNotExist):
         p.refresh_from_db()

@@ -5,6 +5,9 @@ from typing import ClassVar, Literal
 from django.utils.translation import gettext as _
 from pydantic import BaseModel, ConfigDict
 
+from django_ninja_crudl.types import DictStrAny
+
+# TODO(phuongfi91): Tests error schemas
 
 class ErrorSchema(BaseModel):
     """The default error schema."""
@@ -19,7 +22,7 @@ class ErrorSchema(BaseModel):
     message: str = ""
     user_friendly_message: str = ""
     request_id: str = ""
-    debug_details: str | None = None
+    details: str | list[DictStrAny] | None = None
 
 
 class Error401UnauthorizedSchema(ErrorSchema):

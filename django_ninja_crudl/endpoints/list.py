@@ -92,6 +92,7 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             many_to_many_models: list[str] = []
             related_fields: list[str] = []
             property_fields: list[str] = []
+            m2m_fields: list[str] = []
 
             for field_name in config.list_schema.model_fields:
                 attr = getattr(config.model, field_name, None)  # noqa: WPS220
@@ -127,7 +128,7 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                     ManyToManyField,
                 ):
                     many_to_many_models.append(field_name)  # noqa: WPS220
-                    related_fields.extend(  # noqa: WPS220
+                    m2m_fields.extend(  # noqa: WPS220
                         get_pydantic_fields(
                             config.list_schema,
                             field_name,
@@ -139,6 +140,7 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                 field_name
                 for field_name in config.list_schema.model_fields.keys()
                 if field_name
+                # not in related_models + many_to_many_models + property_fields
                 not in related_models + many_to_many_models + property_fields
             ]
 
@@ -148,6 +150,29 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                 *many_to_many_models,
             )  # To avoid N+1 queries
             qs = qs.values(*all_fields)
-            return qs
+
+            # TODO(phuongfi91): find alternative to this janky solution
+            # add m2m fields (with supported structure) to the response
+            l = list(qs)
+            for i in l:
+                for m in many_to_many_models:
+                    from django.db.models import F
+
+                    relevant_m2m_fields = list(
+                        filter(lambda x: x.startswith(m), m2m_fields)
+                    )
+                    m2m_values = (
+                        config.model._default_manager.filter(id=i["id"])
+                        .values(*relevant_m2m_fields)
+                        .values(
+                            **{
+                                f.removeprefix(f"{m}__"): F(f)
+                                for f in relevant_m2m_fields
+                            }
+                        )
+                    )
+                    i[m] = list(m2m_values)
+
+            return l
 
     return GetManyEndpoint

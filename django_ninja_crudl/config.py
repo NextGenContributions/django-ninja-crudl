@@ -263,6 +263,7 @@ class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instanc
 
             config = SchemaConfig[models.Model](
                 model=model_class,
+                # TODO(phuongfi91): Check if pk works
                 fields=["id"],
                 name=f"Create{model_class.__name__}Response",
             )
