@@ -54,11 +54,12 @@ class UtilitiesMixin(Generic[TDjangoModel_co]):
 
     def get_pre_filtered_queryset(
         self,
+        model_class: type[Model],
         path_args: PathArgs,
     ) -> QuerySet[Model]:
         """Return a queryset that is filtered by params from the path query."""
-        model_filters = self.get_model_filter_args(path_args)
-        return self.get_queryset().filter(**model_filters)
+        model_filters = self.get_model_filter_args(model_class, path_args)
+        return self.get_queryset(model_class).filter(**model_filters)
 
     def get_queryset(self, model_class: type[Model]) -> "Manager[Model]":
         """Return the model's manager."""

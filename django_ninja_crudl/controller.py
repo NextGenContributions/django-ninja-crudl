@@ -21,10 +21,6 @@ from django_ninja_crudl.endpoints.get_one import get_get_one_endpoint
 from django_ninja_crudl.endpoints.list import get_get_many_endpoint
 from django_ninja_crudl.endpoints.partial_update import get_partial_update_endpoint
 from django_ninja_crudl.endpoints.update import get_update_endpoint
-from django_ninja_crudl.errors.openapi_extras import (
-    not_authorized_openapi_extra,
-    throttle_openapi_extra,
-)
 from django_ninja_crudl.types import JSON, DictStrAny
 
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
@@ -44,7 +40,6 @@ class CrudlMeta(ABCMeta):
         """Create a new class."""
         # quit if this is an abstract base class
         if not dct.get("config") or name == "CrudlController":
-            print("No config", cls, name, bases, dct)
             return super().__new__(cls, name, bases, dct)
 
         config = dct.get("config")
@@ -79,11 +74,25 @@ class CrudlMeta(ABCMeta):
             delete_endpoint = get_delete_endpoint(config)
             endpoints += (delete_endpoint,)
 
-        bases = (APIController, ControllerBase, CrudlBaseMethodsMixin)
+        # Add (overwrite if necessary) all mro attributes to the controller class
+        # This allows the controller class to inherit all attributes from
+        # parent class of the `Crudl` class.
+        bases_dct = {}
+        for base in bases:
+            for attr_name, attr_value in base.__dict__.items():
+                if not attr_name.startswith("__"):
+                    bases_dct[attr_name] = attr_value
+
+        # Add all attributes to dct, while allowing the child's attributes to overwrite
+        # parents' attributes
+        for attr_name, attr_value in bases_dct.items():
+            dct = bases_dct | dct
+
+        # Contruct the final API controller class
+        # bases = (APIController, ControllerBase, CrudlBaseMethodsMixin)
+        # TODO(phuongfi91): ^ why did we have APIController here?
+        bases = (ControllerBase, CrudlBaseMethodsMixin)
         final_bases = endpoints + bases
-
-        print("final_bases", final_bases)
-
         dynamic_class = api_controller(tags=config.tags)(
             type(
                 name,
@@ -91,59 +100,4 @@ class CrudlMeta(ABCMeta):
                 dct,
             )
         )
-
         return dynamic_class
-
-    @classmethod
-    def _create_schema_extra(
-        cls,
-        get_one_operation_id: str,
-        update_operation_id: str,
-        partial_update_operation_id: str,
-        delete_operation_id: str,
-        create_response_name: str,
-        resource_name: str,
-    ) -> JSON:
-        """Create the OpenAPI links for the create operation.
-
-        Ref: https://swagger.io/docs/specification/v3_0/links/
-        """
-        res_body_id = "$response.body#/id"
-        return {
-            "responses": {
-                201: {
-                    "description": "Created",
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": f"#/components/schemas/{create_response_name}",
-                            },
-                        },
-                    },
-                    "links": {
-                        "UpdateById": {
-                            "operationId": update_operation_id,
-                            "parameters": {"id": res_body_id},
-                            "description": f"Update {resource_name} by id",
-                        },
-                        "DeleteById": {
-                            "operationId": delete_operation_id,
-                            "parameters": {"id": res_body_id},
-                            "description": f"Delete {resource_name} by id",
-                        },
-                        "GetById": {
-                            "operationId": get_one_operation_id,
-                            "parameters": {"id": res_body_id},
-                            "description": f"Get {resource_name} by id",
-                        },
-                        "PatchById": {
-                            "operationId": partial_update_operation_id,
-                            "parameters": {"id": res_body_id},
-                            "description": f"Patch {resource_name} by id",
-                        },
-                    },
-                },
-                **not_authorized_openapi_extra,
-                **throttle_openapi_extra,
-            },
-        }

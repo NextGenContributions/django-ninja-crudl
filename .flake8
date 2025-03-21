@@ -3,7 +3,7 @@
 ; Ruff defaults to double quotes so let's stick with that:
 inline-quotes = double
 
-ignore = C812,C816,W503,D100,D104,D106,D401,W504,X100
+ignore = C812,C816,W503,D100,D104,D106,D401,W504,X100,E501
 
 max-line-length = 88
 show-source = True

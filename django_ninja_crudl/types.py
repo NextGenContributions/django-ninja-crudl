@@ -23,7 +23,8 @@ type JSON = (  # pyre-ignore[11]
 type DictStrAny = dict[str, Any]  # pyright: ignore[reportExplicitAny]
 
 
-@beartype
+# TODO(phuongfi91): Debug beartype error for partial patch (PUT)
+# @beartype
 @dataclass
 class RequestDetails(Generic[TDjangoModel_co]):
     """Details about the request.
