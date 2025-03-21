@@ -133,11 +133,11 @@ wheels = [
 
 [[package]]
 name = "beartype"
-version = "0.19.0"
+version = "0.20.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/6f/e1/00515b97afa3993b4a314e4bc168fbde0917fd5845435cb6f16a19770746/beartype-0.19.0.tar.gz", hash = "sha256:de42dfc1ba5c3710fde6c3002e3bd2cad236ed4d2aabe876345ab0b4234a6573", size = 1294480 }
+sdist = { url = "https://files.pythonhosted.org/packages/78/3c/925bc57eb27f6620fec5a7d3b93890b347ba9969ecbbcfbb92236e9d5c69/beartype-0.20.1.tar.gz", hash = "sha256:7f3127735832a61f7b623654976ba4829f9f02fd7d6d88458b09065f4f842078", size = 1411069 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/64/69/f6db6e4cb2fe2f887dead40b76caa91af4844cb647dd2c7223bb010aa416/beartype-0.19.0-py3-none-any.whl", hash = "sha256:33b2694eda0daf052eb2aff623ed9a8a586703bbf0a90bbc475a83bbf427f699", size = 1039760 },
+    { url = "https://files.pythonhosted.org/packages/19/c7/48208753879e2907a5307575956b0743f5367efde17515371b101c07a0e4/beartype-0.20.1-py3-none-any.whl", hash = "sha256:0355a795c216d9205f8fe53f33dcc26629295586fa8705562ca74ef997ef7c7f", size = 1160638 },
 ]
 
 [[package]]
@@ -526,11 +526,11 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "beartype", specifier = ">=0.19.0" },
-    { name = "django", specifier = ">=5.1.3" },
-    { name = "django-ninja-extra", specifier = ">=0.21.4" },
-    { name = "django-stubs-ext", specifier = ">=5.1.1" },
-    { name = "django2pydantic", index = "https://test.pypi.org/simple" },
-    { name = "typeguard", specifier = ">=4.4.1" },
+    { name = "django", specifier = "==5.1.4" },
+    { name = "django-ninja-extra", specifier = "==0.22.0" },
+    { name = "django-stubs-ext", specifier = "==5.1.1" },
+    { name = "django2pydantic", specifier = "==0.2.0", index = "https://test.pypi.org/simple" },
+    { name = "typeguard", specifier = "==4.4.1" },
 ]
 
 [package.metadata.requires-dev]
