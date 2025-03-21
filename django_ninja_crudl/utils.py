@@ -59,6 +59,7 @@ def add_function_arguments(
         Returns:
             Callable: The decorated function with the new arguments added to its signature.
         """
+
         @wraps(func)
         def wrapper(*args, **path_args):
             """Wrapper function that calls the original function with the new arguments.

@@ -35,9 +35,7 @@ def after_load_schema(
         source=loaded_schema["/api/publishers"]["POST"],
         target=loaded_schema["/api/books"]["POST"],
         status_code="201",
-        request_body={
-            "publisher_id": "$response.body#/id"
-        }
+        request_body={"publisher_id": "$response.body#/id"},
     )
     loaded_schema.add_link(
         source=loaded_schema["/api/authors"]["POST"],
@@ -45,11 +43,10 @@ def after_load_schema(
         status_code="201",
         request_body={
             # TODO(phuongfi91): Does this work with multiple authors?
-            "authors": [
-                "$response.body#/id"
-            ]
-        }
+            "authors": ["$response.body#/id"]
+        },
     )
+
 
 @pytest.mark.django_db
 @schema.parametrize()  # pyright: ignore[reportUnknownMemberType, reportUntypedFunctionDecorator]

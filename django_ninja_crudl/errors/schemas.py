@@ -9,6 +9,7 @@ from django_ninja_crudl.types import DictStrAny
 
 # TODO(phuongfi91): Tests error schemas
 
+
 class ErrorSchema(BaseModel):
     """The default error schema."""
 

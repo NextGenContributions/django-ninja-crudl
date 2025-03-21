@@ -189,7 +189,7 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                         except related_model_class.DoesNotExist:
                             transaction.set_rollback(True)
                             return self.get_404_error(request)
-                        
+
                         request_details_related = request_details  # noqa: WPS220
                         request_details_related.related_model_class = (
                             related_model_class
