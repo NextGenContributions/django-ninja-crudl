@@ -1,4 +1,5 @@
 """Test API calls using the generated OpenAPI schema."""
+# pylint: disable=redefined-outer-name
 
 import pytest
 from ninja.openapi.schema import OpenAPISchema
@@ -33,6 +34,38 @@ def test_list_endpoint_has_200_response(openapi_schema: OpenAPISchema) -> None:
     assert openapi_schema["paths"]["/api/publishers"]["get"]["responses"][
         status.HTTP_200_OK
     ]
+
+
+@pytest.mark.parametrize("method", ["get", "put", "patch", "delete"])
+def test_endpoints_has_right_path_parameters(
+    openapi_schema: OpenAPISchema, method: str
+) -> None:
+    """Test that the get one endpoint has the right path parameters.
+
+    Example structure of the parameter object:
+    {
+        "description": "ID",
+        "in": "path",
+        "name": "id",
+        "required": True,
+        "schema": {
+            "description": "ID",
+            "maximum": 2147483647,
+            "minimum": 1,
+            "title": "ID",
+            "type": "integer"
+        }
+    }
+    """
+    param = openapi_schema["paths"]["/api/publishers/{id}"][method]["parameters"][0]
+
+    assert param["name"] == "id"
+    assert param["in"] == "path"
+    assert param["required"] is True
+    assert param["schema"]["type"] == "integer"
+    assert param["schema"]["minimum"] == 1
+    assert param["schema"]["maximum"] == 2147483647
+    assert param["schema"]["title"] == "ID"
 
 
 def test_update_endpoint_has_200_response(openapi_schema: OpenAPISchema) -> None:

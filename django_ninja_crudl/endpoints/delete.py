@@ -19,12 +19,13 @@ from django_ninja_crudl.errors.schemas import (
     ErrorSchema,
 )
 from django_ninja_crudl.types import (
-    PathArgs,
     RequestDetails,
     TDjangoModel,
     TDjangoModel_co,
 )
-from django_ninja_crudl.utils import add_function_arguments
+from django_ninja_crudl.utils import (
+    replace_path_args_annotation,
+)
 
 
 def get_delete_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
@@ -44,13 +45,14 @@ def get_delete_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             },
         )
         @transaction.atomic
-        @add_function_arguments(config.delete_path)
+        @replace_path_args_annotation(config.delete_path, config.model)
         def delete(
             self,
             request: HttpRequest,
-            **path_args: PathArgs,
+            **kwargs,
         ) -> tuple[Literal[403, 404], ErrorSchema] | tuple[Literal[204], None]:
             """Delete the object by id."""
+            path_args = kwargs["path_args"].dict() if "path_args" in kwargs else {}
             request_details = RequestDetails[Model](
                 action="delete",
                 request=request,

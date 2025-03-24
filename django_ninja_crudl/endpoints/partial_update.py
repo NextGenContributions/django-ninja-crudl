@@ -26,12 +26,13 @@ from django_ninja_crudl.errors.schemas import (
     ErrorSchema,
 )
 from django_ninja_crudl.types import (
-    PathArgs,
     RequestDetails,
     TDjangoModel,
     TDjangoModel_co,
 )
-from django_ninja_crudl.utils import add_function_arguments
+from django_ninja_crudl.utils import (
+    replace_path_args_annotation,
+)
 
 if TYPE_CHECKING:
     from django.db.models.fields.related_descriptors import ManyRelatedManager
@@ -63,14 +64,15 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             by_alias=True,
         )
         @transaction.atomic
-        @add_function_arguments(config.update_path)
+        @replace_path_args_annotation(config.update_path, config.model)
         def patch(
             self,
             request: HttpRequest,
             payload: config.partial_update_schema,  # pyright: ignore[reportInvalidTypeForm, reportUnknownParameterType]
-            **path_args: PathArgs,
+            **kwargs,
         ) -> tuple[Literal[403, 404], ErrorSchema] | Model:
             """Partial update an object."""
+            path_args = kwargs["path_args"].dict() if "path_args" in kwargs else {}
             request_details = RequestDetails[Model](
                 action="patch",
                 request=request,

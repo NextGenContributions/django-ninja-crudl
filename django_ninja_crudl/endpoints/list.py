@@ -27,12 +27,13 @@ from django_ninja_crudl.errors.schemas import (
 )
 from django_ninja_crudl.model_utils import get_pydantic_fields
 from django_ninja_crudl.types import (
-    PathArgs,
     RequestDetails,
     TDjangoModel,
     TDjangoModel_co,
 )
-from django_ninja_crudl.utils import add_function_arguments
+from django_ninja_crudl.utils import (
+    replace_path_args_annotation,
+)
 
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 
@@ -60,14 +61,15 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             operation_id=config.list_operation_id,
             # openapi_extra=config.openapi_extra,
         )
-        @add_function_arguments(config.list_path)
+        @replace_path_args_annotation(config.list_path, config.model)
         def get_many(  # noqa: WPS210
             self,
             request: HttpRequest,
             response: HttpResponse,
-            **path_args: PathArgs,
+            **kwargs,
         ) -> tuple[int, ErrorSchema] | models.Manager[Model]:
             """List all objects."""
+            path_args = kwargs["path_args"].dict() if "path_args" in kwargs else {}
             request_details = RequestDetails[Model](
                 action="list",
                 request=request,

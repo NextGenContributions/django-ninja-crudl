@@ -153,10 +153,9 @@ class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instanc
         self.create_response_name = self.create_response_schema.__name__
 
         pk_name = self._get_pk_name(model)
-        pk_type = self._get_pk_type(model)
 
         # Set or generate the paths
-        id_string = f"{{{pk_type}:{pk_name}}}"
+        id_string = f"{{{pk_name}}}"
         self.create_path = create_path or f"{base_path}"
         self.get_one_path = get_one_path or f"{base_path}/{id_string}"
         self.update_path = update_path or f"{base_path}/{id_string}"

@@ -308,16 +308,3 @@ urlpatterns: list[URLResolver] = [
     path("api/", api.urls),
     path("admin/", admin.site.urls),
 ]
-
-
-# def handle_django_url_resolver_404(request: HttpRequest, exception: Resolver404) -> HttpResponse:
-#     """Handle 404 raised by URL resolvers."""
-#     from django_ninja_crudl.errors.schemas import Error404NotFoundSchema
-#     return api.create_response(
-#         request=request,
-#         # TODO(phuongfi91): reuse get_request_id from ErrorHandlerMixin
-#         data=Error404NotFoundSchema(request_id=request.headers.get("X-Request-ID", "")),
-#         status=404,
-#     )
-#
-# handler404 = handle_django_url_resolver_404

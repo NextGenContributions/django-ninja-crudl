@@ -25,12 +25,13 @@ from django_ninja_crudl.errors.schemas import (
     ErrorSchema,
 )
 from django_ninja_crudl.types import (
-    PathArgs,
     RequestDetails,
     TDjangoModel,
     TDjangoModel_co,
 )
-from django_ninja_crudl.utils import add_function_arguments
+from django_ninja_crudl.utils import (
+    replace_path_args_annotation,
+)
 
 if TYPE_CHECKING:
     from django.db.models.fields.related_descriptors import ManyRelatedManager
@@ -64,14 +65,15 @@ def get_update_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             by_alias=True,
         )
         @transaction.atomic
-        @add_function_arguments(config.update_path)
+        @replace_path_args_annotation(config.update_path, config.model)
         def update(
             self,
             request: HttpRequest,
             payload: update_schema,
-            **path_args: PathArgs,
+            **kwargs,
         ) -> tuple[Literal[403, 404], ErrorSchema] | Model:
             """Update an object."""
+            path_args = kwargs["path_args"].dict() if "path_args" in kwargs else {}
             request_details = RequestDetails[TDjangoModel_co](
                 action="put",
                 request=request,

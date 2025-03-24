@@ -34,12 +34,14 @@ from django_ninja_crudl.errors.schemas import (
 )
 from django_ninja_crudl.types import (
     JSON,
-    PathArgs,
     RequestDetails,
     TDjangoModel,
     TDjangoModel_co,
 )
-from django_ninja_crudl.utils import add_function_arguments, validating_manager
+from django_ninja_crudl.utils import (
+    replace_path_args_annotation,
+    validating_manager,
+)
 
 
 def _create_schema_extra(
@@ -119,14 +121,15 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             openapi_extra=_create_schema_extra(config),
         )
         @transaction.atomic
-        @add_function_arguments(config.create_path)
+        @replace_path_args_annotation(config.create_path, config.model)
         def create_endpoint(
             self,
             request: HttpRequest,
             payload: create_schema,
-            **path_args: PathArgs,
+            **kwargs,
         ) -> tuple[Literal[403, 404, 409], ErrorSchema] | tuple[Literal[201], Model]:
             """Create a new object."""
+            path_args = kwargs["path_args"].dict() if "path_args" in kwargs else {}
             request_details = RequestDetails[TDjangoModel_co](
                 action="create",
                 request=request,

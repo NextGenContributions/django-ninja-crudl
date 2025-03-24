@@ -4,6 +4,7 @@ import logging
 from abc import ABC
 from typing import Literal
 
+from django.db import models
 from django.db.models import (
     ManyToManyField,
     ManyToManyRel,
@@ -12,9 +13,9 @@ from django.db.models import (
     OneToOneRel,
 )
 from django.http import HttpRequest
+from django2pydantic import BaseSchema
 from ninja import Path
 from ninja_extra import http_get, status
-from pydantic import PositiveInt
 
 from django_ninja_crudl import CrudlConfig
 from django_ninja_crudl.base import CrudlBaseMethodsMixin
@@ -26,12 +27,11 @@ from django_ninja_crudl.errors.schemas import (
     ErrorSchema,
 )
 from django_ninja_crudl.types import (
-    PathArgs,
     RequestDetails,
     TDjangoModel,
     TDjangoModel_co,
 )
-from django_ninja_crudl.utils import add_function_arguments
+from django_ninja_crudl.utils import replace_path_args_annotation
 
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 
@@ -44,17 +44,9 @@ DjangoRelationFields = (
 def get_get_one_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
     """Create the get_one endpoint class for the CRUDL operations."""
 
-    # from ninja import Schema
-    # class PathDate(Schema):
-    #     id: PositiveInt
-    #
-    #     def value(self):
-    #         return id
-
     class GetOneEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):
         @http_get(
             path=config.get_one_path,
-            # path="/publishers/{id}",
             response={
                 status.HTTP_200_OK: config.get_one_schema,
                 status.HTTP_401_UNAUTHORIZED: Error401UnauthorizedSchema,
@@ -66,15 +58,14 @@ def get_get_one_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             operation_id=config.get_one_operation_id,
             by_alias=True,
         )
-        @add_function_arguments(config.get_one_path)
+        @replace_path_args_annotation(config.get_one_path, config.model)
         def get_one(
             self,
             request: HttpRequest,
-            # TODO(phuongfi91): Implement path magic with pydantic
-            # id: Path[PathDate]
-            **path_args: PathArgs,
+            **kwargs,
         ) -> tuple[Literal[403, 404], ErrorSchema] | Model:
             """Retrieve an object."""
+            path_args = kwargs["path_args"].dict() if "path_args" in kwargs else {}
             request_details = RequestDetails[Model](
                 action="get_one",
                 request=request,
