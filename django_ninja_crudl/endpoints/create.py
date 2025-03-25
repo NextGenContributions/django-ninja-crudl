@@ -143,6 +143,7 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             self.pre_create(request_details)
 
             obj_fields_to_set: list[tuple[str, Any]] = []  # pyright: ignore[reportExplicitAny]
+            # TODO(phuongfi91): renaming m2m_fields_to_set?
             m2m_fields_to_set: list[tuple[str, Any]] = []  # pyright: ignore[reportExplicitAny]
 
             for field, field_value in payload.model_dump().items():
@@ -160,12 +161,16 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                         ForeignKey,
                     ) and not field.endswith("_id"):
                         field_name = f"{field}_id"
+
+                    # TODO(phuongfi91): what about OneToOneField?
+
                     else:  # Non-relational fields
                         field_name = field
 
                     obj_fields_to_set.append((field_name, field_value))
             try:
                 with validating_manager(config.model):
+                    # TODO(phuongfi91): should we use validating_manager later as well?
                     created_obj: Model = config.model._default_manager.create(  # noqa: SLF001
                         **dict(obj_fields_to_set),
                     )
@@ -213,6 +218,8 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                         return self.get_404_error(request)
 
                 try:
+                    # TODO(phuongfi91): OneToOneField/Rel does not have set()
+                    #  and would raise IntegrityError
                     getattr(created_obj, m2m_field).set(m2m_field_value)
                 except IntegrityError:
                     transaction.set_rollback(True)  # noqa: WPS220

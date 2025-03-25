@@ -2,9 +2,10 @@
 
 import logging
 from abc import ABC
-from typing import TYPE_CHECKING, Literal
+from enum import Enum, IntEnum
+from typing import TYPE_CHECKING, Any, Literal
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import (
     ManyToManyField,
     ManyToManyRel,
@@ -94,18 +95,107 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             request_details.object = obj
             if not self.has_object_permission(request_details):
                 return self.get_404_error(request)  # noqa: WPS220
+            self.pre_patch(request_details)
 
+            ##################### begin of madness
+            obj_fields_to_set: list[tuple[str, Any]] = []  # pyright: ignore[reportExplicitAny]
+            m2m_fields_to_set: list[tuple[str, Any]] = []  # pyright: ignore[reportExplicitAny]
+
+            # TODO(phuongfi91): payload is a dict here, no model_dump() method, unlike
+            #  with POST in update.py
+            # for field, field_value in payload.model_dump().items():
+            for field, field_value in payload.items():
+                if isinstance(field_value, Enum | IntEnum):
+                    field_value = field_value.value  # noqa: PLW2901, WPS220
+                if isinstance(
+                    config.model._meta.get_field(field),  # noqa: SLF001, WPS437
+                    ManyToManyField | ManyToManyRel | ManyToOneRel | OneToOneRel,
+                ):
+                    m2m_fields_to_set.append((field, field_value))  # noqa: WPS220
+                else:
+                    # Handle foreign key fields:
+                    if isinstance(  # noqa: WPS220, WPS337
+                        config.model._meta.get_field(field),  # noqa: SLF001, WPS437
+                        ForeignKey,
+                    ) and not field.endswith("_id"):
+                        field_name = f"{field}_id"  # noqa: WPS220
+                    else:  # Non-relational fields
+                        field_name = field  # noqa: WPS220
+
+                    obj_fields_to_set.append((field_name, field_value))  # noqa: WPS220
+            try:
+                with validating_manager(config.model):  # noqa: WPS220
+                    # TODO(phuongfi91):
+                    for attr_name, attr_value in obj_fields_to_set:
+                        setattr(obj, attr_name, attr_value)  # noqa: WPS220
+                    obj.save()
+            # if integrity error, return 409
+            except IntegrityError as integrity_error:
+                transaction.set_rollback(True)
+                return self.get_409_error(request, exception=integrity_error)
+
+            for m2m_field, m2m_field_value in m2m_fields_to_set:  # pyright: ignore[reportAny]
+                related_model_class = self._get_related_model(m2m_field)
+
+                if isinstance(m2m_field_value, list):  # noqa: WPS220
+                    for m2m_field_value_item in m2m_field_value:
+                        related_obj = related_model_class.objects.get(
+                            id=m2m_field_value_item,
+                        )
+                        request_details_related = request_details  # noqa: WPS220
+                        request_details_related.related_model_class = (
+                            related_model_class
+                        )
+                        request_details_related.related_object = related_obj
+                        if not self.has_related_object_permission(
+                            request_details_related,
+                        ):
+                            transaction.set_rollback(True)
+                            return self.get_404_error(request)
+                else:
+                    # TODO(phuongfi91): related_obj is unused
+                    related_obj = related_model_class.objects.get(
+                        id=m2m_field_value,
+                    )
+
+                    if not self.has_related_object_permission(request_details):
+                        transaction.set_rollback(True)
+                        return self.get_404_error(request)
+
+                try:
+                    # TODO(phuongfi91):
+                    getattr(obj, m2m_field).set(m2m_field_value)
+                except IntegrityError:
+                    transaction.set_rollback(True)  # noqa: WPS220
+                    return self.get_409_error(request)
+
+            # Perform full_clean() on the created object and raise an exception if it fails
+            try:
+                # TODO(phuongfi91):
+                obj.full_clean()  # noqa: WPS220
+            except ValidationError as validation_error:
+                # revert the transaction
+                transaction.set_rollback(True)  # noqa: WPS220
+                return self.get_409_error(request, exception=validation_error)
+
+            ############### end of madness
+
+            # TODO(phuongfi91): should this block be commented out?
             for attr_name, attr_value in payload.items():
                 try:
                     setattr(obj, attr_name, attr_value)
                 except TypeError as e:
-                    msg = "Direct assignment to the forward side of a many-to-many set is prohibited."
+                    msg = (
+                        "Direct assignment to the forward side of a many-to-many set "
+                        "is prohibited."
+                    )
                     if msg in str(e):
                         m2m_manager: ManyRelatedManager[Model] = getattr(obj, attr_name)
                         m2m_manager.set(attr_value)
                     else:
                         raise
             obj.save()
+
             self.post_patch(request_details)
             return obj
 
