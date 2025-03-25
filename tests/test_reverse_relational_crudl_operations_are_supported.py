@@ -1,4 +1,5 @@
-"""Test the API endpoints with relational data."""
+"""Test the API endpoints with reverse relational data."""
+import datetime
 
 import pytest
 from django.test import Client
@@ -14,143 +15,107 @@ def test_creating_relation_with_post_should_work(client: Client) -> None:
         name="Some publisher",
         address="Some address",
     )
-    author_1: models.Author = models.Author.objects.create(
-        name="Some author 1",
-        birth_date="1990-01-01",
-    )
-    author_2: models.Author = models.Author.objects.create(
-        name="Some author 2",
-        birth_date="1991-01-01",
+    book: models.Book = models.Book.objects.create(
+        title="Some book",
+        isbn="9783161484100",
+        publication_date="2021-01-01",
+        publisher=publisher,
     )
 
     response = client.post(
-        "/api/books",
+        "/api/authors",
         content_type="application/json",
         data={
-            "title": "Some book",
-            "isbn": "9783161484100",
-            "publication_date": "2021-01-01",
-            "publisher_id": publisher.id,
-            "authors": [
-                author_1.id,
-                author_2.id,
-            ],
+            "name": "Some author",
+            "birth_date": "1990-01-01",
+            "books": [book.id],
         },
     )
     assert response.status_code == status.HTTP_201_CREATED, response.json()
-    book = models.Book.objects.get(id=response.json()["id"])
-    assert book.title == "Some book"
-    assert book.publisher == publisher
-    assert list(book.authors.order_by("name")) == [author_1, author_2]
+    author = models.Author.objects.get(id=response.json()["id"])
+    assert author.name == "Some author"
+    assert author.birth_date == datetime.date(1990, 1, 1)
+    assert list(author.books.order_by("title")) == [book]
 
 
 @pytest.mark.django_db
 def test_updating_relation_with_put_should_work(client: Client) -> None:
     """Test updating a relation with PUT request."""
-    publisher = models.Publisher.objects.create(
+    publisher: models.Publisher = models.Publisher.objects.create(
         name="Some publisher",
         address="Some address",
     )
-    author = models.Author.objects.create(
+    author: models.Author = models.Author.objects.create(
         name="Some author",
         birth_date="1990-01-01",
     )
-    book = models.Book.objects.create(
+    book: models.Book = models.Book.objects.create(
         title="Some book",
         isbn="9783161484100",
         publication_date="2021-01-01",
         publisher=publisher,
     )
-    book.authors.set([author])
-
-    new_publisher = models.Publisher.objects.create(
-        name="New publisher",
-        address="New address",
-    )
-    new_author_1 = models.Author.objects.create(
-        name="New author 1",
-        birth_date="1990-01-01",
-    )
-    new_author_2 = models.Author.objects.create(
-        name="New author 2",
-        birth_date="1991-01-01",
-    )
 
     response = client.put(
-        f"/api/books/{book.id}",
+        f"/api/authors/{author.id}",
         content_type="application/json",
         data={
-            "title": "Updated book",
-            "isbn": "9783161484101",
-            "publication_date": "2022-01-01",
-            "publisher_id": new_publisher.id,
-            "authors": [
-                new_author_1.id,
-                new_author_2.id,
-            ],
+            "name": "Updated author",
+            "birth_date": "1991-01-01",
+            "books": [book.id],
         },
     )
+
     assert response.status_code == status.HTTP_200_OK, response.json()
-    book.refresh_from_db()
-    assert book.title == "Updated book"
-    assert book.publisher == new_publisher
-    assert list(book.authors.order_by("name")) == [new_author_1, new_author_2]
+    author.refresh_from_db()
+    assert author.name == "Updated author"
+    assert author.birth_date == datetime.date(1991, 1, 1)
+    assert list(author.books.order_by("title")) == [book]
 
 
 @pytest.mark.django_db
 def test_updating_relation_with_patch_should_work(client: Client) -> None:
     """Test updating a relation with PATCH request."""
-    publisher = models.Publisher.objects.create(
+    publisher: models.Publisher = models.Publisher.objects.create(
         name="Some publisher",
         address="Some address",
     )
-    author = models.Author.objects.create(
+    author: models.Author = models.Author.objects.create(
         name="Some author",
         birth_date="1990-01-01",
     )
-    book = models.Book.objects.create(
+    book: models.Book = models.Book.objects.create(
         title="Some book",
         isbn="9783161484100",
         publication_date="2021-01-01",
         publisher=publisher,
     )
-    book.authors.set([author])
-
-    new_publisher = models.Publisher.objects.create(
-        name="New publisher",
-        address="New address",
-    )
-    new_author = models.Author.objects.create(
-        name="New author",
-        birth_date="1990-01-01",
-    )
 
     response = client.patch(
-        f"/api/books/{book.id}",
+        f"/api/authors/{author.id}",
         content_type="application/json",
         data={
-            "publisher_id": new_publisher.id,
-            "authors": [new_author.id],
+            "books": [book.id],
         },
     )
+
     assert response.status_code == status.HTTP_200_OK, response.json()
-    book.refresh_from_db()
-    assert book.publisher == new_publisher
-    assert list(book.authors.all()) == [new_author]
+    author.refresh_from_db()
+    assert list(author.books.order_by("title")) == [book]
 
 
 @pytest.mark.django_db
 def test_deleting_relation_by_deleting_object_should_work(client: Client) -> None:
     """Test deleting a relation with DELETE request."""
-    publisher = models.Publisher.objects.create(
+    publisher: models.Publisher = models.Publisher.objects.create(
         name="Some publisher",
         address="Some address",
     )
-    author = models.Author.objects.create(
+    author: models.Author = models.Author.objects.create(
         name="Some author",
         birth_date="1990-01-01",
     )
-    book = models.Book.objects.create(
+    book: models.Book = models.Book.objects.create(
         title="Some book",
         isbn="9783161484100",
         publication_date="2021-01-01",
@@ -161,10 +126,10 @@ def test_deleting_relation_by_deleting_object_should_work(client: Client) -> Non
     book_id = book.id
     publisher_id = publisher.id
 
-    response = client.delete(f"/api/books/{book_id}")
+    response = client.delete(f"/api/authors/{author_id}")
     assert response.status_code == status.HTTP_204_NO_CONTENT, response.json()
-    assert not models.Book.objects.filter(id=book_id).exists()
-    assert models.Author.objects.filter(id=author_id).exists()
+    assert not models.Author.objects.filter(id=author_id).exists()
+    assert models.Book.objects.filter(id=book_id).exists()
     assert models.Publisher.objects.filter(id=publisher_id).exists()
 
 
@@ -188,14 +153,15 @@ def test_deleting_relation_by_patch_should_work(client: Client) -> None:
     book.authors.set([author])
 
     response = client.patch(
-        f"/api/books/{book.id}",
+        f"/api/authors/{author.id}",
         content_type="application/json",
         data={
-            "authors": [],
+            "books": [],
         },
     )
     assert response.status_code == status.HTTP_200_OK, response.json()
-    assert not book.authors.exists()
+    author.refresh_from_db()
+    assert not author.books.exists()
 
 
 @pytest.mark.django_db
@@ -221,13 +187,19 @@ def test_getting_relation_with_get_many_should_work(client: Client) -> None:
     )
     book.authors.set([author_1, author_2])
 
-    response = client.get("/api/books")
+    response = client.get("/api/authors")
     assert response.status_code == status.HTTP_200_OK, response.json()
-    assert len(response.json()) == 1
-    assert response.json()[0]["title"] == "Some book"
-    assert response.json()[0]["publisher"]["name"] == "Some publisher"
-    assert response.json()[0]["authors"][0]["name"] == "Some author 1"
-    assert response.json()[0]["authors"][1]["name"] == "Some author 2"
+    assert len(response.json()) == 2
+    assert response.json()[0]["name"] == "Some author 1"
+    assert response.json()[0]["birth_date"] == "1990-01-01"
+    assert response.json()[0]["books_count"] == 1
+    assert response.json()[0]["books"][0]["id"] == book.id
+    assert response.json()[0]["books"][0]["title"] == "Some book"
+    assert response.json()[1]["books_count"] == 1
+    assert response.json()[1]["name"] == "Some author 2"
+    assert response.json()[1]["birth_date"] == "1991-01-01"
+    assert response.json()[1]["books"][0]["id"] == book.id
+    assert response.json()[1]["books"][0]["title"] == "Some book"
 
 
 @pytest.mark.django_db
@@ -249,11 +221,12 @@ def test_getting_relation_with_get_one_should_work(client: Client) -> None:
     )
     book.authors.set([author])
 
-    response = client.get(f"/api/books/{book.id}")
+    response = client.get(f"/api/authors/{author.id}")
     assert response.status_code == status.HTTP_200_OK, response.json()
-    assert response.json()["title"] == "Some book"
-    assert response.json()["publisher"]["name"] == "Some publisher"
-    assert "address" not in response.json()["publisher"]
-    assert response.json()["authors"][0]["name"] == "Some author"
-    assert response.json()["authors"][0]["birth_date"] == "1990-01-01"
-    assert "age" not in response.json()["authors"][0]
+    assert response.json()["name"] == "Some author"
+    assert response.json()["birth_date"] == "1990-01-01"
+    assert response.json()["books_count"] == 1
+    assert response.json()["books"][0]["id"] == book.id
+    assert response.json()["books"][0]["title"] == "Some book"
+    assert "isbn" not in response.json()["books"][0]
+    assert "publication_date" not in response.json()["books"][0]

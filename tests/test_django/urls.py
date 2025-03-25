@@ -4,8 +4,7 @@ from typing import override
 
 from django.contrib import admin
 from django.db.models import Q
-from django.http import HttpResponse, HttpRequest
-from django.urls import path, Resolver404
+from django.urls import path
 from django.urls.resolvers import URLResolver
 from django2pydantic import Infer
 from ninja_extra import NinjaExtraAPI
@@ -61,12 +60,14 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter):
             fields={
                 "name": Infer,
                 "birth_date": Infer,
+                # "books": Infer,  # TODO(phuongfi91): support reverse relation handler
             }
         ),
         update_schema=Schema[Author](
             fields={
                 "name": Infer,
                 "birth_date": Infer,
+                # "books": Infer,  # TODO(phuongfi91): support reverse relation handler
             }
         ),
         get_one_schema=Schema[Author](
@@ -86,8 +87,10 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter):
                 "birth_date": Infer,
                 "age": Infer,
                 "books_count": Infer,
+                "books": {"id": Infer, "title": Infer},
             }
         ),
+        delete_allowed=True,
     )
 
 

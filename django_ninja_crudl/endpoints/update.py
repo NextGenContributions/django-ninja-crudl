@@ -3,10 +3,12 @@
 import logging
 from abc import ABC
 from enum import Enum, IntEnum
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, Literal
 
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import (
+    ForeignKey,
     ManyToManyField,
     ManyToManyRel,
     ManyToOneRel,
@@ -32,10 +34,8 @@ from django_ninja_crudl.types import (
 )
 from django_ninja_crudl.utils import (
     replace_path_args_annotation,
+    validating_manager,
 )
-
-if TYPE_CHECKING:
-    from django.db.models.fields.related_descriptors import ManyRelatedManager
 
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 
@@ -72,7 +72,7 @@ def get_update_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             request: HttpRequest,
             payload: update_schema,
             **kwargs,
-        ) -> tuple[Literal[403, 404], ErrorSchema] | Model:
+        ) -> tuple[Literal[403, 404, 409], ErrorSchema] | Model:
             """Update an object."""
             path_args = kwargs["path_args"].dict() if "path_args" in kwargs else {}
             request_details = RequestDetails[TDjangoModel_co](
@@ -134,7 +134,7 @@ def get_update_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                 return self.get_409_error(request, exception=integrity_error)
 
             for m2m_field, m2m_field_value in m2m_fields_to_set:  # pyright: ignore[reportAny]
-                related_model_class = self._get_related_model(m2m_field)
+                related_model_class = self._get_related_model(config.model, m2m_field)
 
                 if isinstance(m2m_field_value, list):  # noqa: WPS220
                     for m2m_field_value_item in m2m_field_value:
@@ -162,7 +162,8 @@ def get_update_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                         return self.get_404_error(request)
 
                 try:
-                    # TODO(phuongfi91):
+                    # TODO(phuongfi91): OneToOneField/Rel does not have set()
+                    #  and would raise IntegrityError
                     getattr(obj, m2m_field).set(m2m_field_value)
                 except IntegrityError:
                     transaction.set_rollback(True)  # noqa: WPS220
@@ -179,21 +180,21 @@ def get_update_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
 
             ############### end of madness
 
-            # TODO(phuongfi91): should this block be commented out?
-            for attr_name, attr_value in payload.model_dump().items():
-                try:
-                    setattr(obj, attr_name, attr_value)
-                except TypeError as e:
-                    msg = (
-                        "Direct assignment to the forward side of a many-to-many set "
-                        "is prohibited."
-                    )
-                    if msg in str(e):
-                        m2m_manager: ManyRelatedManager[Model] = getattr(obj, attr_name)
-                        m2m_manager.set(attr_value)
-                    else:
-                        raise
-            obj.save()
+            # TODO(phuongfi91): remove this after completing the full solution above ^
+            # for attr_name, attr_value in payload.model_dump().items():
+            #     try:
+            #         setattr(obj, attr_name, attr_value)
+            #     except TypeError as e:
+            #         msg = (
+            #             "Direct assignment to the forward side of a many-to-many set "
+            #             "is prohibited."
+            #         )
+            #         if msg in str(e):
+            #             m2m_manager: ManyRelatedManager[Model] = getattr(obj, attr_name)
+            #             m2m_manager.set(attr_value)
+            #         else:
+            #             raise
+            # obj.save()
 
             self.post_update(request_details)
             return obj

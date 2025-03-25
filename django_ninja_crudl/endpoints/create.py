@@ -235,6 +235,7 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                 return self.get_409_error(request, exception=validation_error)
 
             request_details.object = created_obj
+
             self.post_create(request_details)
             return 201, created_obj
 
