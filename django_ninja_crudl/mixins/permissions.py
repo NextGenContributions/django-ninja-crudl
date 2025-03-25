@@ -50,5 +50,4 @@ class PermissionMixin(Generic[TDjangoModel_co], ABC):
                 permission_instance = permission_class()
                 if not permission_instance.has_related_object_permission(request):
                     return False
-                return False
         return True
