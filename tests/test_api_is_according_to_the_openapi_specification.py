@@ -74,4 +74,20 @@ def test_api_calls_against_schema(
         The Django live server fixture from the pytest-django plugin.
 
     """
+    import json
+
+    print("~~~ Path:")
+    if isinstance(case.path_parameters, dict):
+        print(json.dumps(case.path_parameters, indent=2))
+    else:
+        print(case.path_parameters)
+
+    print("### Body:")
+    if isinstance(case.body, dict):
+        print(json.dumps(case.body, indent=2))
+    else:
+        print(case.body)
+
+    print("============================================================")
+
     case.call_and_validate()  # we do not need the return value

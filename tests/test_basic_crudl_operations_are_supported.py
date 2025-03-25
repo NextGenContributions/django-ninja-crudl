@@ -33,8 +33,6 @@ def test_get_resource_works(client: Client) -> None:
     )
 
     response = client.get(f"/api/publishers/{p.id}")
-    # response = client.get(f"/api/publishers/-1")
-    # response = client.get(f"/api/publishers/2")
     assert response.status_code == status.HTTP_200_OK, response.json()
     assert response.json() == {
         "id": p.id,

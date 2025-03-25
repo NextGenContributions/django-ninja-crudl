@@ -4,7 +4,7 @@ import inspect
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, TypeVar, final, override
+from typing import Any, TypeVar, final
 
 from beartype import beartype
 from django.db import models
@@ -12,7 +12,6 @@ from django.db.models import Model
 from django2pydantic import BaseSchema
 from django2pydantic.schema import SchemaConfig
 from ninja import Path
-from pydantic import BaseModel
 
 from django_ninja_crudl.types import TDjangoModel_co
 
@@ -40,20 +39,8 @@ def get_path_spec_args(path_spec: str) -> list[str]:
 
 def get_pydantic_model_from_args_annotations(
     model_class: type[TDjangoModel_co], path_args: list[str]
-) -> type[BaseModel]:
+) -> type[BaseSchema[TDjangoModel_co]]:
     """Create a Pydantic model to validate path arguments."""
-    if not path_args:
-        # Return a dummy model with a dummy field to avoid django-ninja treating
-        # 'path_args' as a path parameter
-        class DummyPathArgsSchema(BaseModel):
-            obfuscated_dummy_field_2EbghJ4DDXgAxxnPUsk34u8uAk83tj: str | None = None
-
-            @override
-            def model_dump(self, **kwargs) -> dict[str, Any]:
-                """Force the dump to always return nothing."""
-                return {}
-
-        return DummyPathArgsSchema
 
     @final
     class PathArgsSchema(BaseSchema[models.Model]):  # pylint: disable=too-few-public-methods
@@ -85,11 +72,11 @@ def replace_path_args_annotation(
         # Add the new properly annotated 'path_args' to the list of parameters
         path_spec_args = get_path_spec_args(path_spec)
         if path_spec_args:
-            new_path_args_param: type[BaseSchema[models.Model]] = (
-                get_pydantic_model_from_args_annotations(model_class, path_spec_args)
+            new_path_args_param = get_pydantic_model_from_args_annotations(
+                model_class, path_spec_args
             )
             new_params.insert(
-                len(new_params) - 2,
+                len(new_params) - 2,  # Insert before the last parameter (kwargs)
                 inspect.Parameter(
                     "path_args",
                     inspect.Parameter.POSITIONAL_OR_KEYWORD,
