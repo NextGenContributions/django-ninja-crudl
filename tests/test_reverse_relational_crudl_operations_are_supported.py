@@ -1,4 +1,5 @@
 """Test the API endpoints with reverse relational data."""
+
 import datetime
 
 import pytest
