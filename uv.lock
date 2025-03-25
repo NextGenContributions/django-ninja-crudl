@@ -503,6 +503,7 @@ dev = [
     { name = "pre-commit" },
     { name = "project-config" },
     { name = "pydantic" },
+    { name = "pylint" },
     { name = "pylint-django" },
     { name = "pyre-check" },
     { name = "pyright" },
@@ -524,10 +525,10 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "beartype", specifier = ">=0.19.0" },
-    { name = "django", specifier = ">=5.1.3" },
-    { name = "django-ninja-extra", specifier = ">=0.21.4" },
-    { name = "django-stubs-ext", specifier = ">=5.1.1" },
+    { name = "beartype", specifier = "==0.19.0" },
+    { name = "django", specifier = "==5.1.4" },
+    { name = "django-ninja-extra", specifier = "==0.22.0" },
+    { name = "django-stubs-ext", specifier = "==5.1.1" },
     { name = "django2pydantic", git = "https://github.com/NextGenContributions/django2pydantic?branch=main" },
     { name = "typeguard", specifier = ">=4.4.1" },
 ]
@@ -551,6 +552,7 @@ dev = [
     { name = "pre-commit", specifier = ">=4.1.0" },
     { name = "project-config", specifier = ">=0.9.7" },
     { name = "pydantic", specifier = ">=2.9.2" },
+    { name = "pylint", specifier = ">=3.3.4" },
     { name = "pylint-django", specifier = ">=2.6.1" },
     { name = "pyre-check", specifier = ">=0.9.23" },
     { name = "pyright", specifier = ">=1.1.388" },
@@ -1867,7 +1869,7 @@ wheels = [
 
 [[package]]
 name = "pylint"
-version = "3.3.3"
+version = "3.3.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astroid" },
@@ -1878,9 +1880,9 @@ dependencies = [
     { name = "platformdirs" },
     { name = "tomlkit" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/17/fd/e9a739afac274a39596bbe562e9d966db6f3917fdb2bd7322ffc56da0ba2/pylint-3.3.3.tar.gz", hash = "sha256:07c607523b17e6d16e2ae0d7ef59602e332caa762af64203c24b41c27139f36a", size = 1516550 }
+sdist = { url = "https://files.pythonhosted.org/packages/69/a7/113d02340afb9dcbb0c8b25454e9538cd08f0ebf3e510df4ed916caa1a89/pylint-3.3.6.tar.gz", hash = "sha256:b634a041aac33706d56a0d217e6587228c66427e20ec21a019bc4cdee48c040a", size = 1519586 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/91/e1/26d55acea92b1ea4d33672e48f09ceeb274e84d7d542a4fb9a32a556db46/pylint-3.3.3-py3-none-any.whl", hash = "sha256:26e271a2bc8bce0fc23833805a9076dd9b4d5194e2a02164942cb3cdc37b4183", size = 521918 },
+    { url = "https://files.pythonhosted.org/packages/31/21/9537fc94aee9ec7316a230a49895266cf02d78aa29b0a2efbc39566e0935/pylint-3.3.6-py3-none-any.whl", hash = "sha256:8b7c2d3e86ae3f94fb27703d521dd0b9b6b378775991f504d7c3a6275aa0a6a6", size = 522462 },
 ]
 
 [[package]]
@@ -2630,14 +2632,14 @@ wheels = [
 
 [[package]]
 name = "typeguard"
-version = "4.4.1"
+version = "4.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/62/c3/400917dd37d7b8c07e9723f3046818530423e1e759a56a22133362adab00/typeguard-4.4.1.tar.gz", hash = "sha256:0d22a89d00b453b47c49875f42b6601b961757541a2e1e0ef517b6e24213c21b", size = 74959 }
+sdist = { url = "https://files.pythonhosted.org/packages/70/60/8cd6a3d78d00ceeb2193c02b7ed08f063d5341ccdfb24df88e61f383048e/typeguard-4.4.2.tar.gz", hash = "sha256:a6f1065813e32ef365bc3b3f503af8a96f9dd4e0033a02c28c4a4983de8c6c49", size = 75746 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f2/53/9465dedf2d69fe26008e7732cf6e0a385e387c240869e7d54eed49782a3c/typeguard-4.4.1-py3-none-any.whl", hash = "sha256:9324ec07a27ec67fc54a9c063020ca4c0ae6abad5e9f0f9804ca59aee68c6e21", size = 35635 },
+    { url = "https://files.pythonhosted.org/packages/cf/4b/9a77dc721aa0b7f74440a42e4ef6f9a4fae7324e17f64f88b96f4c25cc05/typeguard-4.4.2-py3-none-any.whl", hash = "sha256:77a78f11f09777aeae7fa08585f33b5f4ef0e7335af40005b0c422ed398ff48c", size = 35801 },
 ]
 
 [[package]]
