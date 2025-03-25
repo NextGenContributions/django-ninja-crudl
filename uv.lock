@@ -503,6 +503,7 @@ dev = [
     { name = "pre-commit" },
     { name = "project-config" },
     { name = "pydantic" },
+    { name = "pylint" },
     { name = "pylint-django" },
     { name = "pyre-check" },
     { name = "pyright" },
@@ -524,12 +525,12 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "beartype", specifier = ">=0.19.0" },
-    { name = "django", specifier = ">=5.1.3" },
+    { name = "beartype", specifier = "==0.19.0" },
+    { name = "django", specifier = "==5.1.4" },
     { name = "django-ninja-extra", specifier = ">=0.21.4" },
-    { name = "django-stubs-ext", specifier = ">=5.1.1" },
+    { name = "django-stubs-ext", specifier = "==5.1.1" },
     { name = "django2pydantic", git = "https://github.com/NextGenContributions/django2pydantic?branch=main" },
-    { name = "typeguard", specifier = ">=4.4.1" },
+    { name = "typeguard", specifier = "==4.4.1" },
 ]
 
 [package.metadata.requires-dev]
@@ -551,6 +552,7 @@ dev = [
     { name = "pre-commit", specifier = ">=4.1.0" },
     { name = "project-config", specifier = ">=0.9.7" },
     { name = "pydantic", specifier = ">=2.9.2" },
+    { name = "pylint", specifier = ">=3.3.4" },
     { name = "pylint-django", specifier = ">=2.6.1" },
     { name = "pyre-check", specifier = ">=0.9.23" },
     { name = "pyright", specifier = ">=1.1.388" },
@@ -573,7 +575,7 @@ dev = [
 
 [[package]]
 name = "django-ninja-extra"
-version = "0.22.0"
+version = "0.22.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asgiref" },
@@ -582,9 +584,9 @@ dependencies = [
     { name = "django-ninja" },
     { name = "injector" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0e/03/c498bde769fdb821b8819e21c2953329d7e16b5cb49cbec182328f3143ea/django_ninja_extra-0.22.0.tar.gz", hash = "sha256:a4ecc91b6dce456549754b5c1ac405c7fec3a0b3f03b98dfbe9dc030e5b82ba9", size = 48372 }
+sdist = { url = "https://files.pythonhosted.org/packages/6a/c4/a1607922860629b36b5d0f56ff3b1857bdfc2f9cdf4b140ece17f2272512/django_ninja_extra-0.22.6.tar.gz", hash = "sha256:996d415b45bdeaa0176d7a1083970e53e3b425b86f690459df3b8cecb514e820", size = 53341 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/16/8a/67af898af0bdc3269c682bb1b2f553ddfde313e95f666e07b61ff0990f7a/django_ninja_extra-0.22.0-py3-none-any.whl", hash = "sha256:7f304901e71900f2921c0809d1541408536ad985e4535ee01ed97a1fd312b4aa", size = 65911 },
+    { url = "https://files.pythonhosted.org/packages/01/2a/4a8d74225ff63001b73af3cfe628ce74bde4413e9139cdc4b56130aa47c6/django_ninja_extra-0.22.6-py3-none-any.whl", hash = "sha256:d91a53690c11d2c673a8398ed5a771e6c42063b35bd7a32e433fe60ee05ef9d1", size = 72902 },
 ]
 
 [[package]]
@@ -1867,7 +1869,7 @@ wheels = [
 
 [[package]]
 name = "pylint"
-version = "3.3.3"
+version = "3.3.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astroid" },
@@ -1878,9 +1880,9 @@ dependencies = [
     { name = "platformdirs" },
     { name = "tomlkit" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/17/fd/e9a739afac274a39596bbe562e9d966db6f3917fdb2bd7322ffc56da0ba2/pylint-3.3.3.tar.gz", hash = "sha256:07c607523b17e6d16e2ae0d7ef59602e332caa762af64203c24b41c27139f36a", size = 1516550 }
+sdist = { url = "https://files.pythonhosted.org/packages/69/a7/113d02340afb9dcbb0c8b25454e9538cd08f0ebf3e510df4ed916caa1a89/pylint-3.3.6.tar.gz", hash = "sha256:b634a041aac33706d56a0d217e6587228c66427e20ec21a019bc4cdee48c040a", size = 1519586 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/91/e1/26d55acea92b1ea4d33672e48f09ceeb274e84d7d542a4fb9a32a556db46/pylint-3.3.3-py3-none-any.whl", hash = "sha256:26e271a2bc8bce0fc23833805a9076dd9b4d5194e2a02164942cb3cdc37b4183", size = 521918 },
+    { url = "https://files.pythonhosted.org/packages/31/21/9537fc94aee9ec7316a230a49895266cf02d78aa29b0a2efbc39566e0935/pylint-3.3.6-py3-none-any.whl", hash = "sha256:8b7c2d3e86ae3f94fb27703d521dd0b9b6b378775991f504d7c3a6275aa0a6a6", size = 522462 },
 ]
 
 [[package]]
