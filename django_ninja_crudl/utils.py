@@ -4,68 +4,87 @@ import inspect
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, TypeVar
-from uuid import UUID
+from typing import Any, TypeVar, final
 
 from beartype import beartype
+from django.db import models
 from django.db.models import Model
+from django2pydantic import BaseSchema
+from django2pydantic.schema import SchemaConfig
+from ninja import Path
+
+from django_ninja_crudl.types import TDjangoModel_co
 
 
-@beartype
-def extract_arguments_from_path_spec(path_spec: str) -> dict[str, type]:
-    """Extract arguments from the path spec.
+def get_path_spec_args(path_spec: str) -> list[str]:
+    """Extract list of arguments from path spec.
 
     Args:
-        path_spec (str): The path spec. For example: "/{uuid:organization}/resource/{uuid:id}"
+        path_spec: The path specification (e.g., "/publishers/{id}")
 
     Returns:
-        dict[str, type]: A dictionary with the argument names as keys and the argument types as values. For example: {"organization": UUID, "id": UUID}.
-
+        List of argument names
     """
-    args_with_types: dict[str, type] = {}
+    path_args = []
     for part in path_spec.split("/"):
         if part.startswith("{") and part.endswith("}"):
-            arg_type, arg_name = part[1:-1].split(":")
-            if arg_type == "uuid":
-                arg_type = UUID
-            elif arg_type == "int":
-                arg_type = int
-            elif arg_type == "str":
-                arg_type = str
-            args_with_types[arg_name] = arg_type
-    return args_with_types
+            # Extract just the argument name without type annotation
+            arg_name = part[1:-1]
+            if ":" in arg_name:
+                _, arg_name = arg_name.split(":", 1)
+            path_args.append(arg_name)
+
+    return path_args
 
 
-@beartype
-def add_function_arguments(
-    path_spec: str,
+def get_pydantic_model_from_args_annotations(
+    model_class: type[TDjangoModel_co], path_args: list[str]
+) -> type[BaseSchema[TDjangoModel_co]]:
+    """Create a Pydantic model to validate path arguments."""
+
+    @final
+    class PathArgsSchema(BaseSchema[models.Model]):  # pylint: disable=too-few-public-methods
+        config = SchemaConfig[models.Model](
+            model=model_class,
+            fields=path_args,
+            name=f"{model_class.__name__}PathArgs",
+        )
+
+    return PathArgsSchema
+
+
+def replace_path_args_annotation(
+    path_spec: str, model_class: type[TDjangoModel_co]
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """Add function arguments to the decorated function."""
-    new_args_with_types: dict[str, type] = extract_arguments_from_path_spec(path_spec)
+    """Replace 'path_args' in signature with a properly annotated Pydantic model."""
 
     def decorator(func: Callable) -> Callable:
         @wraps(func)
-        def wrapper(*args, **path_args):
-            return func(*args, **path_args)
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
 
         new_signature = inspect.signature(func)
 
-        # add the new arguments to the signature before the **kwargs:
+        # Exclude placeholder 'path_args' from function's params if it exists
         new_params = list(new_signature.parameters.values())
-        new_params = (
-            new_params[:-1]
-            + [
-                inspect.Parameter(
-                    name,
-                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                    annotation=new_args_with_types[name],
-                )
-                for name in new_args_with_types
-            ]
-            + new_params[-1:]
-        )
-        new_signature = new_signature.replace(parameters=new_params)
+        new_params = [param for param in new_params if param.name != "path_args"]
 
+        # Add the new properly annotated 'path_args' to the list of parameters
+        path_spec_args = get_path_spec_args(path_spec)
+        if path_spec_args:
+            new_path_args_param = get_pydantic_model_from_args_annotations(
+                model_class, path_spec_args
+            )
+            new_params.insert(
+                len(new_params) - 2,  # Insert before the last parameter (kwargs)
+                inspect.Parameter(
+                    "path_args",
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    annotation=Path[new_path_args_param],
+                ),
+            )
+
+        new_signature = new_signature.replace(parameters=new_params)
         wrapper.__signature__ = new_signature
         return wrapper
 

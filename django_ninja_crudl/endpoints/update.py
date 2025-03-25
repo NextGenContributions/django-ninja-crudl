@@ -2,7 +2,7 @@
 
 import logging
 from abc import ABC
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from django.db import transaction
 from django.db.models import (
@@ -25,12 +25,16 @@ from django_ninja_crudl.errors.schemas import (
     ErrorSchema,
 )
 from django_ninja_crudl.types import (
-    PathArgs,
     RequestDetails,
     TDjangoModel,
     TDjangoModel_co,
 )
-from django_ninja_crudl.utils import add_function_arguments
+from django_ninja_crudl.utils import (
+    replace_path_args_annotation,
+)
+
+if TYPE_CHECKING:
+    from django.db.models.fields.related_descriptors import ManyRelatedManager
 
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 
@@ -61,14 +65,15 @@ def get_update_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             by_alias=True,
         )
         @transaction.atomic
-        @add_function_arguments(config.update_path)
+        @replace_path_args_annotation(config.update_path, config.model)
         def update(
             self,
             request: HttpRequest,
             payload: update_schema,
-            **path_args: PathArgs,
+            **kwargs,
         ) -> tuple[Literal[403, 404], ErrorSchema] | Model:
             """Update an object."""
+            path_args = kwargs["path_args"].dict() if "path_args" in kwargs else {}
             request_details = RequestDetails[TDjangoModel_co](
                 action="put",
                 request=request,
@@ -80,7 +85,7 @@ def get_update_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             if not self.has_permission(request_details):
                 return self.get_403_error(request)
             obj = (
-                self.get_pre_filtered_queryset(path_args)
+                self.get_pre_filtered_queryset(config.model, path_args)
                 .filter(self.get_base_filter(request_details))
                 .filter(self.get_filter_for_update(request_details))
                 .first()
@@ -94,7 +99,15 @@ def get_update_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             self.pre_update(request_details)
 
             for attr_name, attr_value in payload.model_dump().items():
-                setattr(obj, attr_name, attr_value)
+                try:
+                    setattr(obj, attr_name, attr_value)
+                except TypeError as e:
+                    msg = "Direct assignment to the forward side of a many-to-many set is prohibited."
+                    if msg in str(e):
+                        m2m_manager: ManyRelatedManager[Model] = getattr(obj, attr_name)
+                        m2m_manager.set(attr_value)
+                    else:
+                        raise
             obj.save()
             self.post_update(request_details)
             return obj

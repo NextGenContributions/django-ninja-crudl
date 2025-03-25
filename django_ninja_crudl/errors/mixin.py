@@ -12,6 +12,7 @@ from django_ninja_crudl.errors.schemas import (
     Error503ServiceUnavailableSchema,
     ErrorSchema,
 )
+from django_ninja_crudl.errors.transform import get_exception_details
 
 
 class ErrorHandlerMixin:
@@ -62,7 +63,6 @@ class ErrorHandlerMixin:
         exception: Exception | None = None,
     ) -> tuple[Literal[409], ErrorSchema]:
         """Return the 409 error message."""
-        debug_details = str(exception) if settings.DEBUG else None
         if settings.DEBUG:
             # Log the exception in the console with full traceback.
             # full traceback
@@ -72,7 +72,7 @@ class ErrorHandlerMixin:
 
         return 409, Error409ConflictSchema(
             request_id=self.get_request_id(request),
-            debug_details=debug_details,
+            details=get_exception_details(exception),
         )
 
     def get_503_error(

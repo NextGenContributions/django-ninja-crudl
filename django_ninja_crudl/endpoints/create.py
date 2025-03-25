@@ -19,6 +19,10 @@ from ninja_extra import http_post, status
 
 from django_ninja_crudl.base import CrudlBaseMethodsMixin
 from django_ninja_crudl.config import CrudlConfig
+from django_ninja_crudl.errors.openapi_extras import (
+    not_authorized_openapi_extra,
+    throttle_openapi_extra,
+)
 from django_ninja_crudl.errors.schemas import (
     Error401UnauthorizedSchema,
     Error403ForbiddenSchema,
@@ -29,12 +33,70 @@ from django_ninja_crudl.errors.schemas import (
     ErrorSchema,
 )
 from django_ninja_crudl.types import (
-    PathArgs,
+    JSON,
     RequestDetails,
     TDjangoModel,
     TDjangoModel_co,
 )
-from django_ninja_crudl.utils import add_function_arguments, validating_manager
+from django_ninja_crudl.utils import (
+    replace_path_args_annotation,
+    validating_manager,
+)
+
+
+def _create_schema_extra(
+    config: CrudlConfig[TDjangoModel_co],
+) -> JSON:
+    """Create the OpenAPI links for the create operation.
+
+    Ref: https://swagger.io/docs/specification/v3_0/links/
+    """
+    get_one_operation_id: str = config.get_one_operation_id
+    update_operation_id: str = config.update_operation_id
+    partial_update_operation_id: str = config.partial_update_operation_id
+    delete_operation_id: str = config.delete_operation_id
+    create_response_name: str = config.create_response_name
+    resource_name: str = config.model.__name__.lower()
+
+    res_body_id = "$response.body#/id"
+    return {
+        "responses": {
+            201: {
+                "description": "Created",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": f"#/components/schemas/{create_response_name}",
+                        },
+                    },
+                },
+                "links": {
+                    "UpdateById": {
+                        "operationId": update_operation_id,
+                        "parameters": {"id": res_body_id},
+                        "description": f"Update {resource_name} by id",
+                    },
+                    "DeleteById": {
+                        "operationId": delete_operation_id,
+                        "parameters": {"id": res_body_id},
+                        "description": f"Delete {resource_name} by id",
+                    },
+                    "GetById": {
+                        "operationId": get_one_operation_id,
+                        "parameters": {"id": res_body_id},
+                        "description": f"Get {resource_name} by id",
+                    },
+                    "PatchById": {
+                        "operationId": partial_update_operation_id,
+                        "parameters": {"id": res_body_id},
+                        "description": f"Patch {resource_name} by id",
+                    },
+                },
+            },
+            **not_authorized_openapi_extra,
+            **throttle_openapi_extra,
+        },
+    }
 
 
 def get_create_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
@@ -56,17 +118,18 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                 status.HTTP_422_UNPROCESSABLE_ENTITY: Error422UnprocessableEntitySchema,
                 status.HTTP_503_SERVICE_UNAVAILABLE: Error503ServiceUnavailableSchema,
             },
-            # openapi_extra=config.create_schema_extra,
+            openapi_extra=_create_schema_extra(config),
         )
         @transaction.atomic
-        @add_function_arguments(config.create_path)
+        @replace_path_args_annotation(config.create_path, config.model)
         def create_endpoint(
             self,
             request: HttpRequest,
             payload: create_schema,
-            **path_args: PathArgs,
+            **kwargs,
         ) -> tuple[Literal[403, 404, 409], ErrorSchema] | tuple[Literal[201], Model]:
             """Create a new object."""
+            path_args = kwargs["path_args"].dict() if "path_args" in kwargs else {}
             request_details = RequestDetails[TDjangoModel_co](
                 action="create",
                 request=request,
@@ -110,18 +173,26 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             except IntegrityError as integrity_error:
                 transaction.set_rollback(True)
                 return self.get_409_error(request, exception=integrity_error)
+            except ValidationError as validation_error:
+                transaction.set_rollback(True)
+                return self.get_409_error(request, exception=validation_error)
 
             for (
                 m2m_field,
                 m2m_field_value,
             ) in m2m_fields_to_set:  # pyright: ignore[reportAny]
-                related_model_class = self._get_related_model(m2m_field)  # pyright: ignore[reportPrivateUsage]
+                related_model_class = self._get_related_model(config.model, m2m_field)  # pyright: ignore[reportPrivateUsage]
 
                 if isinstance(m2m_field_value, list):
                     for m2m_field_value_item in m2m_field_value:
-                        related_obj = related_model_class._default_manager.get(
-                            id=m2m_field_value_item,
-                        )
+                        try:
+                            related_obj = related_model_class._default_manager.get(
+                                id=m2m_field_value_item,
+                            )
+                        except related_model_class.DoesNotExist:
+                            transaction.set_rollback(True)
+                            return self.get_404_error(request)
+
                         request_details_related = request_details  # noqa: WPS220
                         request_details_related.related_model_class = (
                             related_model_class

@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from typing import Generic, final, overload, override
 
 from beartype import beartype
+from django.db import models
 from django2pydantic import BaseSchema
 from django2pydantic.schema import SchemaConfig
-from django.db import models
 from ninja import PatchDict
 from pydantic import BaseModel
 
@@ -149,14 +149,13 @@ class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instanc
 
         self.delete_allowed = delete_allowed
 
-        self.create_response_name = f"{self.model.__name__}_CreateResponse"
         self.create_response_schema = self._get_create_response_schema(model)
+        self.create_response_name = self.create_response_schema.__name__
 
         pk_name = self._get_pk_name(model)
-        pk_type = self._get_pk_type(model)
 
         # Set or generate the paths
-        id_string = f"{{{pk_type}:{pk_name}}}"
+        id_string = f"{{{pk_name}}}"
         self.create_path = create_path or f"{base_path}"
         self.get_one_path = get_one_path or f"{base_path}/{id_string}"
         self.update_path = update_path or f"{base_path}/{id_string}"
@@ -187,12 +186,12 @@ class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instanc
         """Get the path class."""
 
         @final
-        class PathId(BaseSchema):
+        class PathId(BaseSchema[models.Model]):
             """Path ID class."""
 
-            config = SchemaConfig(
+            config = SchemaConfig[models.Model](
                 model=model_class,
-                fields={cls._get_pk_name(model_class)},
+                fields=[cls._get_pk_name(model_class)],
             )
 
         return PathId
@@ -232,7 +231,11 @@ class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instanc
     @beartype
     @staticmethod
     def _get_pk_name(model_class: type[models.Model]) -> str:
-        return model_class._meta.pk.name  # noqa: SLF001, WPS437
+        pk = model_class._meta.pk  # noqa: SLF001
+        if pk is None:
+            msg = f"Model {model_class.__name__} doesn't have a primary key"
+            raise ValueError(msg)
+        return pk.name
 
     @beartype
     @staticmethod
@@ -259,7 +262,9 @@ class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instanc
 
             config = SchemaConfig[models.Model](
                 model=model_class,
-                fields={"id"},
+                # TODO(phuongfi91): Check if pk works
+                fields=["id"],
+                name=f"Create{model_class.__name__}Response",
             )
 
         return CreateResponseSchema
