@@ -11,6 +11,7 @@ from ninja_extra import NinjaExtraAPI
 
 from django_ninja_crudl import CrudlConfig, CrudlController, RequestDetails, Schema
 from django_ninja_crudl.mixins.filters import FiltersMixin
+from django_ninja_crudl.types import TDjangoModel_co
 from tests.test_django.app.models import (
     Author,
     Book,
@@ -21,38 +22,36 @@ from tests.test_django.app.models import (
 )
 
 
-class DefaultFilter(FiltersMixin):
+class DefaultFilter(FiltersMixin[TDjangoModel_co]):
+    """Default generic filter for the CRUDL operations."""
     @override
-    def get_base_filter(self, request: RequestDetails) -> Q:
+    def get_base_filter(self, request: RequestDetails[TDjangoModel_co]) -> Q:
         """Return the base queryset filter that applies to all CRUDL operations."""
         return Q()
 
     @override
-    def get_filter_for_update(self, request: RequestDetails) -> Q:
+    def get_filter_for_update(self, request: RequestDetails[TDjangoModel_co]) -> Q:
         """Return the queryset filter that applies to the update operation."""
-        # return self.get_filter(request, 'change')
         return Q()
 
     @override
-    def get_filter_for_delete(self, request: RequestDetails) -> Q:
+    def get_filter_for_delete(self, request: RequestDetails[TDjangoModel_co]) -> Q:
         """Return the queryset filter that applies to the delete operation."""
-        # return self.get_filter(request, 'delete')
         return Q()
 
     @override
-    def get_filter_for_list(self, request: RequestDetails) -> Q:
+    def get_filter_for_list(self, request: RequestDetails[TDjangoModel_co]) -> Q:
         """Return the queryset filter that applies to the list operation."""
-        # return self.get_filter(request, "view")
         return Q()
 
     @override
-    def get_filter_for_get_one(self, request: RequestDetails) -> Q:
+    def get_filter_for_get_one(self, request: RequestDetails[TDjangoModel_co]) -> Q:
         """Return the queryset filter that applies to the get_one operation."""
-        # return self.get_filter(request, 'view')
         return Q()
 
 
-class AuthorCrudl(CrudlController[Author], DefaultFilter):
+class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: disable=too-many-ancestors
+    """CRUDL controller for the Author model."""
     config = CrudlConfig[Author](
         model=Author,
         base_path="/authors",
@@ -60,14 +59,18 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter):
             fields={
                 "name": Infer,
                 "birth_date": Infer,
-                # "books": Infer,  # TODO(phuongfi91): support reverse relation handler
+                # TODO(phuongfi91): support reverse relation handler
+                #  https://github.com/NextGenContributions/django-ninja-crudl/issues/11
+                # "books": Infer,
             }
         ),
         update_schema=Schema[Author](
             fields={
                 "name": Infer,
                 "birth_date": Infer,
-                # "books": Infer,  # TODO(phuongfi91): support reverse relation handler
+                # TODO(phuongfi91): support reverse relation handler
+                #  https://github.com/NextGenContributions/django-ninja-crudl/issues/11
+                # "books": Infer,
             }
         ),
         get_one_schema=Schema[Author](
@@ -94,12 +97,14 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter):
     )
 
 
-class PublisherCrudl(CrudlController[Publisher], DefaultFilter):
+class PublisherCrudl(CrudlController[Publisher], DefaultFilter[Publisher]):  # pylint: disable=too-many-ancestors
+    """CRUDL controller for the Publisher model."""
     config = CrudlConfig[Publisher](
         model=Publisher,
         base_path="/publishers",
         create_schema=Schema[Publisher](
             # TODO(phuongfi91): Test for alternative syntax
+            #  https://github.com/NextGenContributions/django-ninja-crudl/issues/13
             # fields=[
             #     "name",
             #     "address",
@@ -107,6 +112,7 @@ class PublisherCrudl(CrudlController[Publisher], DefaultFilter):
             fields={
                 "name": Infer,
                 "address": Infer,
+                "publisher_type": Infer,
             }
         ),
         update_schema=Schema[Publisher](
@@ -133,7 +139,8 @@ class PublisherCrudl(CrudlController[Publisher], DefaultFilter):
     )
 
 
-class BookCrudl(CrudlController[Book], DefaultFilter):
+class BookCrudl(CrudlController[Book], DefaultFilter[Book]):  # pylint: disable=too-many-ancestors
+    """CRUDL controller for the Book model."""
     config = CrudlConfig[Book](
         model=Book,
         base_path="/books",
@@ -180,17 +187,19 @@ class BookCrudl(CrudlController[Book], DefaultFilter):
         ),
         delete_allowed=True,
         # TODO(phuongfi91): implement 'search_fields'
-        #     search_fields: ClassVar[list[str]] = [
-        #         "title",
-        #         "isbn",
-        #         "authors__name",
-        #         "publisher__name",
-        #         "publication_date",
-        #     ]
+        #  https://github.com/NextGenContributions/django-ninja-crudl/issues/33
+        #  search_fields: ClassVar[list[str]] = [
+        #      "title",
+        #      "isbn",
+        #      "authors__name",
+        #      "publisher__name",
+        #      "publication_date",
+        #  ]
     )
 
 
-class LibraryCrudl(CrudlController[Library], DefaultFilter):
+class LibraryCrudl(CrudlController[Library], DefaultFilter[Library]):  # pylint: disable=too-many-ancestors
+    """CRUDL controller for the Library model."""
     config = CrudlConfig[Library](
         model=Library,
         base_path="/libraries",
@@ -223,7 +232,8 @@ class LibraryCrudl(CrudlController[Library], DefaultFilter):
     )
 
 
-class BookCopyCrudl(CrudlController[BookCopy], DefaultFilter):
+class BookCopyCrudl(CrudlController[BookCopy], DefaultFilter[BookCopy]):  # pylint: disable=too-many-ancestors
+    """CRUDL controller for the BookCopy model."""
     config = CrudlConfig[BookCopy](
         model=BookCopy,
         base_path="/book_copies",
@@ -260,7 +270,8 @@ class BookCopyCrudl(CrudlController[BookCopy], DefaultFilter):
     )
 
 
-class BorrowingCrudl(CrudlController[Borrowing], DefaultFilter):
+class BorrowingCrudl(CrudlController[Borrowing], DefaultFilter[Borrowing]):  # pylint: disable=too-many-ancestors
+    """CRUDL controller for the Borrowing model."""
     config = CrudlConfig[Borrowing](
         model=Borrowing,
         base_path="/borrowings",

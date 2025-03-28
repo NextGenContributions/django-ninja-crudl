@@ -7,13 +7,26 @@ from functools import wraps
 from typing import Any, TypeVar, final
 
 from beartype import beartype
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.core.exceptions import FieldDoesNotExist
 from django.db import models
-from django.db.models import Model
+from django.db.models import Field, ForeignObjectRel, Model
 from django2pydantic import BaseSchema
 from django2pydantic.schema import SchemaConfig
 from ninja import Path
 
 from django_ninja_crudl.types import TDjangoModel_co
+
+
+def get_model_field(
+    model_class: type[TDjangoModel_co], field_name: str
+) -> Field[Any, Any] | ForeignObjectRel | GenericForeignKey | None:
+    """Get the field object from Django's model class."""
+    try:
+        return model_class._meta.get_field(field_name)  # noqa: SLF001  # pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
+    except FieldDoesNotExist as exc:
+        msg = f"Field '{field_name}' does not exist in model '{model_class.__name__}'"
+        raise ValueError(msg) from exc
 
 
 def get_path_spec_args(path_spec: str) -> list[str]:
@@ -43,7 +56,7 @@ def get_pydantic_model_from_args_annotations(
     """Create a Pydantic model to validate path arguments."""
 
     @final
-    class PathArgsSchema(BaseSchema[models.Model]):  # pylint: disable=too-few-public-methods
+    class PathArgsSchema(BaseSchema[models.Model]):
         config = SchemaConfig[models.Model](
             model=model_class,
             fields=path_args,

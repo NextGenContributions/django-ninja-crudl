@@ -2,9 +2,8 @@
 
 import logging
 from abc import ABC
-from typing import Literal
+from typing import Literal, Unpack
 
-from django.db import models
 from django.db.models import (
     ManyToManyField,
     ManyToManyRel,
@@ -13,8 +12,6 @@ from django.db.models import (
     OneToOneRel,
 )
 from django.http import HttpRequest
-from django2pydantic import BaseSchema
-from ninja import Path
 from ninja_extra import http_get, status
 
 from django_ninja_crudl import CrudlConfig
@@ -28,7 +25,7 @@ from django_ninja_crudl.errors.schemas import (
 )
 from django_ninja_crudl.types import (
     RequestDetails,
-    TDjangoModel,
+    RequestParams,
     TDjangoModel_co,
 )
 from django_ninja_crudl.utils import replace_path_args_annotation
@@ -36,15 +33,10 @@ from django_ninja_crudl.utils import replace_path_args_annotation
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 
 
-DjangoRelationFields = (
-    ManyToManyField[Model, Model] | ManyToManyRel | ManyToOneRel | OneToOneRel
-)
-
-
 def get_get_one_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
     """Create the get_one endpoint class for the CRUDL operations."""
 
-    class GetOneEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):
+    class GetOneEndpoint(CrudlBaseMethodsMixin[TDjangoModel_co], ABC):  # pyright: ignore [reportGeneralTypeIssues]
         @http_get(
             path=config.get_one_path,
             response={
@@ -62,22 +54,21 @@ def get_get_one_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
         def get_one(
             self,
             request: HttpRequest,
-            **kwargs,
+            **kwargs: Unpack[RequestParams],
         ) -> tuple[Literal[403, 404], ErrorSchema] | Model:
             """Retrieve an object."""
-            path_args = kwargs["path_args"].dict() if "path_args" in kwargs else {}
             request_details = RequestDetails[Model](
                 action="get_one",
                 request=request,
                 schema=config.get_one_schema,
-                path_args=path_args,
+                path_args=self._get_path_args(kwargs),
                 model_class=config.model,
             )
             if not self.has_permission(request_details):
                 return self.get_403_error(request)  # noqa: WPS220
 
             obj = (
-                self.get_pre_filtered_queryset(config.model, path_args)
+                self.get_pre_filtered_queryset(config.model, request_details.path_args)
                 .filter(self.get_base_filter(request_details))
                 .filter(self.get_filter_for_get_one(request_details))
                 .first()

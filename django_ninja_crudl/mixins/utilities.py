@@ -1,6 +1,6 @@
 """Utility methods for the CRUDL classes."""
 
-from typing import Any, Generic, cast
+from typing import Any, Generic, Literal, cast
 from uuid import UUID
 
 from django.db import models
@@ -9,43 +9,48 @@ from django.db.models import (
     Manager,
     ManyToManyField,
     ManyToManyRel,
-    ManyToOneRel,
     Model,
     OneToOneRel,
     QuerySet,
 )
 
 from django_ninja_crudl.types import PathArgs, RequestDetails, TDjangoModel_co
+from django_ninja_crudl.utils import get_model_field
 
 
 class UtilitiesMixin(Generic[TDjangoModel_co]):
     """Utility methods for the CRUDL classes."""
 
     def _get_related_model(
-        self, model_class: type[TDjangoModel_co], field_name: str
-    ) -> Model:
+        self, model_class: type[Model], field_name: str
+    ) -> type[Model]:
         """Return the related model class for a field name."""
-        field = model_class._meta.get_field(field_name)  # noqa: SLF001, WPS437
-        if isinstance(field, ForeignObjectRel):
-            return field.related_model
-        if isinstance(field, OneToOneRel):
-            return cast(type[Model], field.related_model)
-        if isinstance(field, ManyToManyRel):
-            return cast(type[Model], field.related_model)
-        if isinstance(field, ManyToOneRel):
-            return cast(type[Model], field.related_model)
-        if isinstance(field, ManyToManyField):
-            return cast(type[Model], field.related_model)
+        field = get_model_field(model_class, field_name)
+        related_model: type[Model] | Literal["self"] | None = None
 
-        msg = (
-            f"Field name '{field_name}' and type '{type(field)}' " "is not a relation."
-        )
+        if isinstance(field, ForeignObjectRel):
+            related_model = field.related_model
+        elif isinstance(
+            # TODO(phuongfi91): Potential unreachable code
+            #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
+            field,
+            OneToOneRel | ManyToManyRel | ManyToManyRel | ManyToManyField,
+        ):
+            related_model = cast(type[Model], field.related_model)
+
+        if related_model == "self":
+            related_model = model_class
+
+        if related_model is not None:
+            return related_model
+
+        msg = f"Field name '{field_name}' and type '{type(field)}' is not a relation."
         raise ValueError(msg)
 
     def get_model_filter_args(
         self,
         model_class: type[Model],
-        path_args: dict[str, Any] | None,
+        path_args: PathArgs | None,
     ) -> dict[str, str | int | float | UUID]:
         """Filter out the keys that are not fields of the model."""
         if path_args is None:
@@ -55,7 +60,7 @@ class UtilitiesMixin(Generic[TDjangoModel_co]):
     def get_pre_filtered_queryset(
         self,
         model_class: type[Model],
-        path_args: PathArgs,
+        path_args: PathArgs | None,
     ) -> QuerySet[Model]:
         """Return a queryset that is filtered by params from the path query."""
         model_filters = self.get_model_filter_args(model_class, path_args)
@@ -63,11 +68,11 @@ class UtilitiesMixin(Generic[TDjangoModel_co]):
 
     def get_queryset(self, model_class: type[Model]) -> "Manager[Model]":
         """Return the model's manager."""
-        return model_class._default_manager  # noqa: SLF001, WPS437 pylint: disable=protected-access
+        return model_class._default_manager  # noqa: SLF001 pylint: disable=protected-access
 
     def get_filtered_queryset_for_related_model(
         self,
-        request: RequestDetails,
+        request: RequestDetails[TDjangoModel_co],
         field_name: str,
     ) -> models.Q:
         """Get filtered queryset for related model based on custom conditions."""

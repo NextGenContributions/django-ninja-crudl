@@ -59,7 +59,7 @@ class ErrorHandlerMixin:
     def get_409_error(
         self,
         request: HttpRequest,
-        response: HttpResponse | None = None,
+        response: HttpResponse | None = None,  # NOSONAR  # noqa: ARG002
         exception: Exception | None = None,
     ) -> tuple[Literal[409], ErrorSchema]:
         """Return the 409 error message."""

@@ -2,16 +2,14 @@
 
 import logging
 from abc import ABC
+from typing import Unpack
 
 from django.db import models
 from django.db.models import (
     ForeignKey,
     ManyToManyField,
-    ManyToManyRel,
-    ManyToOneRel,
     Model,
     OneToOneField,
-    OneToOneRel,
 )
 from django.http import HttpRequest, HttpResponse
 from ninja_extra import http_get, status
@@ -28,25 +26,21 @@ from django_ninja_crudl.errors.schemas import (
 from django_ninja_crudl.model_utils import get_pydantic_fields
 from django_ninja_crudl.types import (
     RequestDetails,
-    TDjangoModel,
+    RequestParams,
     TDjangoModel_co,
 )
 from django_ninja_crudl.utils import (
+    get_model_field,
     replace_path_args_annotation,
 )
 
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 
 
-DjangoRelationFields = (
-    ManyToManyField[Model, Model] | ManyToManyRel | ManyToOneRel | OneToOneRel
-)
-
-
 def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
     """Create the get_many endpoint class for the CRUDL operations."""
 
-    class GetManyEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):
+    class GetManyEndpoint(CrudlBaseMethodsMixin[TDjangoModel_co], ABC):  # pyright: ignore [reportGeneralTypeIssues]
         """GetMany endpoint for CRUDL operations."""
 
         @http_get(
@@ -66,14 +60,13 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             self,
             request: HttpRequest,
             response: HttpResponse,
-            **kwargs,
+            **kwargs: Unpack[RequestParams],
         ) -> tuple[int, ErrorSchema] | models.Manager[Model]:
             """List all objects."""
-            path_args = kwargs["path_args"].dict() if "path_args" in kwargs else {}
             request_details = RequestDetails[Model](
                 action="list",
                 request=request,
-                path_args=path_args,
+                path_args=self._get_path_args(kwargs),
                 model_class=config.model,
             )
 
@@ -81,7 +74,7 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                 return self.get_403_error(request)
 
             qs = (
-                self.get_pre_filtered_queryset(config.model, path_args)
+                self.get_pre_filtered_queryset(config.model, request_details.path_args)
                 .filter(self.get_base_filter(request_details))
                 .filter(self.get_filter_for_list(request_details))
             )
@@ -112,7 +105,7 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                     )
                     return qs  # noqa: WPS220
 
-                django_field = config.model._meta.get_field(field_name)  # noqa: SLF001
+                django_field = get_model_field(config.model, field_name)
                 if isinstance(
                     django_field,
                     OneToOneField | ForeignKey,

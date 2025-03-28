@@ -2,8 +2,7 @@
 
 import logging
 from abc import ABC
-from enum import Enum, IntEnum
-from typing import Any, Literal
+from typing import Any, Literal, Unpack
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
@@ -30,10 +29,10 @@ from django_ninja_crudl.errors.schemas import (
 )
 from django_ninja_crudl.types import (
     RequestDetails,
-    TDjangoModel,
-    TDjangoModel_co,
+    RequestParams,
 )
 from django_ninja_crudl.utils import (
+    get_model_field,
     replace_path_args_annotation,
     validating_manager,
 )
@@ -41,15 +40,10 @@ from django_ninja_crudl.utils import (
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 
 
-DjangoRelationFields = (
-    ManyToManyField[Model, Model] | ManyToManyRel | ManyToOneRel | OneToOneRel
-)
-
-
-def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
+def get_partial_update_endpoint(config: CrudlConfig[Model]) -> type:
     """Create the partial update endpoint class for the CRUDL operations."""
 
-    class PartialUpdateEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):
+    class PartialUpdateEndpoint(CrudlBaseMethodsMixin[Model], ABC):  # pyright: ignore [reportGeneralTypeIssues]
         @http_patch(
             path=config.update_path,
             operation_id=config.partial_update_operation_id,
@@ -69,23 +63,22 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
         def patch(
             self,
             request: HttpRequest,
-            payload: config.partial_update_schema,  # pyright: ignore[reportInvalidTypeForm, reportUnknownParameterType]
-            **kwargs,
+            payload: config.partial_update_schema,  # type: ignore[name-defined]
+            **kwargs: Unpack[RequestParams],
         ) -> tuple[Literal[403, 404, 409], ErrorSchema] | Model:
             """Partial update an object."""
-            path_args = kwargs["path_args"].dict() if "path_args" in kwargs else {}
             request_details = RequestDetails[Model](
                 action="patch",
                 request=request,
                 schema=config.partial_update_schema,  # pyright: ignore[reportPossiblyUnboundVariable]
-                path_args=path_args,
+                path_args=self._get_path_args(kwargs),
                 payload=payload,  # pyright: ignore[reportUnknownArgumentType]
                 model_class=config.model,
             )
             if not self.has_permission(request_details):
                 return self.get_403_error(request)  # noqa: WPS220
             obj: Model | None = (
-                self.get_pre_filtered_queryset(config.model, path_args)
+                self.get_pre_filtered_queryset(config.model, request_details.path_args)
                 .filter(self.get_base_filter(request_details))
                 .filter(self.get_filter_for_update(request_details))
                 .first()
@@ -105,17 +98,15 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             #  with POST in update.py
             # for field, field_value in payload.model_dump().items():
             for field, field_value in payload.items():
-                if isinstance(field_value, Enum | IntEnum):
-                    field_value = field_value.value  # noqa: PLW2901, WPS220
                 if isinstance(
-                    config.model._meta.get_field(field),  # noqa: SLF001, WPS437
+                    get_model_field(config.model, field),
                     ManyToManyField | ManyToManyRel | ManyToOneRel | OneToOneRel,
                 ):
                     m2m_fields_to_set.append((field, field_value))  # noqa: WPS220
                 else:
                     # Handle foreign key fields:
-                    if isinstance(  # noqa: WPS220, WPS337
-                        config.model._meta.get_field(field),  # noqa: SLF001, WPS437
+                    if isinstance(  # noqa: WPS220
+                        get_model_field(config.model, field),
                         ForeignKey,
                     ) and not field.endswith("_id"):
                         field_name = f"{field}_id"  # noqa: WPS220

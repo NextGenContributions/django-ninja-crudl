@@ -1,7 +1,7 @@
 """CRUDL API base class."""
 
 from abc import ABC
-from typing import Literal
+from typing import Literal, Unpack
 
 from django.db import transaction
 from django.db.models import Model
@@ -20,7 +20,7 @@ from django_ninja_crudl.errors.schemas import (
 )
 from django_ninja_crudl.types import (
     RequestDetails,
-    TDjangoModel,
+    RequestParams,
     TDjangoModel_co,
 )
 from django_ninja_crudl.utils import (
@@ -31,7 +31,7 @@ from django_ninja_crudl.utils import (
 def get_delete_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
     """Create the delete endpoint class for the CRUDL operations."""
 
-    class DeleteEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):
+    class DeleteEndpoint(CrudlBaseMethodsMixin[TDjangoModel_co], ABC):  # pyright: ignore [reportGeneralTypeIssues]
         @http_delete(
             path=config.delete_path,
             operation_id=config.delete_operation_id,
@@ -49,21 +49,20 @@ def get_delete_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
         def delete(
             self,
             request: HttpRequest,
-            **kwargs,
+            **kwargs: Unpack[RequestParams],
         ) -> tuple[Literal[403, 404], ErrorSchema] | tuple[Literal[204], None]:
             """Delete the object by id."""
-            path_args = kwargs["path_args"].dict() if "path_args" in kwargs else {}
             request_details = RequestDetails[Model](
                 action="delete",
                 request=request,
-                path_args=path_args,
+                path_args=self._get_path_args(kwargs),
                 model_class=config.model,
             )
             if not self.has_permission(request_details):
                 return self.get_403_error(request)
 
             obj = (
-                self.get_pre_filtered_queryset(config.model, path_args)
+                self.get_pre_filtered_queryset(config.model, request_details.path_args)
                 .filter(self.get_filter_for_delete(request_details))
                 .first()
             )

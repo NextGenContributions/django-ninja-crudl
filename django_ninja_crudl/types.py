@@ -1,32 +1,50 @@
 """Shared types for the CRUDL classes."""
 
 from dataclasses import dataclass
-from typing import Any, Generic, Literal, TypeVar
+from typing import Any, Generic, Literal, TypedDict, TypeVar
 
-from beartype import beartype
-from django.db.models import Model
+from django.db.models import (
+    ManyToManyField,
+    ManyToManyRel,
+    ManyToOneRel,
+    Model,
+    OneToOneRel,
+)
 from django.http import HttpRequest
 from pydantic import BaseModel
 
 TDjangoModel = TypeVar("TDjangoModel", bound=Model)
 TDjangoModel_co = TypeVar("TDjangoModel_co", bound=Model, covariant=True)
 
+# TODO(phuongfi91): Should this be used somewhere?
+#  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
+DjangoRelationFields = (
+    ManyToManyField[Model, Model] | ManyToManyRel | ManyToOneRel | OneToOneRel
+)
 
 type PathArgs = dict[str, Any]  # pyright: ignore[reportExplicitAny]
 type ObjectlessActions = Literal["create", "list"]
 type WithObjectActions = Literal["get_one", "put", "patch", "delete"]
 
-type JSON = (  # pyre-ignore[11]
-    None | bool | int | float | str | list["JSON"] | dict[str | int, "JSON"]  # noqa: WPS221, WPS465
+type JSON = (  # type: ignore[valid-type]
+    str | int,
+    None | bool | int | float | str | list["JSON"] | dict[str | int, "JSON"],
 )
 
+type DjangoFieldType = tuple[str, Any]  # pyright: ignore[reportExplicitAny]
 type DictStrAny = dict[str, Any]  # pyright: ignore[reportExplicitAny]
+
+
+class RequestParams(TypedDict, total=False):
+    """The URL path arguments of request."""
+
+    path_args: BaseModel
 
 
 # TODO(phuongfi91): Debug beartype error for partial patch (PUT)
 # @beartype
 @dataclass
-class RequestDetails(Generic[TDjangoModel_co]):
+class RequestDetails(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instance-attributes
     """Details about the request.
 
     Used to pass information to the CRUDL methods.

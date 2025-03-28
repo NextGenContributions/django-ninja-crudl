@@ -5,7 +5,7 @@ from typing import Generic, final
 from django2pydantic import BaseSchema, ModelFields, ModelFieldsCompact
 from django2pydantic.schema import SchemaConfig
 
-from django_ninja_crudl.types import TDjangoModel, TDjangoModel_co
+from django_ninja_crudl.types import TDjangoModel_co
 
 
 class Schema(Generic[TDjangoModel_co]):
@@ -17,7 +17,8 @@ class Schema(Generic[TDjangoModel_co]):
         super().__init__()
 
     def create_pydantic_model(
-        self, model: type[TDjangoModel]
+        self,
+        model: type[TDjangoModel_co],  # pyright: ignore [reportGeneralTypeIssues]
     ) -> type[BaseSchema[TDjangoModel_co]]:
         """Create a Pydantic model from the schema."""
         meta_name = f"{model.__name__}Schema"
@@ -25,10 +26,10 @@ class Schema(Generic[TDjangoModel_co]):
         meta_model = model
 
         @final
-        class MyModel(BaseSchema):  # noqa: WPS431
+        class MyModel(BaseSchema[TDjangoModel_co]):  # noqa: WPS431  # pyright: ignore [reportGeneralTypeIssues, reportUninitializedInstanceVariable]
             """Pydantic model for the schema."""
 
-            config = SchemaConfig(
+            config: SchemaConfig[TDjangoModel_co] = SchemaConfig[TDjangoModel_co](  # pyright: ignore [reportGeneralTypeIssues]
                 model=meta_model,
                 fields=meta_fields,
                 name=meta_name,
