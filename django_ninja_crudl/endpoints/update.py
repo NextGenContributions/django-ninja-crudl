@@ -2,18 +2,12 @@
 
 import logging
 from abc import ABC
-from typing import TYPE_CHECKING, Literal
+from typing import Literal, Unpack
 
 from django.db import transaction
-from django.db.models import (
-    ManyToManyField,
-    ManyToManyRel,
-    ManyToOneRel,
-    Model,
-    OneToOneRel,
-)
 from django.http import HttpRequest
 from ninja_extra import http_put, status
+from pydantic import BaseModel
 
 from django_ninja_crudl import CrudlConfig
 from django_ninja_crudl.base import CrudlBaseMethodsMixin
@@ -26,36 +20,32 @@ from django_ninja_crudl.errors.schemas import (
 )
 from django_ninja_crudl.types import (
     RequestDetails,
+    RequestParams,
     TDjangoModel,
-    TDjangoModel_co,
 )
 from django_ninja_crudl.utils import (
     replace_path_args_annotation,
+    validating_manager,
 )
-
-if TYPE_CHECKING:
-    from django.db.models.fields.related_descriptors import ManyRelatedManager
 
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 
 
-DjangoRelationFields = (
-    ManyToManyField[Model, Model] | ManyToManyRel | ManyToOneRel | OneToOneRel
-)
-
-
-def get_update_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
+def get_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
     """Create the update endpoint class for the CRUDL operations."""
-    update_schema = config.update_schema
+    if not config.update_schema:
+        return None
 
-    class UpdateEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):
+    update_schema: type[BaseModel] = config.update_schema
+
+    class UpdateEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):  # pyright: ignore [reportGeneralTypeIssues]
         """Base class for the CRUDL API."""
 
         @http_put(
             path=config.update_path,
             operation_id=config.update_operation_id,
             response={
-                status.HTTP_200_OK: config.update_schema,
+                status.HTTP_200_OK: update_schema,
                 status.HTTP_401_UNAUTHORIZED: Error401UnauthorizedSchema,
                 status.HTTP_403_FORBIDDEN: Error403ForbiddenSchema,
                 status.HTTP_404_NOT_FOUND: ErrorSchema,
@@ -69,23 +59,22 @@ def get_update_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
         def update(
             self,
             request: HttpRequest,
-            payload: update_schema,
-            **kwargs,
-        ) -> tuple[Literal[403, 404], ErrorSchema] | Model:
+            payload: update_schema,  # type: ignore[valid-type]
+            **kwargs: Unpack[RequestParams],
+        ) -> tuple[Literal[403, 404, 409], ErrorSchema] | TDjangoModel:
             """Update an object."""
-            path_args = kwargs["path_args"].dict() if "path_args" in kwargs else {}
-            request_details = RequestDetails[TDjangoModel_co](
+            request_details = RequestDetails[TDjangoModel](
                 action="put",
                 request=request,
                 schema=config.update_schema,
-                path_args=path_args,
+                path_args=self._get_path_args(kwargs),
                 payload=payload,
                 model_class=config.model,
             )
             if not self.has_permission(request_details):
                 return self.get_403_error(request)
             obj = (
-                self.get_pre_filtered_queryset(config.model, path_args)
+                self.get_pre_filtered_queryset(config.model, request_details.path_args)
                 .filter(self.get_base_filter(request_details))
                 .filter(self.get_filter_for_update(request_details))
                 .first()
@@ -98,17 +87,49 @@ def get_update_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                 return self.get_404_error(request)
             self.pre_update(request_details)
 
-            for attr_name, attr_value in payload.model_dump().items():
-                try:
-                    setattr(obj, attr_name, attr_value)
-                except TypeError as e:
-                    msg = "Direct assignment to the forward side of a many-to-many set is prohibited."
-                    if msg in str(e):
-                        m2m_manager: ManyRelatedManager[Model] = getattr(obj, attr_name)
-                        m2m_manager.set(attr_value)
-                    else:
-                        raise
-            obj.save()
+            m2m_fields, obj_fields = self._get_fields_to_set(config.model, payload)
+
+            def update() -> None:
+                nonlocal obj
+                with validating_manager(config.model):  # noqa: WPS220
+                    # TODO(phuongfi91): should we use validating_manager later as well?
+                    for attr_name, attr_value in obj_fields:
+                        setattr(obj, attr_name, attr_value)  # noqa: WPS220
+                    obj.save()  # pyright: ignore [reportOptionalMemberAccess]
+
+            if update_err := self._try(update, request):
+                return update_err
+
+            # Update many-to-many relationships on the created object
+            if m2m_err := self._update_m2m_relationships(
+                obj,
+                m2m_fields,
+                request,
+                request_details,
+            ):
+                return m2m_err
+
+            # Fully validate the created object as well as its related objects
+            if clean_err := self._full_clean_obj(obj, request):
+                return clean_err
+
+            # TODO(phuongfi91): remove this after finalizing the full solution above ^
+            #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
+            # for attr_name, attr_value in payload.model_dump().items():
+            #     try:
+            #         setattr(obj, attr_name, attr_value)
+            #     except TypeError as e:
+            #         msg = (
+            #             "Direct assignment to the forward side of a many-to-many set "
+            #             "is prohibited."
+            #         )
+            #         if msg in str(e):
+            #             m2m_manager: ManyRelatedManager[TDjangoModel] = getattr(obj, attr_name)
+            #             m2m_manager.set(attr_value)
+            #         else:
+            #             raise
+            # obj.save()
+
             self.post_update(request_details)
             return obj
 

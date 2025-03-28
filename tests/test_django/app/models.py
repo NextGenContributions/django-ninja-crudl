@@ -1,5 +1,6 @@
 """Models for the Django test project."""
 
+from enum import Enum
 from typing import override
 
 from django.contrib.auth.models import User
@@ -41,6 +42,16 @@ class Author(models.Model):
         return self.books.count()
 
 
+# TODO(phuongfi91): This is for experimental purpose only
+#  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
+class PublisherType(Enum):
+    """Enum for publisher types."""
+
+    PUBLISHER = "P"
+    DISTRIBUTOR = "D"
+    BOOKSTORE = "B"
+
+
 class Publisher(models.Model):
     """Model for a book publisher."""
 
@@ -48,6 +59,12 @@ class Publisher(models.Model):
 
     name = models.CharField(max_length=100)
     address = models.TextField(help_text="Publisher's official address")
+    # CharField with choices for publisher type
+    publisher_type = models.CharField(
+        max_length=10,
+        choices=[(t.value, t.name) for t in PublisherType],
+        default=PublisherType.PUBLISHER.value,
+    )
 
     class Meta:
         """Meta options for the model."""
@@ -124,6 +141,7 @@ class BookCopy(models.Model):
     library = models.ForeignKey(
         Library,
         on_delete=models.CASCADE,
+        limit_choices_to={"name__icontains": "library"},
     )  # Foreign Key relationship
     inventory_number = models.CharField(max_length=20, unique=True)
 

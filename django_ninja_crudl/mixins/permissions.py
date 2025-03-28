@@ -4,19 +4,16 @@ from abc import ABC
 from typing import ClassVar, Generic
 
 from django_ninja_crudl.permissions import BasePermission
-from django_ninja_crudl.types import RequestDetails, TDjangoModel_co
+from django_ninja_crudl.types import RequestDetails, TDjangoModel
 
 
-class PermissionMixin(Generic[TDjangoModel_co], ABC):
+class PermissionMixin(Generic[TDjangoModel], ABC):
     """Permission check system mixin for the CRUDL API."""
 
-    _permission_classes: ClassVar[list[type[BasePermission[TDjangoModel_co]]]] = []
+    _permission_classes: ClassVar[list[type[BasePermission[TDjangoModel]]]] = []  # type: ignore[misc]
     """List of permission classes to check."""
 
-    def has_permission(
-        self,
-        request: RequestDetails[TDjangoModel_co],
-    ) -> bool:
+    def has_permission(self, request: RequestDetails[TDjangoModel]) -> bool:
         """Check if the user has permission to perform the action."""
         # loop through all permission classes
         for permission_class in self._permission_classes:
@@ -28,10 +25,7 @@ class PermissionMixin(Generic[TDjangoModel_co], ABC):
                     return False
         return True
 
-    def has_object_permission(
-        self,
-        request: RequestDetails[TDjangoModel_co],
-    ) -> bool:
+    def has_object_permission(self, request: RequestDetails[TDjangoModel]) -> bool:
         """Check if the user has permission to perform the action on the object."""
         for permission_class in self._permission_classes:
             if not permission_class.__abstractmethods__:
@@ -41,8 +35,7 @@ class PermissionMixin(Generic[TDjangoModel_co], ABC):
         return True
 
     def has_related_object_permission(
-        self,
-        request: RequestDetails[TDjangoModel_co],
+        self, request: RequestDetails[TDjangoModel]
     ) -> bool:
         """Check if the user has permission to perform the action on the related object."""
         for permission_class in self._permission_classes:
@@ -50,5 +43,4 @@ class PermissionMixin(Generic[TDjangoModel_co], ABC):
                 permission_instance = permission_class()
                 if not permission_instance.has_related_object_permission(request):
                     return False
-                return False
         return True
