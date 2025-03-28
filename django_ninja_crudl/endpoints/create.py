@@ -1,10 +1,9 @@
 """CRUDL API base class."""
 
 from abc import ABC
-from typing import Literal, Unpack
+from typing import Literal, Unpack, cast
 
 from django.db import transaction
-from django.db.models import Model
 from django.http import HttpRequest
 from ninja_extra import http_post, status
 
@@ -27,6 +26,7 @@ from django_ninja_crudl.types import (
     JSON,
     RequestDetails,
     RequestParams,
+    TDjangoModel,
 )
 from django_ninja_crudl.utils import (
     replace_path_args_annotation,
@@ -34,7 +34,7 @@ from django_ninja_crudl.utils import (
 )
 
 
-def _create_schema_extra(config: CrudlConfig[Model]) -> JSON:
+def _create_schema_extra(config: CrudlConfig[TDjangoModel]) -> JSON:
     """Create the OpenAPI links for the create operation.
 
     Ref: https://swagger.io/docs/specification/v3_0/links/
@@ -91,10 +91,10 @@ def _create_schema_extra(config: CrudlConfig[Model]) -> JSON:
     }
 
 
-def get_create_endpoint(config: CrudlConfig[Model]) -> type:
+def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
     """Create the create endpoint class for the CRUDL operations."""
 
-    class CreateEndpoint(CrudlBaseMethodsMixin[Model], ABC):
+    class CreateEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):  # pyright: ignore [reportGeneralTypeIssues]
         """Create endpoint for CRUDL operations."""
 
         @http_post(
@@ -118,9 +118,12 @@ def get_create_endpoint(config: CrudlConfig[Model]) -> type:
             request: HttpRequest,
             payload: config.create_schema,  # type: ignore[name-defined]
             **kwargs: Unpack[RequestParams],
-        ) -> tuple[Literal[403, 404, 409], ErrorSchema] | tuple[Literal[201], Model]:
+        ) -> (
+            tuple[Literal[403, 404, 409], ErrorSchema]
+            | tuple[Literal[201], TDjangoModel]
+        ):
             """Create a new object."""
-            request_details = RequestDetails[Model](
+            request_details = RequestDetails[TDjangoModel](
                 action="create",
                 request=request,
                 schema=config.create_schema,
@@ -135,7 +138,7 @@ def get_create_endpoint(config: CrudlConfig[Model]) -> type:
             m2m_fields, obj_fields = self._get_fields_to_set(config.model, payload)
 
             # Create the object
-            created_obj: Model | None = None
+            created_obj: TDjangoModel | None = None
 
             def create() -> None:
                 nonlocal created_obj
@@ -147,8 +150,9 @@ def get_create_endpoint(config: CrudlConfig[Model]) -> type:
 
             if create_err := self._try(create, request):
                 return create_err
-            if created_obj is None:
-                return self.get_409_error(request)
+
+            # The object is guaranteed to be created at this point
+            created_obj = cast(TDjangoModel, created_obj)  # pyright: ignore[reportInvalidCast]
 
             # Update many-to-many relationships on the created object
             if m2m_err := self._update_m2m_relationships(

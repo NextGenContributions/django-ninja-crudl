@@ -25,26 +25,26 @@ from django_ninja_crudl.types import (
     PathArgs,
     RequestDetails,
     RequestParams,
-    TDjangoModel_co,
+    TDjangoModel,
 )
 from django_ninja_crudl.utils import get_model_field
 
 
 @beartype
 class CrudlBaseMethodsMixin(  # noqa: WPS215 too many base classes
-    Generic[TDjangoModel_co],
+    Generic[TDjangoModel],
     ErrorHandlerMixin,
-    FiltersMixin[TDjangoModel_co],
-    HooksMixin[TDjangoModel_co],
-    PermissionMixin[TDjangoModel_co],
-    UtilitiesMixin[TDjangoModel_co],
+    FiltersMixin[TDjangoModel],
+    HooksMixin[TDjangoModel],
+    PermissionMixin[TDjangoModel],
+    UtilitiesMixin[TDjangoModel],
     ABC,
 ):
     """Provide base feature methods for the CrudlController."""
 
     def _get_fields_to_set(
         self,
-        model_class: type[TDjangoModel_co],
+        model_class: type[TDjangoModel],
         payload: BaseModel,
     ) -> tuple[list[DjangoFieldType], list[DjangoFieldType]]:
         """Get the fields to set for the create operation."""
@@ -94,10 +94,10 @@ class CrudlBaseMethodsMixin(  # noqa: WPS215 too many base classes
 
     def _update_m2m_relationships(
         self,
-        obj: TDjangoModel_co,
+        obj: TDjangoModel,
         m2m_fields_to_set: list[DjangoFieldType],
         request: HttpRequest,
-        request_details: RequestDetails[TDjangoModel_co],
+        request_details: RequestDetails[TDjangoModel],
     ) -> tuple[Literal[404, 409], ErrorSchema] | None:
         """Handle many-to-many relationships for an object."""
         for m2m_field, m2m_field_value in m2m_fields_to_set:  # pyright: ignore[reportAny]

@@ -4,13 +4,6 @@ import logging
 from abc import ABC
 from typing import Literal, Unpack
 
-from django.db.models import (
-    ManyToManyField,
-    ManyToManyRel,
-    ManyToOneRel,
-    Model,
-    OneToOneRel,
-)
 from django.http import HttpRequest
 from ninja_extra import http_get, status
 
@@ -26,17 +19,17 @@ from django_ninja_crudl.errors.schemas import (
 from django_ninja_crudl.types import (
     RequestDetails,
     RequestParams,
-    TDjangoModel_co,
+    TDjangoModel,
 )
 from django_ninja_crudl.utils import replace_path_args_annotation
 
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 
 
-def get_get_one_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
+def get_get_one_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
     """Create the get_one endpoint class for the CRUDL operations."""
 
-    class GetOneEndpoint(CrudlBaseMethodsMixin[TDjangoModel_co], ABC):  # pyright: ignore [reportGeneralTypeIssues]
+    class GetOneEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):  # pyright: ignore [reportGeneralTypeIssues]
         @http_get(
             path=config.get_one_path,
             response={
@@ -55,9 +48,9 @@ def get_get_one_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             self,
             request: HttpRequest,
             **kwargs: Unpack[RequestParams],
-        ) -> tuple[Literal[403, 404], ErrorSchema] | Model:
+        ) -> tuple[Literal[403, 404], ErrorSchema] | TDjangoModel:
             """Retrieve an object."""
-            request_details = RequestDetails[Model](
+            request_details = RequestDetails[TDjangoModel](
                 action="get_one",
                 request=request,
                 schema=config.get_one_schema,

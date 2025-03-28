@@ -11,7 +11,6 @@ from django.db.models import (
     ManyToManyField,
     ManyToManyRel,
     ManyToOneRel,
-    Model,
     OneToOneRel,
 )
 from django.http import HttpRequest
@@ -29,6 +28,7 @@ from django_ninja_crudl.errors.schemas import (
 from django_ninja_crudl.types import (
     RequestDetails,
     RequestParams,
+    TDjangoModel,
 )
 from django_ninja_crudl.utils import (
     get_model_field,
@@ -39,10 +39,10 @@ from django_ninja_crudl.utils import (
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 
 
-def get_update_endpoint(config: CrudlConfig[Model]) -> type:
+def get_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
     """Create the update endpoint class for the CRUDL operations."""
 
-    class UpdateEndpoint(CrudlBaseMethodsMixin[Model], ABC):  # pyright: ignore [reportGeneralTypeIssues]
+    class UpdateEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):  # pyright: ignore [reportGeneralTypeIssues]
         """Base class for the CRUDL API."""
 
         @http_put(
@@ -65,9 +65,9 @@ def get_update_endpoint(config: CrudlConfig[Model]) -> type:
             request: HttpRequest,
             payload: config.update_schema,  # type: ignore[name-defined]
             **kwargs: Unpack[RequestParams],
-        ) -> tuple[Literal[403, 404, 409], ErrorSchema] | Model:
+        ) -> tuple[Literal[403, 404, 409], ErrorSchema] | TDjangoModel:
             """Update an object."""
-            request_details = RequestDetails[Model](
+            request_details = RequestDetails[TDjangoModel](
                 action="put",
                 request=request,
                 schema=config.update_schema,
@@ -180,7 +180,7 @@ def get_update_endpoint(config: CrudlConfig[Model]) -> type:
             #             "is prohibited."
             #         )
             #         if msg in str(e):
-            #             m2m_manager: ManyRelatedManager[Model] = getattr(obj, attr_name)
+            #             m2m_manager: ManyRelatedManager[TDjangoModel] = getattr(obj, attr_name)
             #             m2m_manager.set(attr_value)
             #         else:
             #             raise

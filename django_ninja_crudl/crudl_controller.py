@@ -21,7 +21,7 @@ from django_ninja_crudl.endpoints import (
     get_partial_update_endpoint,
     get_update_endpoint,
 )
-from django_ninja_crudl.types import DictStrAny, TDjangoModel_co
+from django_ninja_crudl.types import DictStrAny, TDjangoModel
 
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 
@@ -107,12 +107,12 @@ class CrudlMeta(ABCMeta):
 
 @beartype
 class CrudlController(  # noqa: WPS215
-    Generic[TDjangoModel_co],
-    CrudlBaseMethodsMixin[TDjangoModel_co],
+    Generic[TDjangoModel],
+    CrudlBaseMethodsMixin[TDjangoModel],
     ControllerBase,
     ABC,
     metaclass=CrudlMeta,
 ):
     """Controller for CRUDL operations."""
 
-    config: CrudlConfig[TDjangoModel_co]
+    config: CrudlConfig[TDjangoModel]

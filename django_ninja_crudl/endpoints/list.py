@@ -27,7 +27,7 @@ from django_ninja_crudl.model_utils import get_pydantic_fields
 from django_ninja_crudl.types import (
     RequestDetails,
     RequestParams,
-    TDjangoModel_co,
+    TDjangoModel,
 )
 from django_ninja_crudl.utils import (
     get_model_field,
@@ -37,10 +37,10 @@ from django_ninja_crudl.utils import (
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 
 
-def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
+def get_get_many_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
     """Create the get_many endpoint class for the CRUDL operations."""
 
-    class GetManyEndpoint(CrudlBaseMethodsMixin[TDjangoModel_co], ABC):  # pyright: ignore [reportGeneralTypeIssues]
+    class GetManyEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):  # pyright: ignore [reportGeneralTypeIssues]
         """GetMany endpoint for CRUDL operations."""
 
         @http_get(
@@ -61,9 +61,9 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             request: HttpRequest,
             response: HttpResponse,
             **kwargs: Unpack[RequestParams],
-        ) -> tuple[int, ErrorSchema] | models.Manager[Model]:
+        ) -> tuple[int, ErrorSchema] | models.Manager[TDjangoModel]:
             """List all objects."""
-            request_details = RequestDetails[Model](
+            request_details = RequestDetails[TDjangoModel](
                 action="list",
                 request=request,
                 path_args=self._get_path_args(kwargs),

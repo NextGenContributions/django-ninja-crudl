@@ -4,22 +4,21 @@ import inspect
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, TypeVar, final
+from typing import Any, final
 
 from beartype import beartype
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.core.exceptions import FieldDoesNotExist
-from django.db import models
-from django.db.models import Field, ForeignObjectRel, Model
+from django.db.models import Field, ForeignObjectRel
 from django2pydantic import BaseSchema
 from django2pydantic.schema import SchemaConfig
 from ninja import Path
 
-from django_ninja_crudl.types import TDjangoModel_co
+from django_ninja_crudl.types import TDjangoModel
 
 
 def get_model_field(
-    model_class: type[TDjangoModel_co], field_name: str
+    model_class: type[TDjangoModel], field_name: str
 ) -> Field[Any, Any] | ForeignObjectRel | GenericForeignKey | None:
     """Get the field object from Django's model class."""
     try:
@@ -51,13 +50,13 @@ def get_path_spec_args(path_spec: str) -> list[str]:
 
 
 def get_pydantic_model_from_args_annotations(
-    model_class: type[TDjangoModel_co], path_args: list[str]
-) -> type[BaseSchema[TDjangoModel_co]]:
+    model_class: type[TDjangoModel], path_args: list[str]
+) -> type[BaseSchema[TDjangoModel]]:
     """Create a Pydantic model to validate path arguments."""
 
     @final
-    class PathArgsSchema(BaseSchema[models.Model]):
-        config = SchemaConfig[models.Model](
+    class PathArgsSchema(BaseSchema[TDjangoModel]):  # pyright: ignore [reportGeneralTypeIssues,reportUninitializedInstanceVariable]
+        config: SchemaConfig[TDjangoModel] = SchemaConfig[TDjangoModel](
             model=model_class,
             fields=path_args,
             name=f"{model_class.__name__}PathArgs",
@@ -67,7 +66,7 @@ def get_pydantic_model_from_args_annotations(
 
 
 def replace_path_args_annotation(
-    path_spec: str, model_class: type[TDjangoModel_co]
+    path_spec: str, model_class: type[TDjangoModel]
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Replace 'path_args' in signature with a properly annotated Pydantic model."""
 
@@ -104,17 +103,16 @@ def replace_path_args_annotation(
     return decorator
 
 
-T = TypeVar("T", bound=Model)
 SaveMethod = Callable[..., None]
 
 
 @beartype
 @contextmanager
-def validating_manager(model_class: type[T]) -> Generator[None, None, None]:
+def validating_manager(model_class: type[TDjangoModel]) -> Generator[None, None, None]:
     """Replace the save method of a model class with a version that calls full_clean() before save."""
     original_save: SaveMethod = model_class.save
 
-    def validating_save(self: T, *args: Any, **kwargs: Any) -> None:
+    def validating_save(self: TDjangoModel, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
         """Call full_clean() before saving."""
         if not self.pk:
             self.full_clean()

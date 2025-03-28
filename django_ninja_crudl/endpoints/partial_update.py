@@ -11,7 +11,6 @@ from django.db.models import (
     ManyToManyField,
     ManyToManyRel,
     ManyToOneRel,
-    Model,
     OneToOneRel,
 )
 from django.http import HttpRequest
@@ -30,6 +29,7 @@ from django_ninja_crudl.errors.schemas import (
 from django_ninja_crudl.types import (
     RequestDetails,
     RequestParams,
+    TDjangoModel,
 )
 from django_ninja_crudl.utils import (
     get_model_field,
@@ -40,10 +40,10 @@ from django_ninja_crudl.utils import (
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 
 
-def get_partial_update_endpoint(config: CrudlConfig[Model]) -> type:
+def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
     """Create the partial update endpoint class for the CRUDL operations."""
 
-    class PartialUpdateEndpoint(CrudlBaseMethodsMixin[Model], ABC):  # pyright: ignore [reportGeneralTypeIssues]
+    class PartialUpdateEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):  # pyright: ignore [reportGeneralTypeIssues]
         @http_patch(
             path=config.update_path,
             operation_id=config.partial_update_operation_id,
@@ -65,9 +65,9 @@ def get_partial_update_endpoint(config: CrudlConfig[Model]) -> type:
             request: HttpRequest,
             payload: config.partial_update_schema,  # type: ignore[name-defined]
             **kwargs: Unpack[RequestParams],
-        ) -> tuple[Literal[403, 404, 409], ErrorSchema] | Model:
+        ) -> tuple[Literal[403, 404, 409], ErrorSchema] | TDjangoModel:
             """Partial update an object."""
-            request_details = RequestDetails[Model](
+            request_details = RequestDetails[TDjangoModel](
                 action="patch",
                 request=request,
                 schema=config.partial_update_schema,  # pyright: ignore[reportPossiblyUnboundVariable]
@@ -77,7 +77,7 @@ def get_partial_update_endpoint(config: CrudlConfig[Model]) -> type:
             )
             if not self.has_permission(request_details):
                 return self.get_403_error(request)  # noqa: WPS220
-            obj: Model | None = (
+            obj: TDjangoModel | None = (
                 self.get_pre_filtered_queryset(config.model, request_details.path_args)
                 .filter(self.get_base_filter(request_details))
                 .filter(self.get_filter_for_update(request_details))
@@ -182,7 +182,7 @@ def get_partial_update_endpoint(config: CrudlConfig[Model]) -> type:
             #             "is prohibited."
             #         )
             #         if msg in str(e):
-            #             m2m_manager: ManyRelatedManager[Model] = getattr(obj, attr_name)
+            #             m2m_manager: ManyRelatedManager[TDjangoModel] = getattr(obj, attr_name)
             #             m2m_manager.set(attr_value)
             #         else:
             #             raise

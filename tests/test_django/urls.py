@@ -11,7 +11,7 @@ from ninja_extra import NinjaExtraAPI
 
 from django_ninja_crudl import CrudlConfig, CrudlController, RequestDetails, Schema
 from django_ninja_crudl.mixins.filters import FiltersMixin
-from django_ninja_crudl.types import TDjangoModel_co
+from django_ninja_crudl.types import TDjangoModel
 from tests.test_django.app.models import (
     Author,
     Book,
@@ -22,30 +22,30 @@ from tests.test_django.app.models import (
 )
 
 
-class DefaultFilter(FiltersMixin[TDjangoModel_co]):
+class DefaultFilter(FiltersMixin[TDjangoModel]):
     """Default generic filter for the CRUDL operations."""
     @override
-    def get_base_filter(self, request: RequestDetails[TDjangoModel_co]) -> Q:
+    def get_base_filter(self, request: RequestDetails[TDjangoModel]) -> Q:
         """Return the base queryset filter that applies to all CRUDL operations."""
         return Q()
 
     @override
-    def get_filter_for_update(self, request: RequestDetails[TDjangoModel_co]) -> Q:
+    def get_filter_for_update(self, request: RequestDetails[TDjangoModel]) -> Q:
         """Return the queryset filter that applies to the update operation."""
         return Q()
 
     @override
-    def get_filter_for_delete(self, request: RequestDetails[TDjangoModel_co]) -> Q:
+    def get_filter_for_delete(self, request: RequestDetails[TDjangoModel]) -> Q:
         """Return the queryset filter that applies to the delete operation."""
         return Q()
 
     @override
-    def get_filter_for_list(self, request: RequestDetails[TDjangoModel_co]) -> Q:
+    def get_filter_for_list(self, request: RequestDetails[TDjangoModel]) -> Q:
         """Return the queryset filter that applies to the list operation."""
         return Q()
 
     @override
-    def get_filter_for_get_one(self, request: RequestDetails[TDjangoModel_co]) -> Q:
+    def get_filter_for_get_one(self, request: RequestDetails[TDjangoModel]) -> Q:
         """Return the queryset filter that applies to the get_one operation."""
         return Q()
 

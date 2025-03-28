@@ -44,7 +44,7 @@ class RequestParams(TypedDict, total=False):
 # TODO(phuongfi91): Debug beartype error for partial patch (PUT)
 # @beartype
 @dataclass
-class RequestDetails(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instance-attributes
+class RequestDetails(Generic[TDjangoModel]):  # pylint: disable=too-many-instance-attributes
     """Details about the request.
 
     Used to pass information to the CRUDL methods.
@@ -94,14 +94,14 @@ class RequestDetails(Generic[TDjangoModel_co]):  # pylint: disable=too-many-inst
     payload: BaseModel | None = None
     """The payload data from the request."""
 
-    model_class: type[TDjangoModel_co] | None = None
+    model_class: type[TDjangoModel] | None = None
     """The Django model class to use."""
 
-    object: TDjangoModel_co | None = None
+    object: TDjangoModel | None = None
     """The Django model object to use."""
 
-    related_model_class: type[Model] | None = None
+    related_model_class: type[TDjangoModel] | None = None
     """The related Django model class to use."""
 
-    related_object: Model | None = None
+    related_object: TDjangoModel | None = None
     """The related Django model object to use."""

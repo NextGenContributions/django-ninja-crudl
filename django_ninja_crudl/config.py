@@ -11,14 +11,14 @@ from pydantic import BaseModel
 
 from django_ninja_crudl.permissions import BasePermission
 from django_ninja_crudl.schema import Schema
-from django_ninja_crudl.types import TDjangoModel, TDjangoModel_co
+from django_ninja_crudl.types import TDjangoModel
 
 
 @dataclass(kw_only=True)
-class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instance-attributes
+class CrudlConfig(Generic[TDjangoModel]):  # pylint: disable=too-many-instance-attributes
     """Configuration for the CrudlController.
 
-    model: type[TDjangoModel_co]: The Django model to be used.
+    model: type[TDjangoModel]: The Django model to be used.
 
     base_path: str | None: The base path for the CRUDL operations. If not provided,
         it will be generated from the model name.
@@ -75,12 +75,12 @@ class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instanc
     @override
     def __init__(  # noqa: WPS211, WPS231  # pylint: disable=too-many-arguments, too-many-locals,too-many-positional-arguments
         self,
-        model: type[TDjangoModel_co],
+        model: type[TDjangoModel],
         base_path: str | None = None,
-        create_schema: Schema[TDjangoModel_co] | type[BaseModel] | None = None,
-        update_schema: Schema[TDjangoModel_co] | type[BaseModel] | None = None,
-        get_one_schema: Schema[TDjangoModel_co] | type[BaseModel] | None = None,
-        list_schema: Schema[TDjangoModel_co] | type[BaseModel] | None = None,
+        create_schema: Schema[TDjangoModel] | type[BaseModel] | None = None,
+        update_schema: Schema[TDjangoModel] | type[BaseModel] | None = None,
+        get_one_schema: Schema[TDjangoModel] | type[BaseModel] | None = None,
+        list_schema: Schema[TDjangoModel] | type[BaseModel] | None = None,
         delete_allowed: bool = False,
         create_path: str | None = None,
         update_path: str | None = None,
@@ -93,7 +93,7 @@ class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instanc
         get_one_operation_id: str | None = None,
         delete_operation_id: str | None = None,
         list_operation_id: str | None = None,
-        permission_classes: list[type[BasePermission[TDjangoModel_co]]] | None = None,
+        permission_classes: list[type[BasePermission[TDjangoModel]]] | None = None,
     ) -> None:
         """Initialize the CrudlConfig class."""
         self.base_path: str
@@ -102,7 +102,7 @@ class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instanc
         else:
             model_plural_name = model.__name__.lower().replace(" ", "-")
             self.base_path = f"/{model_plural_name}"
-        self.model: type[TDjangoModel_co] = model
+        self.model: type[TDjangoModel] = model
 
         # Set or generate the schemas for CRUDL operations
         self.get_one_schema: type[BaseModel] | None
@@ -159,7 +159,7 @@ class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instanc
         self.tags: list[str] = [model.__name__]
 
         # Permissions
-        self.permission_classes: list[type[BasePermission[TDjangoModel_co]]] | None
+        self.permission_classes: list[type[BasePermission[TDjangoModel]]] | None
         self.permission_classes = permission_classes
 
         super().__init__()
@@ -199,7 +199,7 @@ class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instanc
     @beartype
     @staticmethod
     def _get_pk_name(
-        model_class: type[TDjangoModel_co],  # pyright: ignore [reportGeneralTypeIssues]
+        model_class: type[TDjangoModel],
     ) -> str:
         pk = model_class._meta.pk  # noqa: SLF001  # pyright: ignore [reportUnknownMemberType,reportUnknownVariableType]
         if pk is None:
@@ -212,13 +212,13 @@ class CrudlConfig(Generic[TDjangoModel_co]):  # pylint: disable=too-many-instanc
     @classmethod
     def _get_create_response_schema(
         cls,
-        model_class: type[TDjangoModel_co],  # pyright: ignore [reportGeneralTypeIssues]
-    ) -> type[BaseSchema[TDjangoModel_co]]:
+        model_class: type[TDjangoModel],
+    ) -> type[BaseSchema[TDjangoModel]]:
         """Get CREATE response schema."""
 
         @final
-        class CreateResponseSchema(BaseSchema[TDjangoModel_co]):  # noqa: WPS431  # pyright: ignore [reportGeneralTypeIssues, reportUninitializedInstanceVariable]
-            config: SchemaConfig[TDjangoModel_co] = SchemaConfig[TDjangoModel_co](  # pyright: ignore [reportGeneralTypeIssues]
+        class CreateResponseSchema(BaseSchema[TDjangoModel]):  # noqa: WPS431  # pyright: ignore [reportGeneralTypeIssues, reportUninitializedInstanceVariable]
+            config: SchemaConfig[TDjangoModel] = SchemaConfig[TDjangoModel](  # pyright: ignore [reportGeneralTypeIssues]
                 model=model_class,
                 # TODO(phuongfi91): Check if using "pk" would work instead of "id"
                 #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35

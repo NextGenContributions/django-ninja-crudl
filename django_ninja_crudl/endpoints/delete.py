@@ -4,7 +4,6 @@ from abc import ABC
 from typing import Literal, Unpack
 
 from django.db import transaction
-from django.db.models import Model
 from django.http import HttpRequest
 from ninja_extra import http_delete, status
 
@@ -21,17 +20,17 @@ from django_ninja_crudl.errors.schemas import (
 from django_ninja_crudl.types import (
     RequestDetails,
     RequestParams,
-    TDjangoModel_co,
+    TDjangoModel,
 )
 from django_ninja_crudl.utils import (
     replace_path_args_annotation,
 )
 
 
-def get_delete_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
+def get_delete_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
     """Create the delete endpoint class for the CRUDL operations."""
 
-    class DeleteEndpoint(CrudlBaseMethodsMixin[TDjangoModel_co], ABC):  # pyright: ignore [reportGeneralTypeIssues]
+    class DeleteEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):  # pyright: ignore [reportGeneralTypeIssues]
         @http_delete(
             path=config.delete_path,
             operation_id=config.delete_operation_id,
@@ -52,7 +51,7 @@ def get_delete_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             **kwargs: Unpack[RequestParams],
         ) -> tuple[Literal[403, 404], ErrorSchema] | tuple[Literal[204], None]:
             """Delete the object by id."""
-            request_details = RequestDetails[Model](
+            request_details = RequestDetails[TDjangoModel](
                 action="delete",
                 request=request,
                 path_args=self._get_path_args(kwargs),
