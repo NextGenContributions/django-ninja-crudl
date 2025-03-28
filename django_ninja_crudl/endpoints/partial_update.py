@@ -2,19 +2,12 @@
 
 import logging
 from abc import ABC
-from typing import Any, Literal, Unpack
+from typing import Literal, Unpack
 
-from django.core.exceptions import ValidationError
-from django.db import IntegrityError, transaction
-from django.db.models import (
-    ForeignKey,
-    ManyToManyField,
-    ManyToManyRel,
-    ManyToOneRel,
-    OneToOneRel,
-)
+from django.db import transaction
 from django.http import HttpRequest
 from ninja_extra import http_patch, status
+from pydantic import BaseModel
 
 from django_ninja_crudl import CrudlConfig
 from django_ninja_crudl.base import CrudlBaseMethodsMixin
@@ -32,7 +25,6 @@ from django_ninja_crudl.types import (
     TDjangoModel,
 )
 from django_ninja_crudl.utils import (
-    get_model_field,
     replace_path_args_annotation,
     validating_manager,
 )
@@ -40,15 +32,19 @@ from django_ninja_crudl.utils import (
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 
 
-def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
+def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
     """Create the partial update endpoint class for the CRUDL operations."""
+    if not config.partial_update_schema:
+        return None
+
+    partial_update_schema: type[BaseModel] = config.partial_update_schema
 
     class PartialUpdateEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):  # pyright: ignore [reportGeneralTypeIssues]
         @http_patch(
             path=config.update_path,
             operation_id=config.partial_update_operation_id,
             response={
-                status.HTTP_200_OK: config.update_schema,
+                status.HTTP_200_OK: partial_update_schema,
                 status.HTTP_401_UNAUTHORIZED: Error401UnauthorizedSchema,
                 status.HTTP_403_FORBIDDEN: Error403ForbiddenSchema,
                 status.HTTP_404_NOT_FOUND: Error404NotFoundSchema,
@@ -63,16 +59,16 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
         def patch(
             self,
             request: HttpRequest,
-            payload: config.partial_update_schema,  # type: ignore[name-defined]
+            payload: partial_update_schema,  # type: ignore[name-defined]
             **kwargs: Unpack[RequestParams],
         ) -> tuple[Literal[403, 404, 409], ErrorSchema] | TDjangoModel:
             """Partial update an object."""
             request_details = RequestDetails[TDjangoModel](
                 action="patch",
                 request=request,
-                schema=config.partial_update_schema,  # pyright: ignore[reportPossiblyUnboundVariable]
+                schema=config.partial_update_schema,
                 path_args=self._get_path_args(kwargs),
-                payload=payload,  # pyright: ignore[reportUnknownArgumentType]
+                payload=payload,
                 model_class=config.model,
             )
             if not self.has_permission(request_details):
@@ -90,103 +86,31 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
                 return self.get_404_error(request)  # noqa: WPS220
             self.pre_patch(request_details)
 
-            ##################### begin of madness
-            obj_fields_to_set: list[tuple[str, Any]] = []  # pyright: ignore[reportExplicitAny]
-            m2m_fields_to_set: list[tuple[str, Any]] = []  # pyright: ignore[reportExplicitAny]
+            m2m_fields, obj_fields = self._get_fields_to_set(config.model, payload)
 
-            # TODO(phuongfi91): payload is a dict here, no model_dump() method, unlike
-            #  with POST in update.py
-            # for field, field_value in payload.model_dump().items():
-            for field, field_value in payload.items():
-                if isinstance(
-                    get_model_field(config.model, field),
-                    ManyToManyField | ManyToManyRel | ManyToOneRel | OneToOneRel,
-                ):
-                    m2m_fields_to_set.append((field, field_value))  # noqa: WPS220
-                else:
-                    # Handle foreign key fields:
-                    if isinstance(  # noqa: WPS220
-                        get_model_field(config.model, field),
-                        ForeignKey,
-                    ) and not field.endswith("_id"):
-                        field_name = f"{field}_id"  # noqa: WPS220
-                    else:  # Non-relational fields
-                        field_name = field  # noqa: WPS220
-
-                    obj_fields_to_set.append((field_name, field_value))  # noqa: WPS220
-            try:
+            def update() -> None:
+                nonlocal obj
                 with validating_manager(config.model):  # noqa: WPS220
-                    # TODO(phuongfi91):
-                    for attr_name, attr_value in obj_fields_to_set:
+                    # TODO(phuongfi91): should we use validating_manager later as well?
+                    for attr_name, attr_value in obj_fields:
                         setattr(obj, attr_name, attr_value)  # noqa: WPS220
-                    obj.save()
-            # if integrity error, return 409
-            except IntegrityError as integrity_error:
-                transaction.set_rollback(True)
-                return self.get_409_error(request, exception=integrity_error)
+                    obj.save()  # pyright: ignore [reportOptionalMemberAccess]
 
-            for m2m_field, m2m_field_value in m2m_fields_to_set:  # pyright: ignore[reportAny]
-                related_model_class = self._get_related_model(config.model, m2m_field)
+            if update_err := self._try(update, request):
+                return update_err
 
-                if isinstance(m2m_field_value, list):  # noqa: WPS220
-                    for m2m_field_value_item in m2m_field_value:
-                        related_obj = related_model_class.objects.get(
-                            id=m2m_field_value_item,
-                        )
-                        request_details_related = request_details  # noqa: WPS220
-                        request_details_related.related_model_class = (
-                            related_model_class
-                        )
-                        request_details_related.related_object = related_obj
-                        if not self.has_related_object_permission(
-                            request_details_related,
-                        ):
-                            transaction.set_rollback(True)
-                            return self.get_404_error(request)
-                else:
-                    # TODO(phuongfi91): related_obj is unused
-                    related_obj = related_model_class.objects.get(
-                        id=m2m_field_value,
-                    )
+            # Update many-to-many relationships on the created object
+            if m2m_err := self._update_m2m_relationships(
+                    obj,
+                    m2m_fields,
+                    request,
+                    request_details,
+            ):
+                return m2m_err
 
-                    if not self.has_related_object_permission(request_details):
-                        transaction.set_rollback(True)
-                        return self.get_404_error(request)
-
-                try:
-                    # TODO(phuongfi91): OneToOneField/Rel does not have set()
-                    #  and would raise IntegrityError
-                    getattr(obj, m2m_field).set(m2m_field_value)
-                except IntegrityError:
-                    transaction.set_rollback(True)  # noqa: WPS220
-                    return self.get_409_error(request)
-
-            # Perform full_clean() on the created object and raise an exception if it fails
-            try:
-                # TODO(phuongfi91):
-                obj.full_clean()  # noqa: WPS220
-            except ValidationError as validation_error:
-                # revert the transaction
-                transaction.set_rollback(True)  # noqa: WPS220
-                return self.get_409_error(request, exception=validation_error)
-
-            ############### end of madness
-
-            # TODO(phuongfi91): remove this after completing the full solution above ^
-            # for attr_name, attr_value in payload.items():
-            #     try:
-            #         setattr(obj, attr_name, attr_value)
-            #     except TypeError as e:
-            #         msg = (
-            #             "Direct assignment to the forward side of a many-to-many set "
-            #             "is prohibited."
-            #         )
-            #         if msg in str(e):
-            #             m2m_manager: ManyRelatedManager[TDjangoModel] = getattr(obj, attr_name)
-            #             m2m_manager.set(attr_value)
-            #         else:
-            #             raise
-            # obj.save()
+            # Fully validate the created object as well as its related objects
+            if clean_err := self._full_clean_obj(obj, request):
+                return clean_err
 
             self.post_patch(request_details)
             return obj

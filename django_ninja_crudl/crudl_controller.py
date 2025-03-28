@@ -52,20 +52,15 @@ class CrudlMeta(ABCMeta):
             raise ValueError(msg)
 
         endpoints: list[type] = []
-        if config.create_schema:
-            create_endpoint = get_create_endpoint(config)
+        if create_endpoint := get_create_endpoint(config):
             endpoints.append(create_endpoint)
-        if config.get_one_schema:
-            get_one_endpoint = get_get_one_endpoint(config)
+        if get_one_endpoint := get_get_one_endpoint(config):
             endpoints.append(get_one_endpoint)
-        if config.list_schema:
-            list_endpoint = get_get_many_endpoint(config)
+        if list_endpoint := get_get_many_endpoint(config):
             endpoints.append(list_endpoint)
-        if config.update_schema:
-            update_endpoint = get_update_endpoint(config)
+        if update_endpoint := get_update_endpoint(config):
             endpoints.append(update_endpoint)
-        if config.partial_update_schema:
-            partial_update_endpoint = get_partial_update_endpoint(config)
+        if partial_update_endpoint := get_partial_update_endpoint(config):
             endpoints.append(partial_update_endpoint)
         if config.delete_allowed:
             delete_endpoint = get_delete_endpoint(config)

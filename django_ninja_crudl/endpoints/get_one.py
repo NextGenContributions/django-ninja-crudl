@@ -6,6 +6,7 @@ from typing import Literal, Unpack
 
 from django.http import HttpRequest
 from ninja_extra import http_get, status
+from pydantic import BaseModel
 
 from django_ninja_crudl import CrudlConfig
 from django_ninja_crudl.base import CrudlBaseMethodsMixin
@@ -26,14 +27,18 @@ from django_ninja_crudl.utils import replace_path_args_annotation
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 
 
-def get_get_one_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
+def get_get_one_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
     """Create the get_one endpoint class for the CRUDL operations."""
+    if not config.get_one_schema:
+        return None
+
+    get_one_schema: type[BaseModel] = config.get_one_schema
 
     class GetOneEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):  # pyright: ignore [reportGeneralTypeIssues]
         @http_get(
             path=config.get_one_path,
             response={
-                status.HTTP_200_OK: config.get_one_schema,
+                status.HTTP_200_OK: get_one_schema,
                 status.HTTP_401_UNAUTHORIZED: Error401UnauthorizedSchema,
                 status.HTTP_403_FORBIDDEN: Error403ForbiddenSchema,
                 status.HTTP_404_NOT_FOUND: ErrorSchema,
@@ -53,7 +58,7 @@ def get_get_one_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
             request_details = RequestDetails[TDjangoModel](
                 action="get_one",
                 request=request,
-                schema=config.get_one_schema,
+                schema=get_one_schema,
                 path_args=self._get_path_args(kwargs),
                 model_class=config.model,
             )

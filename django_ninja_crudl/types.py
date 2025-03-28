@@ -14,7 +14,6 @@ from django.http import HttpRequest
 from pydantic import BaseModel
 
 TDjangoModel = TypeVar("TDjangoModel", bound=Model)
-TDjangoModel_co = TypeVar("TDjangoModel_co", bound=Model, covariant=True)
 
 # TODO(phuongfi91): Should this be used somewhere?
 #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35

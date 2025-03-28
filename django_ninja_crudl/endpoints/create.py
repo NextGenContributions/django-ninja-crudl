@@ -6,6 +6,7 @@ from typing import Literal, Unpack, cast
 from django.db import transaction
 from django.http import HttpRequest
 from ninja_extra import http_post, status
+from pydantic import BaseModel
 
 from django_ninja_crudl.base import CrudlBaseMethodsMixin
 from django_ninja_crudl.config import CrudlConfig
@@ -91,8 +92,13 @@ def _create_schema_extra(config: CrudlConfig[TDjangoModel]) -> JSON:
     }
 
 
-def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
+def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
     """Create the create endpoint class for the CRUDL operations."""
+    if not config.create_schema or not config.create_response_schema:
+        return None
+
+    create_schema: type[BaseModel] = config.create_schema
+    create_response_schema: type[BaseModel] = config.create_response_schema
 
     class CreateEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):  # pyright: ignore [reportGeneralTypeIssues]
         """Create endpoint for CRUDL operations."""
@@ -101,7 +107,7 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
             path=config.create_path,
             operation_id=config.create_operation_id,
             response={
-                status.HTTP_201_CREATED: config.create_response_schema,
+                status.HTTP_201_CREATED: create_response_schema,
                 status.HTTP_401_UNAUTHORIZED: Error401UnauthorizedSchema,
                 status.HTTP_403_FORBIDDEN: Error403ForbiddenSchema,
                 status.HTTP_404_NOT_FOUND: Error404NotFoundSchema,
@@ -116,7 +122,7 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
         def create_endpoint(
             self,
             request: HttpRequest,
-            payload: config.create_schema,  # type: ignore[name-defined]
+            payload: create_schema,  # type: ignore[valid-type]
             **kwargs: Unpack[RequestParams],
         ) -> (
             tuple[Literal[403, 404, 409], ErrorSchema]
@@ -126,7 +132,7 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
             request_details = RequestDetails[TDjangoModel](
                 action="create",
                 request=request,
-                schema=config.create_schema,
+                schema=create_schema,
                 path_args=self._get_path_args(kwargs),
                 payload=payload,
                 model_class=config.model,
