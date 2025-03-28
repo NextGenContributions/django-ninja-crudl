@@ -24,6 +24,7 @@ from tests.test_django.app.models import (
 
 class DefaultFilter(FiltersMixin[TDjangoModel]):
     """Default generic filter for the CRUDL operations."""
+
     @override
     def get_base_filter(self, request: RequestDetails[TDjangoModel]) -> Q:
         """Return the base queryset filter that applies to all CRUDL operations."""
@@ -52,6 +53,7 @@ class DefaultFilter(FiltersMixin[TDjangoModel]):
 
 class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: disable=too-many-ancestors
     """CRUDL controller for the Author model."""
+
     config = CrudlConfig[Author](
         model=Author,
         base_path="/authors",
@@ -99,6 +101,7 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: di
 
 class PublisherCrudl(CrudlController[Publisher], DefaultFilter[Publisher]):  # pylint: disable=too-many-ancestors
     """CRUDL controller for the Publisher model."""
+
     config = CrudlConfig[Publisher](
         model=Publisher,
         base_path="/publishers",
@@ -141,6 +144,7 @@ class PublisherCrudl(CrudlController[Publisher], DefaultFilter[Publisher]):  # p
 
 class BookCrudl(CrudlController[Book], DefaultFilter[Book]):  # pylint: disable=too-many-ancestors
     """CRUDL controller for the Book model."""
+
     config = CrudlConfig[Book](
         model=Book,
         base_path="/books",
@@ -200,6 +204,7 @@ class BookCrudl(CrudlController[Book], DefaultFilter[Book]):  # pylint: disable=
 
 class LibraryCrudl(CrudlController[Library], DefaultFilter[Library]):  # pylint: disable=too-many-ancestors
     """CRUDL controller for the Library model."""
+
     config = CrudlConfig[Library](
         model=Library,
         base_path="/libraries",
@@ -234,6 +239,7 @@ class LibraryCrudl(CrudlController[Library], DefaultFilter[Library]):  # pylint:
 
 class BookCopyCrudl(CrudlController[BookCopy], DefaultFilter[BookCopy]):  # pylint: disable=too-many-ancestors
     """CRUDL controller for the BookCopy model."""
+
     config = CrudlConfig[BookCopy](
         model=BookCopy,
         base_path="/book_copies",
@@ -272,6 +278,7 @@ class BookCopyCrudl(CrudlController[BookCopy], DefaultFilter[BookCopy]):  # pyli
 
 class BorrowingCrudl(CrudlController[Borrowing], DefaultFilter[Borrowing]):  # pylint: disable=too-many-ancestors
     """CRUDL controller for the Borrowing model."""
+
     config = CrudlConfig[Borrowing](
         model=Borrowing,
         base_path="/borrowings",

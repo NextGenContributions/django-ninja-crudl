@@ -101,10 +101,10 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | Non
 
             # Update many-to-many relationships on the created object
             if m2m_err := self._update_m2m_relationships(
-                    obj,
-                    m2m_fields,
-                    request,
-                    request_details,
+                obj,
+                m2m_fields,
+                request,
+                request_details,
             ):
                 return m2m_err
 
