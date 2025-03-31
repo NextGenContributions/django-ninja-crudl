@@ -41,7 +41,7 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
     """Create the get_many endpoint class for the CRUDL operations."""
     if not config.list_schema:
         return None
-    
+
     list_schema: type[BaseModel] = config.list_schema
 
     class GetManyEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):  # pyright: ignore [reportGeneralTypeIssues]
