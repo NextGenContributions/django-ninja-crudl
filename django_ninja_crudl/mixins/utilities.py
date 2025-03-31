@@ -5,15 +5,15 @@ from uuid import UUID
 
 from django.db import models
 from django.db.models import (
-    ForeignObjectRel,
     Manager,
-    ManyToManyField,
-    ManyToManyRel,
-    OneToOneRel,
     QuerySet,
 )
 
-from django_ninja_crudl.types import PathArgs, RequestDetails, TDjangoModel
+from django_ninja_crudl.types import (
+    PathArgs,
+    RequestDetails,
+    TDjangoModel,
+)
 from django_ninja_crudl.utils import get_model_field
 
 
@@ -25,17 +25,13 @@ class UtilitiesMixin(Generic[TDjangoModel]):
     ) -> type[TDjangoModel]:
         """Return the related model class for a field name."""
         field = get_model_field(model_class, field_name)
-        related_model: type[TDjangoModel] | Literal["self"] | None = None
-
-        if isinstance(field, ForeignObjectRel):
-            related_model = field.related_model
-        elif isinstance(
-            # TODO(phuongfi91): Potential unreachable code
+        related_model = cast(
+            # TODO(phuongfi91): django-stubs also return 'Any' for 'GenericForeignKey'
+            #  which should not be possible?
             #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
-            field,
-            OneToOneRel | ManyToManyRel | ManyToManyRel | ManyToManyField,
-        ):
-            related_model = cast(type[TDjangoModel], field.related_model)
+            type[TDjangoModel] | Literal["self"] | None,
+            field.related_model,
+        )
 
         if related_model == "self":
             related_model = model_class
@@ -43,6 +39,7 @@ class UtilitiesMixin(Generic[TDjangoModel]):
         if related_model is not None:
             return related_model
 
+        # 'related_model' is None
         msg = f"Field name '{field_name}' and type '{type(field)}' is not a relation."
         raise ValueError(msg)
 

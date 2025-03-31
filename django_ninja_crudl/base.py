@@ -2,7 +2,7 @@
 
 from abc import ABC
 from collections.abc import Callable
-from typing import Generic, Literal
+from typing import Generic, Literal, cast
 
 from beartype import beartype
 from django.core.exceptions import ValidationError
@@ -102,7 +102,7 @@ class CrudlBaseMethodsMixin(  # noqa: WPS215 too many base classes
         """Handle many-to-many relationships for an object."""
         for m2m_field, m2m_field_value in m2m_fields_to_set:  # pyright: ignore[reportAny]
             related_model_class = self._get_related_model(
-                obj._meta.model,  # noqa: SLF001
+                cast(type[TDjangoModel], obj._meta.model),  # noqa: SLF001
                 m2m_field,
             )
 
@@ -125,6 +125,8 @@ class CrudlBaseMethodsMixin(  # noqa: WPS215 too many base classes
                         transaction.set_rollback(True)
                         return self.get_404_error(request)
             else:
+                # TODO(phuongfi91): related_obj is unused here
+                #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
                 related_obj = related_model_class._default_manager.get(  # noqa: SLF001
                     id=m2m_field_value,
                 )

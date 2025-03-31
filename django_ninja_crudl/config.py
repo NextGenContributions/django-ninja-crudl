@@ -6,9 +6,9 @@ from typing import Generic, final, overload, override
 from beartype import beartype
 from django2pydantic import BaseSchema
 from django2pydantic.schema import SchemaConfig
-from ninja import PatchDict
 from pydantic import BaseModel
 
+from django_ninja_crudl.patch_dict import PatchDict
 from django_ninja_crudl.permissions import BasePermission
 from django_ninja_crudl.schema import Schema
 from django_ninja_crudl.types import TDjangoModel

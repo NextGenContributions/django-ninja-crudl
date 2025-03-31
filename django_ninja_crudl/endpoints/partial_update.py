@@ -15,6 +15,7 @@ from django_ninja_crudl.errors.schemas import (
     Error401UnauthorizedSchema,
     Error403ForbiddenSchema,
     Error404NotFoundSchema,
+    Error409ConflictSchema,
     Error422UnprocessableEntitySchema,
     Error503ServiceUnavailableSchema,
     ErrorSchema,
@@ -48,6 +49,7 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | Non
                 status.HTTP_401_UNAUTHORIZED: Error401UnauthorizedSchema,
                 status.HTTP_403_FORBIDDEN: Error403ForbiddenSchema,
                 status.HTTP_404_NOT_FOUND: Error404NotFoundSchema,
+                status.HTTP_409_CONFLICT: Error409ConflictSchema,
                 status.HTTP_422_UNPROCESSABLE_ENTITY: Error422UnprocessableEntitySchema,
                 status.HTTP_503_SERVICE_UNAVAILABLE: Error503ServiceUnavailableSchema,
             },
@@ -59,14 +61,14 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | Non
         def patch(
             self,
             request: HttpRequest,
-            payload: partial_update_schema,  # type: ignore[name-defined]
+            payload: partial_update_schema,  # type: ignore[valid-type]
             **kwargs: Unpack[RequestParams],
         ) -> tuple[Literal[403, 404, 409], ErrorSchema] | TDjangoModel:
             """Partial update an object."""
             request_details = RequestDetails[TDjangoModel](
                 action="patch",
                 request=request,
-                schema=config.partial_update_schema,
+                schema=partial_update_schema,
                 path_args=self._get_path_args(kwargs),
                 payload=payload,
                 model_class=config.model,
