@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from typing import Any, Generic, Literal, TypedDict, TypeVar
 
+from beartype import beartype
 from django.db.models import (
     ManyToManyField,
     ManyToManyRel,
@@ -40,8 +41,7 @@ class RequestParams(TypedDict, total=False):
     path_args: BaseModel
 
 
-# TODO(phuongfi91): Debug beartype error for partial patch (PUT)
-# @beartype
+@beartype
 @dataclass
 class RequestDetails(Generic[TDjangoModel]):  # pylint: disable=too-many-instance-attributes
     """Details about the request.

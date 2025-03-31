@@ -4,7 +4,6 @@ import functools
 from copy import deepcopy
 from typing import TYPE_CHECKING, Annotated, cast
 
-from ninja import Body
 from ninja.utils import is_optional_type
 from pydantic import BaseModel
 
@@ -37,8 +36,7 @@ def create_patch_schema(schema_cls: type[BaseModel]) -> type[BaseModel]:
 class PatchDictUtil:  # noqa: D101
     def __getitem__(self, schema_cls: type[BaseModel]) -> type[BaseModel]:
         """Replace the schema with a new one that has all fields set to optional."""
-        new_cls = create_patch_schema(schema_cls)
-        return Body[new_cls]  # type: ignore[valid-type,no-any-return,misc]
+        return create_patch_schema(schema_cls)
 
 
 if TYPE_CHECKING:  # pragma: nocover
