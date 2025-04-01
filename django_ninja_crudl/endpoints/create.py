@@ -1,12 +1,11 @@
 """CRUDL API base class."""
 
 from abc import ABC
-from typing import Literal, Unpack, cast
+from typing import TYPE_CHECKING, Literal, Unpack, cast
 
 from django.db import transaction
 from django.http import HttpRequest
 from ninja_extra import http_post, status
-from pydantic import BaseModel
 
 from django_ninja_crudl.base import CrudlBaseMethodsMixin
 from django_ninja_crudl.config import CrudlConfig
@@ -34,6 +33,9 @@ from django_ninja_crudl.utils import (
     validating_manager,
 )
 
+if TYPE_CHECKING:
+    from pydantic import BaseModel
+
 
 def _create_schema_extra(config: CrudlConfig[TDjangoModel]) -> JSON:
     """Create the OpenAPI links for the create operation.
@@ -54,7 +56,7 @@ def _create_schema_extra(config: CrudlConfig[TDjangoModel]) -> JSON:
     res_body_id = "$response.body#/id"
     return {
         "responses": {
-            201: {
+            status.HTTP_201_CREATED: {
                 "description": "Created",
                 "content": {
                     "application/json": {
@@ -86,9 +88,9 @@ def _create_schema_extra(config: CrudlConfig[TDjangoModel]) -> JSON:
                     },
                 },
             },
-            **not_authorized_openapi_extra,
-            **throttle_openapi_extra,
-        },
+            **not_authorized_openapi_extra,  # type: ignore[dict-item]
+            **throttle_openapi_extra,  # type: ignore[dict-item]
+        }
     }
 
 
@@ -115,7 +117,7 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 status.HTTP_422_UNPROCESSABLE_ENTITY: Error422UnprocessableEntitySchema,
                 status.HTTP_503_SERVICE_UNAVAILABLE: Error503ServiceUnavailableSchema,
             },
-            openapi_extra=_create_schema_extra(config),
+            openapi_extra=_create_schema_extra(config),  # type: ignore[arg-type]
         )
         @transaction.atomic
         @replace_path_args_annotation(config.create_path, config.model)

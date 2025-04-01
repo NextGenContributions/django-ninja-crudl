@@ -66,6 +66,8 @@ class UtilitiesMixin(Generic[TDjangoModel]):
         """Return the model's manager."""
         return model_class._default_manager  # noqa: SLF001 pylint: disable=protected-access
 
+    # TODO(phuongfi91): This method is not used anywhere, what is this used for?
+    #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
     def get_filtered_queryset_for_related_model(
         self,
         request: RequestDetails[TDjangoModel],

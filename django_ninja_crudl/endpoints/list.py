@@ -2,7 +2,7 @@
 
 import logging
 from abc import ABC
-from typing import Unpack
+from typing import TYPE_CHECKING, Unpack
 
 from django.db import models
 from django.db.models import (
@@ -12,7 +12,6 @@ from django.db.models import (
 )
 from django.http import HttpRequest, HttpResponse
 from ninja_extra import http_get, status
-from pydantic import BaseModel
 
 from django_ninja_crudl import CrudlConfig
 from django_ninja_crudl.base import CrudlBaseMethodsMixin
@@ -33,6 +32,9 @@ from django_ninja_crudl.utils import (
     get_model_field,
     replace_path_args_annotation,
 )
+
+if TYPE_CHECKING:
+    from pydantic import BaseModel
 
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 
@@ -151,6 +153,7 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
             qs = qs.values(*all_fields)
 
             # TODO(phuongfi91): find alternative to this janky solution
+            #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
             # add m2m fields (with supported structure) to the response
             l = list(qs)
             for i in l:

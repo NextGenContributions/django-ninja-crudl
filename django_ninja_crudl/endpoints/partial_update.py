@@ -2,12 +2,11 @@
 
 import logging
 from abc import ABC
-from typing import Literal, Unpack
+from typing import TYPE_CHECKING, Literal, Unpack
 
 from django.db import transaction
 from django.http import HttpRequest
 from ninja_extra import http_patch, status
-from pydantic import BaseModel
 
 from django_ninja_crudl import CrudlConfig
 from django_ninja_crudl.base import CrudlBaseMethodsMixin
@@ -29,6 +28,9 @@ from django_ninja_crudl.utils import (
     replace_path_args_annotation,
     validating_manager,
 )
+
+if TYPE_CHECKING:
+    from pydantic import BaseModel
 
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 

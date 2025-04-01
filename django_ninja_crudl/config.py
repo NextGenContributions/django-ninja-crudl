@@ -198,9 +198,7 @@ class CrudlConfig(Generic[TDjangoModel]):  # pylint: disable=too-many-instance-a
 
     @beartype
     @staticmethod
-    def _get_pk_name(
-        model_class: type[TDjangoModel],
-    ) -> str:
+    def _get_pk_name(model_class: type[TDjangoModel]) -> str:
         pk = model_class._meta.pk  # noqa: SLF001  # pyright: ignore [reportUnknownMemberType,reportUnknownVariableType]
         if pk is None:
             # TODO(phuongfi91): Is this unreachable?

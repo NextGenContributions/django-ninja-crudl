@@ -1,5 +1,6 @@
 """Shared types for the CRUDL classes."""
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Generic, Literal, TypedDict, TypeVar
 
@@ -25,12 +26,9 @@ DjangoRelationFields = (
 type PathArgs = dict[str, Any]  # pyright: ignore[reportExplicitAny]
 type ObjectlessActions = Literal["create", "list"]
 type WithObjectActions = Literal["get_one", "put", "patch", "delete"]
-
-type JSON = (  # type: ignore[valid-type]
-    str | int,
-    None | bool | int | float | str | list["JSON"] | dict[str | int, "JSON"],
+type JSON = (
+    dict[str | int, "JSON"] | list["JSON"] | str | int | float | bool | None
 )
-
 type DjangoFieldType = tuple[str, Any]  # pyright: ignore[reportExplicitAny]
 type DictStrAny = dict[str, Any]  # pyright: ignore[reportExplicitAny]
 
