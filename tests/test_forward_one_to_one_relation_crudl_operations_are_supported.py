@@ -1,6 +1,5 @@
 """Test the API endpoints with forward One-To-One relation."""
 
-
 import pytest
 from django.test import Client
 from ninja_extra import status
@@ -121,9 +120,7 @@ def test_deleting_relation_by_patch_should_work(client: Client) -> None:
     response = client.patch(
         f"/api/amazon_author_profiles/{amz_author_profile.id}",
         content_type="application/json",
-        data={
-            "author_id": None
-        },
+        data={"author_id": None},
     )
     assert response.status_code == status.HTTP_200_OK, response.json()
     amz_author_profile.refresh_from_db()

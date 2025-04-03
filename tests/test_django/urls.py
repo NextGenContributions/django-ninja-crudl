@@ -102,8 +102,11 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: di
     )
 
 
-class AmazonAuthorProfileCrudl(CrudlController[AmazonAuthorProfile], DefaultFilter[AmazonAuthorProfile]):  # pylint: disable=too-many-ancestors
+class AmazonAuthorProfileCrudl(
+    CrudlController[AmazonAuthorProfile], DefaultFilter[AmazonAuthorProfile]
+):  # pylint: disable=too-many-ancestors
     """CRUDL controller for the AmazonAuthorProfile model."""
+
     config = CrudlConfig[AmazonAuthorProfile](
         model=AmazonAuthorProfile,
         base_path="/amazon_author_profiles",
