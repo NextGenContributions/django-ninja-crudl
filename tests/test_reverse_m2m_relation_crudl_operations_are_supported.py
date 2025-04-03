@@ -1,4 +1,4 @@
-"""Test the API endpoints with reverse relational data."""
+"""Test the API endpoints with reverse many-to-many relation (ManyToManyRel)."""
 
 import datetime
 

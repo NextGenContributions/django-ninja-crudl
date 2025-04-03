@@ -1,4 +1,4 @@
-"""Test the API endpoints with relational data."""
+"""Test the API endpoints with forward ForeignKey/Many-to-Many relations."""
 
 import pytest
 from django.test import Client

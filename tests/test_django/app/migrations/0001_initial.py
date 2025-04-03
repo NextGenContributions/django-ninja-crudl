@@ -30,6 +30,29 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
+            name="AmazonAuthorProfile",
+            fields=[
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("description", models.TextField()),
+                (
+                    "author",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="amazon_author_profile",
+                        to="app.author",
+                    ),
+                ),
+            ],
+        ),
+        migrations.CreateModel(
             name="Library",
             fields=[
                 (
@@ -122,7 +145,10 @@ class Migration(migrations.Migration):
                 (
                     "library",
                     models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="app.library"
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="app.library",
+                        null=True,
+                        blank=True,
                     ),
                 ),
             ],

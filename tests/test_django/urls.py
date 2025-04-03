@@ -13,6 +13,7 @@ from django_ninja_crudl import CrudlConfig, CrudlController, RequestDetails, Sch
 from django_ninja_crudl.mixins.filters import FiltersMixin
 from django_ninja_crudl.types import TDjangoModel
 from tests.test_django.app.models import (
+    AmazonAuthorProfile,
     Author,
     Book,
     BookCopy,
@@ -61,9 +62,8 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: di
             fields={
                 "name": Infer,
                 "birth_date": Infer,
-                # TODO(phuongfi91): support reverse relation handler
-                #  https://github.com/NextGenContributions/django-ninja-crudl/issues/11
-                # "books": Infer,
+                "books": Infer,
+                "amazon_author_profile": {"description": Infer},
             }
         ),
         update_schema=Schema[Author](
@@ -72,7 +72,8 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: di
                 "birth_date": Infer,
                 # TODO(phuongfi91): support reverse relation handler
                 #  https://github.com/NextGenContributions/django-ninja-crudl/issues/11
-                # "books": Infer,
+                "books": Infer,
+                "amazon_author_profile": {"description": Infer},
             }
         ),
         get_one_schema=Schema[Author](
@@ -83,6 +84,7 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: di
                 "age": Infer,
                 "books_count": Infer,
                 "books": {"id": Infer, "title": Infer},
+                "amazon_author_profile": {"description": Infer},
             }
         ),
         list_schema=Schema[Author](
@@ -93,6 +95,41 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: di
                 "age": Infer,
                 "books_count": Infer,
                 "books": {"id": Infer, "title": Infer},
+                "amazon_author_profile": {"description": Infer},
+            }
+        ),
+        delete_allowed=True,
+    )
+
+
+class AmazonAuthorProfileCrudl(CrudlController[AmazonAuthorProfile], DefaultFilter[AmazonAuthorProfile]):  # pylint: disable=too-many-ancestors
+    """CRUDL controller for the AmazonAuthorProfile model."""
+    config = CrudlConfig[AmazonAuthorProfile](
+        model=AmazonAuthorProfile,
+        base_path="/amazon_author_profiles",
+        create_schema=Schema[AmazonAuthorProfile](
+            fields={
+                "author_id": Infer,
+                "description": Infer,
+            }
+        ),
+        update_schema=Schema[AmazonAuthorProfile](
+            fields={
+                "description": Infer,
+            }
+        ),
+        get_one_schema=Schema[AmazonAuthorProfile](
+            fields={
+                "id": Infer,
+                "author": {"id": Infer, "name": Infer},
+                "description": Infer,
+            }
+        ),
+        list_schema=Schema[AmazonAuthorProfile](
+            fields={
+                "id": Infer,
+                "author": {"id": Infer, "name": Infer},
+                "description": Infer,
             }
         ),
         delete_allowed=True,
@@ -225,6 +262,9 @@ class LibraryCrudl(CrudlController[Library], DefaultFilter[Library]):  # pylint:
                 "id": Infer,
                 "name": Infer,
                 "address": Infer,
+                "book_copies": {
+                    "inventory_number": Infer,
+                },
             }
         ),
         list_schema=Schema[Library](
@@ -232,8 +272,15 @@ class LibraryCrudl(CrudlController[Library], DefaultFilter[Library]):  # pylint:
                 "id": Infer,
                 "name": Infer,
                 "address": Infer,
+                # TODO(phuongfi91): Test also this case
+                #  https://github.com/NextGenContributions/django-ninja-crudl/issues/11
+                # "book_copies": Infer,
+                "book_copies": {
+                    "inventory_number": Infer,
+                },
             }
         ),
+        delete_allowed=True,
     )
 
 
@@ -320,6 +367,7 @@ api = NinjaExtraAPI()
 api.register_controllers(PublisherCrudl)
 api.register_controllers(BookCrudl)
 api.register_controllers(AuthorCrudl)
+api.register_controllers(AmazonAuthorProfileCrudl)
 api.register_controllers(BookCopyCrudl)
 api.register_controllers(BorrowingCrudl)
 api.register_controllers(LibraryCrudl)

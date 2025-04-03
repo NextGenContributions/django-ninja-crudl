@@ -42,6 +42,24 @@ class Author(models.Model):
         return self.books.count()
 
 
+# TODO(phuongfi91): OneToOne relationship is not supported yet
+#  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
+class AmazonAuthorProfile(models.Model):
+    """Model for an Amazon author profile."""
+
+    author = models.OneToOneField(
+        Author,
+        on_delete=models.CASCADE,
+        related_name="amazon_author_profile",
+    )
+    description = models.TextField()
+
+    @override
+    def __str__(self) -> str:
+        """Return the string representation of the author profile."""
+        return f"{self.author.name}: {self.description}"
+
+
 # TODO(phuongfi91): This is for experimental purpose only
 #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
 class PublisherType(Enum):
@@ -142,6 +160,8 @@ class BookCopy(models.Model):
         Library,
         on_delete=models.CASCADE,
         limit_choices_to={"name__icontains": "library"},
+        null=True,
+        blank=True,
     )  # Foreign Key relationship
     inventory_number = models.CharField(max_length=20, unique=True)
 
