@@ -63,7 +63,7 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: di
                 "name": Infer,
                 "birth_date": Infer,
                 "books": Infer,
-                "amazon_author_profile": {"description": Infer},
+                "amazon_author_profile": Infer
             }
         ),
         update_schema=Schema[Author](
@@ -73,7 +73,7 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: di
                 # TODO(phuongfi91): support reverse relation handler
                 #  https://github.com/NextGenContributions/django-ninja-crudl/issues/11
                 "books": Infer,
-                "amazon_author_profile": {"description": Infer},
+                "amazon_author_profile": Infer,
             }
         ),
         get_one_schema=Schema[Author](
@@ -115,6 +115,7 @@ class AmazonAuthorProfileCrudl(CrudlController[AmazonAuthorProfile], DefaultFilt
         ),
         update_schema=Schema[AmazonAuthorProfile](
             fields={
+                "author_id": Infer,
                 "description": Infer,
             }
         ),
@@ -249,12 +250,14 @@ class LibraryCrudl(CrudlController[Library], DefaultFilter[Library]):  # pylint:
             fields={
                 "name": Infer,
                 "address": Infer,
+                "book_copies": Infer,
             }
         ),
         update_schema=Schema[Library](
             fields={
                 "name": Infer,
                 "address": Infer,
+                "book_copies": Infer,
             }
         ),
         get_one_schema=Schema[Library](

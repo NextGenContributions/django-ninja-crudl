@@ -190,7 +190,7 @@ def test_deleting_relation_by_patch_should_work(client: Client) -> None:
     library.refresh_from_db()
     assert library.name == "Some library"
     assert library.address == "Some address"
-    assert list(library.book_copies.order_by("inventory_number")) == [book_copy]
+    assert list(library.book_copies.order_by("inventory_number")) == []
 
 
 @pytest.mark.django_db

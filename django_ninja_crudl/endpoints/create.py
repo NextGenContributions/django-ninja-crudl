@@ -143,7 +143,9 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 return self.get_403_error(request)
             self.pre_create(request_details)
 
-            m2m_fields, obj_fields = self._get_fields_to_set(config.model, payload)
+            simple_fields, relational_fields = self._get_fields_to_set(
+                config.model, payload
+            )
 
             # Create the object
             created_obj: TDjangoModel | None = None
@@ -153,7 +155,7 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 with validating_manager(config.model):
                     # TODO(phuongfi91): should we use validating_manager later as well?
                     created_obj = config.model._default_manager.create(  # noqa: F841, SLF001
-                        **dict(obj_fields),
+                        **dict(simple_fields),
                     )
 
             if create_err := self._try(create, request):
@@ -162,14 +164,14 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
             # The object is guaranteed to be created at this point
             created_obj = cast(TDjangoModel, created_obj)  # pyright: ignore[reportInvalidCast]
 
-            # Update many-to-many relationships on the created object
-            if m2m_err := self._update_m2m_relationships(
+            # Update complex relations on the created object
+            if rel_err := self._update_complex_relations(
                 created_obj,
-                m2m_fields,
+                relational_fields,
                 request,
                 request_details,
             ):
-                return m2m_err
+                return rel_err
 
             # Fully validate the created object as well as its related objects
             if clean_err := self._full_clean_obj(created_obj, request):

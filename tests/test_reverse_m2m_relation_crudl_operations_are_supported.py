@@ -22,6 +22,15 @@ def test_creating_relation_with_post_should_work(client: Client) -> None:
         publication_date="2021-01-01",
         publisher=publisher,
     )
+    author: models.Author = models.Author.objects.create(
+        name="Some author",
+        # birth_date="1990-01-01",
+    )
+    # amz_author_profile: models.AmazonAuthorProfile = (
+    #     models.AmazonAuthorProfile.objects.create(
+    #         description="Some description",
+    #     )
+    # )
 
     response = client.post(
         "/api/authors",

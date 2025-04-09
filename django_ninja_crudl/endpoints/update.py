@@ -91,48 +91,33 @@ def get_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 return self.get_404_error(request)
             self.pre_update(request_details)
 
-            m2m_fields, obj_fields = self._get_fields_to_set(config.model, payload)
+            simple_fields, relational_fields = self._get_fields_to_set(
+                config.model, payload
+            )
 
             def update() -> None:
                 nonlocal obj
                 with validating_manager(config.model):  # noqa: WPS220
                     # TODO(phuongfi91): should we use validating_manager later as well?
-                    for attr_name, attr_value in obj_fields:
+                    for attr_name, attr_value in simple_fields:
                         setattr(obj, attr_name, attr_value)  # noqa: WPS220
                     obj.save()  # pyright: ignore [reportOptionalMemberAccess]
 
             if update_err := self._try(update, request):
                 return update_err
 
-            # Update many-to-many relationships on the created object
-            if m2m_err := self._update_m2m_relationships(
+            # Update complex relations on the created object
+            if rel_err := self._update_complex_relations(
                 obj,
-                m2m_fields,
+                relational_fields,
                 request,
                 request_details,
             ):
-                return m2m_err
+                return rel_err
 
             # Fully validate the created object as well as its related objects
             if clean_err := self._full_clean_obj(obj, request):
                 return clean_err
-
-            # TODO(phuongfi91): remove this after finalizing the full solution above ^
-            #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
-            # for attr_name, attr_value in payload.model_dump().items():
-            #     try:
-            #         setattr(obj, attr_name, attr_value)
-            #     except TypeError as e:
-            #         msg = (
-            #             "Direct assignment to the forward side of a many-to-many set "
-            #             "is prohibited."
-            #         )
-            #         if msg in str(e):
-            #             m2m_manager: ManyRelatedManager[TDjangoModel] = getattr(obj, attr_name)
-            #             m2m_manager.set(attr_value)
-            #         else:
-            #             raise
-            # obj.save()
 
             self.post_update(request_details)
             return obj

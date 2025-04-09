@@ -22,6 +22,9 @@ def test_creating_relation_with_post_should_work(client: Client) -> None:
         publication_date="2021-01-01",
         publisher=publisher,
     )
+    amz_author_profile = models.AmazonAuthorProfile.objects.create(
+        description="Some description",
+    )
 
     response = client.post(
         "/api/authors",
@@ -31,9 +34,7 @@ def test_creating_relation_with_post_should_work(client: Client) -> None:
             "birth_date": "1990-01-01",
             "books": [book.id],
             # TODO(phuongfi91): The field should not be required
-            "amazon_author_profile": {
-                "description": "Some description",
-            },
+            "amazon_author_profile": amz_author_profile.id,
         },
     )
     assert response.status_code == status.HTTP_201_CREATED, response.json()
@@ -51,7 +52,6 @@ def test_updating_relation_with_put_should_work(client: Client) -> None:
         birth_date="1990-01-01",
     )
     amz_author_profile = models.AmazonAuthorProfile.objects.create(
-        author=author,
         description="Some description",
     )
     response = client.put(
@@ -60,16 +60,14 @@ def test_updating_relation_with_put_should_work(client: Client) -> None:
         data={
             "name": "Some updated author",
             "birth_date": "1990-01-02",
-            "amazon_author_profile": {
-                "description": "Some updated description",
-            },
+            "amazon_author_profile": amz_author_profile.id,
         },
     )
     assert response.status_code == status.HTTP_200_OK, response.json()
     author.refresh_from_db()
     assert author.name == "Some updated author"
     assert author.birth_date == datetime.date(1990, 1, 2)
-    assert author.amazon_author_profile.description == "Some updated description"
+    assert author.amazon_author_profile.description == "Some description"
 
 
 @pytest.mark.django_db
@@ -87,16 +85,14 @@ def test_updating_relation_with_patch_should_work(client: Client) -> None:
         f"/api/authors/{author.id}",
         content_type="application/json",
         data={
-            "amazon_author_profile": {
-                "description": "Some updated description",
-            }
+            "amazon_author_profile": amz_author_profile.id
         },
     )
     assert response.status_code == status.HTTP_200_OK, response.json()
     author.refresh_from_db()
     assert author.name == "Some author"
     assert author.birth_date == datetime.date(1990, 1, 1)
-    assert author.amazon_author_profile.description == "Some updated description"
+    assert author.amazon_author_profile.description == "Some description"
 
 
 @pytest.mark.django_db
@@ -140,7 +136,7 @@ def test_deleting_relation_by_patch_should_work(client: Client) -> None:
     )
     assert response.status_code == status.HTTP_200_OK, response.json()
     author.refresh_from_db()
-    assert author.amazon_author_profile == None
+    assert getattr(author, "amazon_author_profile", None) is None
 
 
 @pytest.mark.django_db

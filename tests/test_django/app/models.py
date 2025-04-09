@@ -51,6 +51,8 @@ class AmazonAuthorProfile(models.Model):
         Author,
         on_delete=models.CASCADE,
         related_name="amazon_author_profile",
+        blank=True,
+        null=True,
     )
     description = models.TextField()
 

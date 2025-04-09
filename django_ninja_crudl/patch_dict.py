@@ -18,6 +18,9 @@ def create_patch_schema(schema_cls: type[BaseModel]) -> type[BaseModel]:
             f.default = None
 
     # Define a custom 'model_dump' method that always exclude 'unset' values
+    # TODO(phuongfi91): This maybe no longer needed since exclude_unset is now default
+    #  to True in BaseMixins's model_dump method
+    #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
     patched_model_dump = functools.partialmethod(
         schema_cls_copy.model_dump, exclude_unset=True
     )

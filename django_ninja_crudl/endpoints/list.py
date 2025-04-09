@@ -7,8 +7,11 @@ from typing import TYPE_CHECKING, Unpack
 from django.db import models
 from django.db.models import (
     ForeignKey,
+    ManyToOneRel,
     ManyToManyField,
+    ManyToManyRel,
     OneToOneField,
+    OneToOneRel,
 )
 from django.http import HttpRequest, HttpResponse
 from ninja_extra import http_get, status
@@ -112,10 +115,11 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                     return qs  # noqa: WPS220
 
                 django_field = get_model_field(config.model, field_name)
-                if isinstance(
-                    django_field,
-                    OneToOneField | ForeignKey,
-                ):
+                if type(django_field) in {
+                    ForeignKey,
+                    OneToOneField,
+                    OneToOneRel,
+                }:
                     related_models.append(field_name)  # noqa: WPS220
                     related_fields.extend(  # noqa: WPS220
                         get_pydantic_fields(
@@ -124,10 +128,11 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                         ),
                     )
 
-                elif isinstance(  # noqa: WPS220
-                    django_field,
-                    ManyToManyField,
-                ):
+                elif type(django_field) in {
+                    models.ManyToManyField,
+                    models.ManyToManyRel,
+                    models.ManyToOneRel,
+                }:
                     many_to_many_models.append(field_name)  # noqa: WPS220
                     m2m_fields.extend(  # noqa: WPS220
                         get_pydantic_fields(
