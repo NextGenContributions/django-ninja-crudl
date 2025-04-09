@@ -1,4 +1,5 @@
 """Utility functions for working with Pydantic models."""
+
 from types import UnionType
 from typing import Optional, Union, get_args, get_origin
 
@@ -7,7 +8,10 @@ from pydantic import BaseModel
 
 def extract_non_none_type(field_type: type) -> None | type:
     """Extract the actual type from Union[..., None] or Optional[...] types."""
-    if get_origin(field_type) in {Union , UnionType} or get_origin(field_type) is Optional:
+    if (
+        get_origin(field_type) in {Union, UnionType}
+        or get_origin(field_type) is Optional
+    ):
         args = [arg for arg in get_args(field_type) if arg is not type(None)]
         return args[0] if args else None  # Return the first non-None type
     return field_type

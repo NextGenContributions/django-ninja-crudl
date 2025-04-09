@@ -84,9 +84,7 @@ def test_updating_relation_with_patch_should_work(client: Client) -> None:
     response = client.patch(
         f"/api/authors/{author.id}",
         content_type="application/json",
-        data={
-            "amazon_author_profile": amz_author_profile.id
-        },
+        data={"amazon_author_profile": amz_author_profile.id},
     )
     assert response.status_code == status.HTTP_200_OK, response.json()
     author.refresh_from_db()
@@ -155,7 +153,9 @@ def test_getting_relation_with_get_many_should_work(client: Client) -> None:
     assert len(response.json()) == 1
     assert response.json()[0]["name"] == "Some author"
     assert response.json()[0]["birth_date"] == "1990-01-01"
-    assert response.json()[0]["amazon_author_profile"]["description"] == "Some description"
+    assert (
+        response.json()[0]["amazon_author_profile"]["description"] == "Some description"
+    )
 
 
 @pytest.mark.django_db

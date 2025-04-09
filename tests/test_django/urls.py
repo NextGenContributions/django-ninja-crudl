@@ -63,7 +63,7 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: di
                 "name": Infer,
                 "birth_date": Infer,
                 "books": Infer,
-                "amazon_author_profile": Infer
+                "amazon_author_profile": Infer,
             }
         ),
         update_schema=Schema[Author](
@@ -102,8 +102,11 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: di
     )
 
 
-class AmazonAuthorProfileCrudl(CrudlController[AmazonAuthorProfile], DefaultFilter[AmazonAuthorProfile]):  # pylint: disable=too-many-ancestors
+class AmazonAuthorProfileCrudl(
+    CrudlController[AmazonAuthorProfile], DefaultFilter[AmazonAuthorProfile]
+):  # pylint: disable=too-many-ancestors
     """CRUDL controller for the AmazonAuthorProfile model."""
+
     config = CrudlConfig[AmazonAuthorProfile](
         model=AmazonAuthorProfile,
         base_path="/amazon_author_profiles",

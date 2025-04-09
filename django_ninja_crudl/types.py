@@ -26,9 +26,7 @@ DjangoRelationFields = (
 type PathArgs = dict[str, Any]  # pyright: ignore[reportExplicitAny]
 type ObjectlessActions = Literal["create", "list"]
 type WithObjectActions = Literal["get_one", "put", "patch", "delete"]
-type JSON = (
-    dict[str | int, "JSON"] | list["JSON"] | str | int | float | bool | None
-)
+type JSON = dict[str | int, "JSON"] | list["JSON"] | str | int | float | bool | None
 type DjangoFieldType = tuple[str, Any]  # pyright: ignore[reportExplicitAny]
 type DictStrAny = dict[str, Any]  # pyright: ignore[reportExplicitAny]
 
