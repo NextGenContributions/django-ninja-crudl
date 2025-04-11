@@ -83,7 +83,7 @@ def test_updating_relation_with_put_should_work(client: Client) -> None:
             "title": "Updated book",
             "isbn": "9783161484101",
             "publication_date": "2022-01-01",
-            "publisher_id": new_publisher.id,
+            "publisher": new_publisher.id,
             "authors": [
                 new_author_1.id,
                 new_author_2.id,
@@ -129,7 +129,7 @@ def test_updating_relation_with_patch_should_work(client: Client) -> None:
         f"/api/books/{book.id}",
         content_type="application/json",
         data={
-            "publisher_id": new_publisher.id,
+            "publisher": new_publisher.id,
             "authors": [new_author.id],
         },
     )

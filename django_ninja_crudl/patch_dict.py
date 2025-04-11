@@ -1,6 +1,5 @@
 """Patch Schema with all fields set to optional."""
 
-import functools
 from copy import deepcopy
 from typing import TYPE_CHECKING, Annotated, cast
 
@@ -17,22 +16,10 @@ def create_patch_schema(schema_cls: type[BaseModel]) -> type[BaseModel]:
             # Turn required fields into optional by assigning a default None value
             f.default = None
 
-    # Define a custom 'model_dump' method that always exclude 'unset' values
-    # TODO(phuongfi91): This maybe no longer needed since exclude_unset is now default
-    #  to True in BaseMixins's model_dump method
-    #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
-    patched_model_dump = functools.partialmethod(
-        schema_cls_copy.model_dump, exclude_unset=True
-    )
-
     # The cloned schema should be recreated for the changes to take effect
     return cast(
         type[BaseModel],
-        type(
-            f"{schema_cls_copy.__name__}Patch",
-            (schema_cls_copy,),
-            {"model_dump": patched_model_dump},
-        ),
+        type(f"{schema_cls_copy.__name__}Patch", (schema_cls_copy,), {}),
     )
 
 
