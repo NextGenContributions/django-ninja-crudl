@@ -19,7 +19,7 @@ def test_creating_relation_with_post_should_work(client: Client) -> None:
         "/api/amazon_author_profiles",
         content_type="application/json",
         data={
-            "author_id": author.id,
+            "author": author.id,
             "description": "Some description",
         },
     )
@@ -50,13 +50,13 @@ def test_updating_relation_with_put_should_work(client: Client) -> None:
         f"/api/amazon_author_profiles/{amz_author_profile.id}",
         content_type="application/json",
         data={
-            "author_id": author_2.id,
+            "author": author_2.id,
             "description": "Some updated description",
         },
     )
     assert response.status_code == status.HTTP_200_OK, response.json()
     amz_author_profile.refresh_from_db()
-    assert amz_author_profile.author.id == author_2.id
+    assert amz_author_profile.author_id == author_2.id
     assert amz_author_profile.description == "Some updated description"
 
 
@@ -79,12 +79,12 @@ def test_updating_relation_with_patch_should_work(client: Client) -> None:
         f"/api/amazon_author_profiles/{amz_author_profile.id}",
         content_type="application/json",
         data={
-            "author_id": author_2.id,
+            "author": author_2.id,
         },
     )
     assert response.status_code == status.HTTP_200_OK, response.json()
     amz_author_profile.refresh_from_db()
-    assert amz_author_profile.author.id == author_2.id
+    assert amz_author_profile.author_id == author_2.id
 
 
 @pytest.mark.django_db
