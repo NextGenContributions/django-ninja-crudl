@@ -2,14 +2,14 @@
 
 import logging
 from abc import ABC
+from typing import TYPE_CHECKING, Unpack
 
 from django.db import models
 from django.db.models import (
     ForeignKey,
+    ManyToOneRel,
     ManyToManyField,
     ManyToManyRel,
-    ManyToOneRel,
-    Model,
     OneToOneField,
     OneToOneRel,
 )
@@ -28,34 +28,37 @@ from django_ninja_crudl.errors.schemas import (
 from django_ninja_crudl.model_utils import get_pydantic_fields
 from django_ninja_crudl.types import (
     RequestDetails,
+    RequestParams,
     TDjangoModel,
-    TDjangoModel_co,
 )
 from django_ninja_crudl.utils import (
+    get_model_field,
     replace_path_args_annotation,
 )
+
+if TYPE_CHECKING:
+    from pydantic import BaseModel
 
 logger: logging.Logger = logging.getLogger("django_ninja_crudl")
 
 
-DjangoRelationFields = (
-    ManyToManyField[Model, Model] | ManyToManyRel | ManyToOneRel | OneToOneRel
-)
-
-
-def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
+def get_get_many_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
     """Create the get_many endpoint class for the CRUDL operations."""
+    if not config.list_schema:
+        return None
 
-    class GetManyEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):
+    list_schema: type[BaseModel] = config.list_schema
+
+    class GetManyEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):  # pyright: ignore [reportGeneralTypeIssues]
         """GetMany endpoint for CRUDL operations."""
 
         @http_get(
             path=config.list_path,
             response={
-                200: list[config.list_schema],  # pyright: ignore[reportPossiblyUnboundVariable]
-                401: Error401UnauthorizedSchema,
+                status.HTTP_200_OK: list[list_schema],  # type: ignore[valid-type]
+                status.HTTP_401_UNAUTHORIZED: Error401UnauthorizedSchema,
                 status.HTTP_403_FORBIDDEN: Error403ForbiddenSchema,
-                422: Error422UnprocessableEntitySchema,
+                status.HTTP_422_UNPROCESSABLE_ENTITY: Error422UnprocessableEntitySchema,
                 status.HTTP_503_SERVICE_UNAVAILABLE: Error503ServiceUnavailableSchema,
             },
             operation_id=config.list_operation_id,
@@ -66,14 +69,13 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             self,
             request: HttpRequest,
             response: HttpResponse,
-            **kwargs,
-        ) -> tuple[int, ErrorSchema] | models.Manager[Model]:
+            **kwargs: Unpack[RequestParams],
+        ) -> tuple[int, ErrorSchema] | models.Manager[TDjangoModel]:
             """List all objects."""
-            path_args = kwargs["path_args"].dict() if "path_args" in kwargs else {}
-            request_details = RequestDetails[Model](
+            request_details = RequestDetails[TDjangoModel](
                 action="list",
                 request=request,
-                path_args=path_args,
+                path_args=self._get_path_args(kwargs),
                 model_class=config.model,
             )
 
@@ -81,7 +83,7 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                 return self.get_403_error(request)
 
             qs = (
-                self.get_pre_filtered_queryset(config.model, path_args)
+                self.get_pre_filtered_queryset(config.model, request_details.path_args)
                 .filter(self.get_base_filter(request_details))
                 .filter(self.get_filter_for_list(request_details))
             )
@@ -96,7 +98,7 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             property_fields: list[str] = []
             m2m_fields: list[str] = []
 
-            for field_name in config.list_schema.model_fields:
+            for field_name in list_schema.model_fields:
                 attr = getattr(config.model, field_name, None)  # noqa: WPS220
 
                 # Skip @property methods here
@@ -112,27 +114,29 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                     )
                     return qs  # noqa: WPS220
 
-                django_field = config.model._meta.get_field(field_name)  # noqa: SLF001
-                if isinstance(
-                    django_field,
-                    OneToOneField | ForeignKey,
-                ):
+                django_field = get_model_field(config.model, field_name)
+                if type(django_field) in {
+                    ForeignKey,
+                    OneToOneField,
+                    OneToOneRel,
+                }:
                     related_models.append(field_name)  # noqa: WPS220
                     related_fields.extend(  # noqa: WPS220
                         get_pydantic_fields(
-                            config.list_schema,
+                            list_schema,
                             field_name,
                         ),
                     )
 
-                elif isinstance(  # noqa: WPS220
-                    django_field,
-                    ManyToManyField,
-                ):
+                elif type(django_field) in {
+                    models.ManyToManyField,
+                    models.ManyToManyRel,
+                    models.ManyToOneRel,
+                }:
                     many_to_many_models.append(field_name)  # noqa: WPS220
                     m2m_fields.extend(  # noqa: WPS220
                         get_pydantic_fields(
-                            config.list_schema,
+                            list_schema,
                             field_name,
                         ),
                     )
@@ -140,7 +144,7 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
 
             non_related_fields: list[str] = [
                 field_name
-                for field_name in config.list_schema.model_fields.keys()
+                for field_name in list_schema.model_fields.keys()
                 if field_name
                 # not in related_models + many_to_many_models + property_fields
                 not in related_models + many_to_many_models + property_fields
@@ -154,6 +158,7 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
             qs = qs.values(*all_fields)
 
             # TODO(phuongfi91): find alternative to this janky solution
+            #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
             # add m2m fields (with supported structure) to the response
             l = list(qs)
             for i in l:

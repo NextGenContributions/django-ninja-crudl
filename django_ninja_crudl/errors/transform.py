@@ -20,10 +20,13 @@ def transform_django_validation_error(message_dict: DictStrAny) -> list[DictStrA
     return result
 
 
-def get_exception_details(exc: Exception | None) -> str | list[DictStrAny]:
+def get_exception_details(exc: Exception | None) -> str | list[DictStrAny] | None:
     """Transform the exception response into a format similar to django-ninja."""
     if isinstance(exc, dj_exc.ValidationError):
         return transform_django_validation_error(exc.message_dict)
 
-    # generic error response
-    return str(exc)
+    # Generic error response
+    if exc is not None:
+        return str(exc)
+
+    return None

@@ -1,32 +1,45 @@
 """Shared types for the CRUDL classes."""
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Generic, Literal, TypeVar
+from typing import Any, Generic, Literal, TypedDict, TypeVar
 
 from beartype import beartype
-from django.db.models import Model
+from django.db.models import (
+    ManyToManyField,
+    ManyToManyRel,
+    ManyToOneRel,
+    Model,
+    OneToOneRel,
+)
 from django.http import HttpRequest
 from pydantic import BaseModel
 
 TDjangoModel = TypeVar("TDjangoModel", bound=Model)
-TDjangoModel_co = TypeVar("TDjangoModel_co", bound=Model, covariant=True)
 
+# TODO(phuongfi91): Should this be used somewhere?
+#  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
+DjangoRelationFields = (
+    ManyToManyField[Model, Model] | ManyToManyRel | ManyToOneRel | OneToOneRel
+)
 
 type PathArgs = dict[str, Any]  # pyright: ignore[reportExplicitAny]
 type ObjectlessActions = Literal["create", "list"]
 type WithObjectActions = Literal["get_one", "put", "patch", "delete"]
-
-type JSON = (  # pyre-ignore[11]
-    None | bool | int | float | str | list["JSON"] | dict[str | int, "JSON"]  # noqa: WPS221, WPS465
-)
-
+type JSON = dict[str | int, "JSON"] | list["JSON"] | str | int | float | bool | None
+type DjangoFieldType = tuple[str, Any]  # pyright: ignore[reportExplicitAny]
 type DictStrAny = dict[str, Any]  # pyright: ignore[reportExplicitAny]
 
 
-# TODO(phuongfi91): Debug beartype error for partial patch (PUT)
-# @beartype
+class RequestParams(TypedDict, total=False):
+    """The URL path arguments of request."""
+
+    path_args: BaseModel
+
+
+@beartype
 @dataclass
-class RequestDetails(Generic[TDjangoModel_co]):
+class RequestDetails(Generic[TDjangoModel]):  # pylint: disable=too-many-instance-attributes
     """Details about the request.
 
     Used to pass information to the CRUDL methods.
@@ -76,14 +89,14 @@ class RequestDetails(Generic[TDjangoModel_co]):
     payload: BaseModel | None = None
     """The payload data from the request."""
 
-    model_class: type[TDjangoModel_co] | None = None
+    model_class: type[TDjangoModel] | None = None
     """The Django model class to use."""
 
-    object: TDjangoModel_co | None = None
+    object: TDjangoModel | None = None
     """The Django model object to use."""
 
-    related_model_class: type[Model] | None = None
+    related_model_class: type[TDjangoModel] | None = None
     """The related Django model class to use."""
 
-    related_object: Model | None = None
+    related_object: TDjangoModel | None = None
     """The related Django model object to use."""

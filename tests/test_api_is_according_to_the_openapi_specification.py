@@ -7,7 +7,6 @@ import schemathesis
 # by running Django DRF management command:
 from pytest_django.live_server_helper import LiveServer
 from schemathesis.lazy import LazySchema
-from schemathesis.schemas import BaseSchema
 from schemathesis.specs.openapi.schemas import BaseOpenAPISchema
 
 schemathesis.experimental.OPEN_API_3_1.enable()
