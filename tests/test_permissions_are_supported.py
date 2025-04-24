@@ -17,7 +17,7 @@ UNAUTHORIZED_USER_NAME = "jane_doe"
 def test_create_resource_without_logging_in_should_fail(client: Client) -> None:
     """Test creating a resource with POST request."""
     response = client.post(
-        "/api/authors",
+        "/api/gated-authors",
         content_type="application/json",
         data={
             "name": "Some author",
@@ -33,7 +33,7 @@ def test_create_resource_with_unauthorized_user_should_fail(client: Client) -> N
     u = User.objects.create_user(UNAUTHORIZED_USER_NAME)
     client.force_login(u)
     response = client.post(
-        "/api/authors",
+        "/api/gated-authors",
         content_type="application/json",
         data={
             "name": "Some author",
@@ -49,7 +49,7 @@ def test_create_resource_with_authorized_user_should_succeed(client: Client) -> 
     u = User.objects.create_user(AUTHORIZED_USER_NAME)
     client.force_login(u)
     response = client.post(
-        "/api/authors",
+        "/api/gated-authors",
         content_type="application/json",
         data={
             "name": "Some author",
@@ -65,7 +65,7 @@ def test_create_resource_with_authorized_user_should_succeed(client: Client) -> 
 @pytest.mark.django_db
 def test_list_resources_without_logging_in_should_fail(client: Client) -> None:
     """Test listing resources with GET request."""
-    response = client.get("/api/authors")
+    response = client.get("/api/gated-authors")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED, response.json()
 
 
@@ -74,7 +74,7 @@ def test_list_resources_with_unauthorized_user_should_fail(client: Client) -> No
     """Test listing resources with GET request."""
     u = User.objects.create_user(UNAUTHORIZED_USER_NAME)
     client.force_login(u)
-    response = client.get("/api/authors")
+    response = client.get("/api/gated-authors")
     assert response.status_code == status.HTTP_403_FORBIDDEN, response.json()
 
 
@@ -86,7 +86,7 @@ def test_list_resources_with_authorized_user_should_succeed(client: Client) -> N
 
     u = User.objects.create_user(AUTHORIZED_USER_NAME)
     client.force_login(u)
-    response = client.get("/api/authors")
+    response = client.get("/api/gated-authors")
 
     assert response.status_code == status.HTTP_200_OK, response.json()
     data = response.json()
@@ -100,7 +100,7 @@ def test_get_one_resource_without_logging_in_should_fail(client: Client) -> None
     author = Author.objects.create(
         name="Get Author", birth_date=datetime.date(1990, 1, 1)
     )
-    response = client.get(f"/api/authors/{author.id}")
+    response = client.get(f"/api/gated-authors/{author.id}")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED, response.json()
 
 
@@ -112,7 +112,7 @@ def test_get_one_resource_with_unauthorized_user_should_fail(client: Client) -> 
     )
     u = User.objects.create_user(UNAUTHORIZED_USER_NAME)
     client.force_login(u)
-    response = client.get(f"/api/authors/{author.id}")
+    response = client.get(f"/api/gated-authors/{author.id}")
     assert response.status_code == status.HTTP_403_FORBIDDEN, response.json()
 
 
@@ -124,7 +124,7 @@ def test_get_one_resource_with_authorized_user_should_succeed(client: Client) ->
     )
     u = User.objects.create_user(AUTHORIZED_USER_NAME)
     client.force_login(u)
-    response = client.get(f"/api/authors/{author.id}")
+    response = client.get(f"/api/gated-authors/{author.id}")
 
     assert response.status_code == status.HTTP_200_OK, response.json()
     data = response.json()
@@ -139,7 +139,7 @@ def test_update_resource_without_logging_in_should_fail(client: Client) -> None:
         name="Update Author", birth_date=datetime.date(1990, 1, 1)
     )
     response = client.put(
-        f"/api/authors/{author.id}",
+        f"/api/gated-authors/{author.id}",
         content_type="application/json",
         data={
             "name": "Updated Author",
@@ -158,7 +158,7 @@ def test_update_resource_with_unauthorized_user_should_fail(client: Client) -> N
     u = User.objects.create_user(UNAUTHORIZED_USER_NAME)
     client.force_login(u)
     response = client.put(
-        f"/api/authors/{author.id}",
+        f"/api/gated-authors/{author.id}",
         content_type="application/json",
         data={
             "name": "Updated Author",
@@ -177,7 +177,7 @@ def test_update_resource_with_authorized_user_should_succeed(client: Client) -> 
     u = User.objects.create_user(AUTHORIZED_USER_NAME)
     client.force_login(u)
     response = client.put(
-        f"/api/authors/{author.id}",
+        f"/api/gated-authors/{author.id}",
         content_type="application/json",
         data={
             "name": "Updated Author",
@@ -198,7 +198,7 @@ def test_update_partial_resource_without_logging_in_should_fail(client: Client) 
         name="Patch Author", birth_date=datetime.date(1990, 1, 1)
     )
     response = client.patch(
-        f"/api/authors/{author.id}",
+        f"/api/gated-authors/{author.id}",
         content_type="application/json",
         data={
             "name": "Patched Author",
@@ -218,7 +218,7 @@ def test_update_partial_resource_with_unauthorized_user_should_fail(
     u = User.objects.create_user(UNAUTHORIZED_USER_NAME)
     client.force_login(u)
     response = client.patch(
-        f"/api/authors/{author.id}",
+        f"/api/gated-authors/{author.id}",
         content_type="application/json",
         data={
             "name": "Patched Author",
@@ -238,7 +238,7 @@ def test_update_partial_resource_with_authorized_user_should_succeed(
     u = User.objects.create_user(AUTHORIZED_USER_NAME)
     client.force_login(u)
     response = client.patch(
-        f"/api/authors/{author.id}",
+        f"/api/gated-authors/{author.id}",
         content_type="application/json",
         data={
             "name": "Patched Author",
@@ -257,7 +257,7 @@ def test_delete_resource_without_logging_in_should_fail(client: Client) -> None:
     author = Author.objects.create(
         name="Delete Author", birth_date=datetime.date(1990, 1, 1)
     )
-    response = client.delete(f"/api/authors/{author.id}")
+    response = client.delete(f"/api/gated-authors/{author.id}")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED, response.json()
 
 
@@ -269,7 +269,7 @@ def test_delete_resource_with_unauthorized_user_should_fail(client: Client) -> N
     )
     u = User.objects.create_user(UNAUTHORIZED_USER_NAME)
     client.force_login(u)
-    response = client.delete(f"/api/authors/{author.id}")
+    response = client.delete(f"/api/gated-authors/{author.id}")
     assert response.status_code == status.HTTP_403_FORBIDDEN, response.json()
 
 
@@ -282,7 +282,7 @@ def test_delete_resource_with_authorized_user_should_succeed(client: Client) -> 
     author_id = author.id
     u = User.objects.create_user(AUTHORIZED_USER_NAME)
     client.force_login(u)
-    response = client.delete(f"/api/authors/{author.id}")
+    response = client.delete(f"/api/gated-authors/{author.id}")
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
     assert not Author.objects.filter(id=author_id).exists()

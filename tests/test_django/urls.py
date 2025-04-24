@@ -97,12 +97,12 @@ class DefaultFilter(FiltersMixin[TDjangoModel]):
         return Q()
 
 
-class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: disable=too-many-ancestors
-    """CRUDL controller for the Author model."""
+class GatedAuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: disable=too-many-ancestors
+    """CRUDL controller for the Author model, with permission gating."""
 
     config = CrudlConfig[Author](
         model=Author,
-        base_path="/authors",
+        base_path="/gated-authors",
         permission_classes=[HasResourcePermissions],
         create_schema=Schema[Author](
             fields={
@@ -116,8 +116,54 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: di
             fields={
                 "name": Infer,
                 "birth_date": Infer,
-                # TODO(phuongfi91): support reverse relation handler
-                #  https://github.com/NextGenContributions/django-ninja-crudl/issues/11
+                "books": Infer,
+                "amazon_author_profile": Infer,
+            }
+        ),
+        get_one_schema=Schema[Author](
+            fields={
+                "id": Infer,
+                "name": Infer,
+                "birth_date": Infer,
+                "age": Infer,
+                "books_count": Infer,
+                "books": {"id": Infer, "title": Infer},
+                "amazon_author_profile": {"description": Infer},
+            }
+        ),
+        list_schema=Schema[Author](
+            fields={
+                "id": Infer,
+                "name": Infer,
+                "birth_date": Infer,
+                "age": Infer,
+                "books_count": Infer,
+                "books": {"id": Infer, "title": Infer},
+                "amazon_author_profile": {"description": Infer},
+            }
+        ),
+        delete_allowed=True,
+    )
+
+
+class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: disable=too-many-ancestors
+    """CRUDL controller for the Author model."""
+
+    config = CrudlConfig[Author](
+        model=Author,
+        base_path="/authors",
+        create_schema=Schema[Author](
+            fields={
+                "name": Infer,
+                "birth_date": Infer,
+                "books": Infer,
+                "amazon_author_profile": Infer,
+            }
+        ),
+        update_schema=Schema[Author](
+            fields={
+                "name": Infer,
+                "birth_date": Infer,
                 "books": Infer,
                 "amazon_author_profile": Infer,
             }
@@ -418,6 +464,7 @@ api = NinjaExtraAPI()
 
 api.register_controllers(PublisherCrudl)
 api.register_controllers(BookCrudl)
+api.register_controllers(GatedAuthorCrudl)
 api.register_controllers(AuthorCrudl)
 api.register_controllers(AmazonAuthorProfileCrudl)
 api.register_controllers(BookCopyCrudl)
