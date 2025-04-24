@@ -48,6 +48,7 @@ def get_get_one_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 status.HTTP_503_SERVICE_UNAVAILABLE: Error503ServiceUnavailableSchema,
             },
             operation_id=config.get_one_operation_id,
+            url_name=config.get_one_operation_id,
             by_alias=True,
         )
         @replace_path_args_annotation(config.get_one_path, config.model)
@@ -55,7 +56,7 @@ def get_get_one_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
             self,
             request: HttpRequest,
             **kwargs: Unpack[RequestParams],
-        ) -> tuple[Literal[403, 404], ErrorSchema] | TDjangoModel:
+        ) -> tuple[Literal[401, 403, 404], ErrorSchema] | TDjangoModel:
             """Retrieve an object."""
             request_details = RequestDetails[TDjangoModel](
                 action="get_one",
@@ -64,6 +65,8 @@ def get_get_one_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 path_args=self._get_path_args(kwargs),
                 model_class=config.model,
             )
+            if not self.is_authenticated(request_details):
+                return self.get_401_error(request)
             if not self.has_permission(request_details):
                 return self.get_403_error(request)  # noqa: WPS220
 

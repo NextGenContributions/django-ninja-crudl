@@ -1,15 +1,22 @@
 """URL configuration for the Django test project."""
 
-from typing import override
+from typing import cast, override
 
 from django.contrib import admin
+from django.contrib.auth.models import User
 from django.db.models import Q
 from django.urls import path
 from django.urls.resolvers import URLResolver
 from django2pydantic import Infer
 from ninja_extra import NinjaExtraAPI
 
-from django_ninja_crudl import CrudlConfig, CrudlController, RequestDetails, Schema
+from django_ninja_crudl import (
+    BasePermission,
+    CrudlConfig,
+    CrudlController,
+    RequestDetails,
+    Schema,
+)
 from django_ninja_crudl.mixins.filters import FiltersMixin
 from django_ninja_crudl.types import TDjangoModel
 from tests.test_django.app.models import (
@@ -21,6 +28,44 @@ from tests.test_django.app.models import (
     Library,
     Publisher,
 )
+
+
+class HasResourcePermissions(BasePermission[TDjangoModel]):
+    """Check if the user has permissions to access the resource."""
+
+    @staticmethod
+    def _is_john_doe(user: User) -> bool:
+        return user.username == "john_doe"  # pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
+
+    @override
+    def is_authenticated(self, request: RequestDetails[TDjangoModel]) -> bool:
+        if not getattr(request.request, "user", False):
+            return False
+        return isinstance(request.request.user, User)
+
+    @override
+    def has_permission(self, request: RequestDetails[TDjangoModel]) -> bool:
+        """Check if the user has permission to perform the action."""
+        user = cast(User, request.request.user)
+        return self._is_john_doe(user)
+
+    # TODO(phuongfi91): Write tests for this
+    #  https://github.com/NextGenContributions/django-ninja-crudl/issues/4
+    @override
+    def has_object_permission(self, request: RequestDetails[TDjangoModel]) -> bool:
+        """Check if the user has permission to perform the action on the object."""
+        user = cast(User, request.request.user)
+        return self._is_john_doe(user)
+
+    # TODO(phuongfi91): Write tests for this
+    #  https://github.com/NextGenContributions/django-ninja-crudl/issues/4
+    @override
+    def has_related_object_permission(
+        self, request: RequestDetails[TDjangoModel]
+    ) -> bool:
+        """Check if the user has permission to perform the action on related object."""
+        user = cast(User, request.request.user)
+        return self._is_john_doe(user)
 
 
 class DefaultFilter(FiltersMixin[TDjangoModel]):
@@ -58,6 +103,7 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: di
     config = CrudlConfig[Author](
         model=Author,
         base_path="/authors",
+        permission_classes=[HasResourcePermissions],
         create_schema=Schema[Author](
             fields={
                 "name": Infer,

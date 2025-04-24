@@ -80,11 +80,11 @@ class RequestDetails(Generic[TDjangoModel]):  # pylint: disable=too-many-instanc
     action: ObjectlessActions | WithObjectActions
     """The action to perform. Is one of the "create", "list", "get_one", "put", "patch", "delete" actions."""
 
+    path_args: PathArgs
+    """The URL path arguments of the request."""
+
     schema: type[BaseModel] | None = None
     """The Pydantic schema to use for the payload."""
-
-    path_args: PathArgs | None = None
-    """The URL path arguments of the request."""
 
     payload: BaseModel | None = None
     """The payload data from the request."""

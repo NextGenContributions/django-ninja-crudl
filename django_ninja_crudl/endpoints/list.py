@@ -2,14 +2,11 @@
 
 import logging
 from abc import ABC
-from typing import TYPE_CHECKING, Unpack
+from typing import TYPE_CHECKING, Literal, Unpack
 
 from django.db import models
 from django.db.models import (
     ForeignKey,
-    ManyToOneRel,
-    ManyToManyField,
-    ManyToManyRel,
     OneToOneField,
     OneToOneRel,
 )
@@ -62,6 +59,7 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 status.HTTP_503_SERVICE_UNAVAILABLE: Error503ServiceUnavailableSchema,
             },
             operation_id=config.list_operation_id,
+            url_name=config.list_operation_id,
             # openapi_extra=config.openapi_extra,
         )
         @replace_path_args_annotation(config.list_path, config.model)
@@ -70,7 +68,7 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
             request: HttpRequest,
             response: HttpResponse,
             **kwargs: Unpack[RequestParams],
-        ) -> tuple[int, ErrorSchema] | models.Manager[TDjangoModel]:
+        ) -> tuple[Literal[401, 403], ErrorSchema] | models.Manager[TDjangoModel]:
             """List all objects."""
             request_details = RequestDetails[TDjangoModel](
                 action="list",
@@ -79,6 +77,8 @@ def get_get_many_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 model_class=config.model,
             )
 
+            if not self.is_authenticated(request_details):
+                return self.get_401_error(request)
             if not self.has_permission(request_details):
                 return self.get_403_error(request)
 

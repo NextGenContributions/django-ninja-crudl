@@ -11,6 +11,7 @@ from django.db.models import (
 from pydantic import BaseModel
 
 from django_ninja_crudl.types import (
+    DictStrAny,
     DjangoFieldType,
     PathArgs,
     RequestDetails,
@@ -49,12 +50,14 @@ class UtilitiesMixin(Generic[TDjangoModel]):
         self,
         model_class: type[TDjangoModel],
         payload: BaseModel,
+        path_params: PathArgs | None = None,
     ) -> tuple[list[DjangoFieldType], list[DjangoFieldType]]:
         """Get the fields to set for the create/update operations."""
         simple_fields: list[DjangoFieldType] = []
         relational_fields: list[DjangoFieldType] = []
 
-        for field, field_value in payload.model_dump().items():  # pyright: ignore[reportAny]
+        fields: DictStrAny = payload.model_dump() | (path_params or {})
+        for field, field_value in fields.items():  # pyright: ignore[reportAny]
             field_type = get_model_field(model_class, field)
 
             # Complex relations that need to be handled separately
@@ -85,17 +88,15 @@ class UtilitiesMixin(Generic[TDjangoModel]):
     def get_model_filter_args(
         self,
         model_class: type[TDjangoModel],
-        path_args: PathArgs | None,
+        path_args: PathArgs,
     ) -> dict[str, str | int | float | UUID]:
         """Filter out the keys that are not fields of the model."""
-        if path_args is None:
-            return {}
         return {k: v for k, v in path_args.items() if getattr(model_class, k, None)}
 
     def get_pre_filtered_queryset(
         self,
         model_class: type[TDjangoModel],
-        path_args: PathArgs | None,
+        path_args: PathArgs,
     ) -> QuerySet[TDjangoModel]:
         """Return a queryset that is filtered by params from the path query."""
         model_filters = self.get_model_filter_args(model_class, path_args)

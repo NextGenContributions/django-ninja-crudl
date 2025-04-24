@@ -46,6 +46,7 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | Non
         @http_patch(
             path=config.update_path,
             operation_id=config.partial_update_operation_id,
+            url_name=config.partial_update_operation_id,
             response={
                 status.HTTP_200_OK: partial_update_schema,
                 status.HTTP_401_UNAUTHORIZED: Error401UnauthorizedSchema,
@@ -65,7 +66,7 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | Non
             request: HttpRequest,
             payload: partial_update_schema,  # type: ignore[valid-type]
             **kwargs: Unpack[RequestParams],
-        ) -> tuple[Literal[403, 404, 409], ErrorSchema] | TDjangoModel:
+        ) -> tuple[Literal[401, 403, 404, 409], ErrorSchema] | TDjangoModel:
             """Partial update an object."""
             request_details = RequestDetails[TDjangoModel](
                 action="patch",
@@ -75,6 +76,8 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | Non
                 payload=payload,
                 model_class=config.model,
             )
+            if not self.is_authenticated(request_details):
+                return self.get_401_error(request)
             if not self.has_permission(request_details):
                 return self.get_403_error(request)  # noqa: WPS220
             obj: TDjangoModel | None = (

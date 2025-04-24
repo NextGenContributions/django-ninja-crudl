@@ -34,6 +34,7 @@ def get_delete_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
         @http_delete(
             path=config.delete_path,
             operation_id=config.delete_operation_id,
+            url_name=config.delete_operation_id,
             response={
                 status.HTTP_204_NO_CONTENT: None,
                 status.HTTP_401_UNAUTHORIZED: Error401UnauthorizedSchema,
@@ -49,7 +50,7 @@ def get_delete_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
             self,
             request: HttpRequest,
             **kwargs: Unpack[RequestParams],
-        ) -> tuple[Literal[403, 404], ErrorSchema] | tuple[Literal[204], None]:
+        ) -> tuple[Literal[401, 403, 404], ErrorSchema] | tuple[Literal[204], None]:
             """Delete the object by id."""
             request_details = RequestDetails[TDjangoModel](
                 action="delete",
@@ -57,6 +58,8 @@ def get_delete_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
                 path_args=self._get_path_args(kwargs),
                 model_class=config.model,
             )
+            if not self.is_authenticated(request_details):
+                return self.get_401_error(request)
             if not self.has_permission(request_details):
                 return self.get_403_error(request)
 

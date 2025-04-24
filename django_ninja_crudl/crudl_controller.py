@@ -79,6 +79,9 @@ class CrudlMeta(ABCMeta):
         # Add all attributes to dct, while allowing the child's attributes to overwrite
         # parents' attributes
         dct = bases_dct | dct
+        # TODO(phuongfi91): Is there a better way to do this?
+        #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
+        dct["_permission_classes"] = config.permission_classes
 
         # Construct the final API controller class
         bases = (ControllerBase, CrudlBaseMethodsMixin)

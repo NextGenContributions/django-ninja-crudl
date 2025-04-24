@@ -108,6 +108,7 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
         @http_post(
             path=config.create_path,
             operation_id=config.create_operation_id,
+            url_name=config.create_operation_id,
             response={
                 status.HTTP_201_CREATED: create_response_schema,
                 status.HTTP_401_UNAUTHORIZED: Error401UnauthorizedSchema,
@@ -127,7 +128,7 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
             payload: create_schema,  # type: ignore[valid-type]
             **kwargs: Unpack[RequestParams],
         ) -> (
-            tuple[Literal[403, 404, 409], ErrorSchema]
+            tuple[Literal[401, 403, 404, 409], ErrorSchema]
             | tuple[Literal[201], TDjangoModel]
         ):
             """Create a new object."""
@@ -139,12 +140,16 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 payload=payload,
                 model_class=config.model,
             )
+            if not self.is_authenticated(request_details):
+                return self.get_401_error(request)
             if not self.has_permission(request_details):
                 return self.get_403_error(request)
             self.pre_create(request_details)
 
             simple_fields, relational_fields = self._get_fields_to_set(
-                config.model, payload
+                config.model,
+                payload,
+                request_details.path_args,
             )
 
             # Create the object
