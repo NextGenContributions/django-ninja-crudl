@@ -1,5 +1,3 @@
-"""Test URL pattern reversing for the Author API endpoints."""
-
 from django.urls import reverse
 
 

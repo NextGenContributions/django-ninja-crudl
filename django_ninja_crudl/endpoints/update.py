@@ -13,6 +13,7 @@ from django_ninja_crudl.base import CrudlBaseMethodsMixin
 from django_ninja_crudl.errors.schemas import (
     Error401UnauthorizedSchema,
     Error403ForbiddenSchema,
+    Error404NotFoundSchema,
     Error409ConflictSchema,
     Error422UnprocessableEntitySchema,
     Error503ServiceUnavailableSchema,
@@ -52,7 +53,7 @@ def get_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 status.HTTP_200_OK: update_schema,
                 status.HTTP_401_UNAUTHORIZED: Error401UnauthorizedSchema,
                 status.HTTP_403_FORBIDDEN: Error403ForbiddenSchema,
-                status.HTTP_404_NOT_FOUND: ErrorSchema,
+                status.HTTP_404_NOT_FOUND: Error404NotFoundSchema,
                 status.HTTP_409_CONFLICT: Error409ConflictSchema,
                 status.HTTP_422_UNPROCESSABLE_ENTITY: Error422UnprocessableEntitySchema,
                 status.HTTP_503_SERVICE_UNAVAILABLE: Error503ServiceUnavailableSchema,

@@ -64,10 +64,10 @@ class RequestDetails(Generic[TDjangoModel]):  # pylint: disable=too-many-instanc
     Attributes:
         request: The Django request object.
         action: The action to perform. Is one of the "create", "list", "get_one", "put", "patch", "delete" actions.
-        schema: The Pydantic schema to use for the payload.
         path_args: The URL path arguments of the request.
-        payload: The payload data.
         model_class: The Django model class to use.
+        schema: The Pydantic schema to use for the payload.
+        payload: The payload data.
         object: The Django model object to use.
         related_model_class: The related Django model class to use.
         related_object: The related Django model object to use.
@@ -83,14 +83,14 @@ class RequestDetails(Generic[TDjangoModel]):  # pylint: disable=too-many-instanc
     path_args: PathArgs
     """The URL path arguments of the request."""
 
+    model_class: type[TDjangoModel]
+    """The Django model class to use."""
+
     schema: type[BaseModel] | None = None
     """The Pydantic schema to use for the payload."""
 
     payload: BaseModel | None = None
     """The payload data from the request."""
-
-    model_class: type[TDjangoModel] | None = None
-    """The Django model class to use."""
 
     object: TDjangoModel | None = None
     """The Django model object to use."""

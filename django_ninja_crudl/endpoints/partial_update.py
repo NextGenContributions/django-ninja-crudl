@@ -79,7 +79,7 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | Non
             if not self.is_authenticated(request_details):
                 return self.get_401_error(request)
             if not self.has_permission(request_details):
-                return self.get_403_error(request)  # noqa: WPS220
+                return self.get_403_error(request)
             obj: TDjangoModel | None = (
                 self.get_pre_filtered_queryset(config.model, request_details.path_args)
                 .filter(self.get_base_filter(request_details))
@@ -87,10 +87,10 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | Non
                 .first()
             )
             if obj is None:
-                return self.get_404_error(request)  # noqa: WPS220
+                return self.get_404_error(request)
             request_details.object = obj
             if not self.has_object_permission(request_details):
-                return self.get_404_error(request)  # noqa: WPS220
+                return self.get_404_error(request)
             self.pre_patch(request_details)
 
             simple_fields, relational_fields = self._get_fields_to_set(

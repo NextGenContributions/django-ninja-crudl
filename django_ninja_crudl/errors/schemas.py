@@ -40,9 +40,9 @@ class Error403ForbiddenSchema(ErrorSchema):
     """The default forbidden schema."""
 
     code: str = "Forbidden"
-    message: str = "You do not have permission to perform this action."
+    message: str = "You do not have permission to perform this action on this endpoint."
     user_friendly_message: str = _(
-        "You do not have permission to access this resource."
+        "You do not have permission to perform this action."
     )
 
 
