@@ -21,6 +21,7 @@ class BaseModel(models.Model):
 
     class Meta:
         """Meta options for the model."""
+
         abstract = True
 
 
@@ -198,7 +199,9 @@ class BookCopy(BaseModel):
 class Borrowing(BaseModel):
     """Model for a borrowing."""
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_borrowings")  # Foreign Key relationship
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="user_borrowings"
+    )  # Foreign Key relationship
     book_copy = models.ForeignKey(
         BookCopy,
         on_delete=models.CASCADE,
@@ -215,4 +218,3 @@ class Borrowing(BaseModel):
     def __str__(self) -> str:
         """Return the string representation of the borrowing."""
         return f"{self.user.username} borrowed {self.book_copy.book.title}"
-

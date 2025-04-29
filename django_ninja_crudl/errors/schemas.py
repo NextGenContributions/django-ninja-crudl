@@ -41,9 +41,7 @@ class Error403ForbiddenSchema(ErrorSchema):
 
     code: str = "Forbidden"
     message: str = "You do not have permission to perform this action on this endpoint."
-    user_friendly_message: str = _(
-        "You do not have permission to perform this action."
-    )
+    user_friendly_message: str = _("You do not have permission to perform this action.")
 
 
 class Error404NotFoundSchema(ErrorSchema):
