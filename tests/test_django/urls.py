@@ -148,7 +148,8 @@ class GatedAuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylin
         if user.username == STANDARD_USER:  # pyright: ignore [reportUnknownMemberType]
             return Q(created_by=user)
 
-        return request.model_class._default_manager.none()  # type: ignore[return-value]
+        # Return nothing
+        return Q(pk=None)
 
     config = CrudlConfig[Author](
         model=Author,
