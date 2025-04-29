@@ -5,6 +5,9 @@ See: https://nox.thea.codes/en/stable/config.html
 
 import nox
 
+# Allow proper use of different python versions
+nox.options.default_venv_backend = "uv"
+
 
 @nox.session(python=["3.12", "3.13"], reuse_venv=True)
 def tests(session: nox.Session) -> None:
