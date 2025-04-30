@@ -68,7 +68,7 @@ class UtilitiesMixin(Generic[TDjangoModel]):
                 simple_relations.append(
                     (field if field.endswith("_id") else f"{field}_id", field_value)
                 )
-                
+
             elif type(field_type) in {
                 models.ManyToManyField,
                 models.ManyToManyRel,

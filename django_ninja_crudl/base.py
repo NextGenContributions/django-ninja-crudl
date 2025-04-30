@@ -131,10 +131,10 @@ class CrudlBaseMethodsMixin(  # noqa: WPS215 too many base classes
         for rel_field, rel_field_val in relational_fields:  # pyright: ignore[reportAny]
             # Handle permission check for complex relations
             if perm_err := self._check_related_field_permission(
-                    obj,
-                    rel_field,
-                    rel_field_val,  # pyright: ignore[reportUnknownArgumentType]
-                    request_details,
+                obj,
+                rel_field,
+                rel_field_val,  # pyright: ignore[reportUnknownArgumentType]
+                request_details,
             ):
                 return perm_err
 
