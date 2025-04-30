@@ -26,7 +26,6 @@ from django_ninja_crudl.types import (
 )
 from django_ninja_crudl.utils import (
     replace_path_args_annotation,
-    validating_manager,
 )
 
 if TYPE_CHECKING:
@@ -73,7 +72,7 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | Non
                 request=request,
                 schema=partial_update_schema,
                 path_args=self._get_path_args(kwargs),
-                payload=payload,
+                payload=payload,  # pyright: ignore [reportUnknownArgumentType]
                 model_class=config.model,
             )
             if not self.is_authenticated(request_details):
@@ -93,26 +92,24 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | Non
                 return self.get_404_error(request)
             self.pre_patch(request_details)
 
-            simple_fields, relational_fields = self._get_fields_to_set(
-                config.model, payload
+            simple_fields, simple_relations, complex_relations = (
+                self._get_fields_to_set(config.model, payload)  # pyright: ignore [reportUnknownArgumentType]
             )
 
-            def update() -> None:
-                nonlocal obj
-                with validating_manager(config.model):  # noqa: WPS220
-                    # TODO(phuongfi91): should we use validating_manager later as well?
-                    for attr_name, attr_value in simple_fields:
-                        setattr(obj, attr_name, attr_value)  # noqa: WPS220
-                    obj.save()  # pyright: ignore [reportOptionalMemberAccess]
+            # Update the object, validate it, and check simple relations' permission
+            for attr_name, attr_value in simple_fields + simple_relations:  # pyright: ignore [reportAny]
+                setattr(obj, attr_name, attr_value)  # noqa: WPS220
+            if clean_err := self._full_clean_obj(obj, request):
+                return clean_err
+            if simple_rel_err := self._check_simple_relations(
+                obj, simple_relations, request_details
+            ):
+                return simple_rel_err
 
-            if update_err := self._try(update, request):
-                return update_err
-
-            # Update complex relations on the created object
-            if rel_err := self._update_complex_relations(
+            # Update and check complex relations on the created object
+            if rel_err := self._update_and_check_complex_relations(
                 obj,
-                relational_fields,
-                request,
+                complex_relations,
                 request_details,
             ):
                 return rel_err

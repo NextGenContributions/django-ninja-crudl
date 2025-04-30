@@ -157,6 +157,7 @@ class GatedAuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylin
         permission_classes=[HasResourcePermissions],
         create_schema=Schema[Author](
             fields={
+                "user": Infer,
                 "name": Infer,
                 "birth_date": Infer,
                 "books": Infer,
@@ -165,6 +166,7 @@ class GatedAuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylin
         ),
         update_schema=Schema[Author](
             fields={
+                "user": Infer,
                 "name": Infer,
                 "birth_date": Infer,
                 "books": Infer,

@@ -76,3 +76,48 @@ def test_get_one_unpermitted_resource_with_permitted_user_should_fail(
 
 
 # TODO(phuongfi91): What about getting permitted resources that have unpermitted related resources?
+#  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
+@pytest.mark.django_db
+@pytest.mark.skip(reason="Not yet certain how this should be implemented")
+def test_get_one_permitted_resources_with_unpermitted_related_resource_should_succeed(
+    client: Client,
+) -> None:
+    """Test listing resources with GET request."""
+    admin = User.objects.create_user(ADMIN_USER)
+    std_usr = User.objects.create_user(STANDARD_USER)
+    client.force_login(std_usr)
+
+    # Created by admin
+    publisher: models.Publisher = models.Publisher.objects.create(
+        name="Some publisher",
+        address="Some address",
+        created_by=admin,
+    )
+    book_1 = models.Book.objects.create(
+        title="Some book 1",
+        isbn="9783161484100",
+        publisher=publisher,
+        publication_date="2021-01-01",
+        created_by=admin,
+    )
+    book_2 = models.Book.objects.create(
+        title="Some book 2",
+        isbn="9783161484101",
+        publisher=publisher,
+        publication_date="2022-01-01",
+        created_by=std_usr,
+    )
+
+    # Created by the user themselves
+    a = models.Author.objects.create(
+        name="Test Author",
+        birth_date=datetime.date(1985, 5, 5),
+        created_by=std_usr,
+    )
+    a.books.set([book_1, book_2])  # type: ignore[attr-defined]
+
+    response = client.get(f"/api/gated-authors/{a.id}")
+    assert response.status_code == status.HTTP_200_OK, response.json()
+    data = response.json()
+    assert data["name"] in ["Test Author"]
+    assert len(data["books"]) == 1

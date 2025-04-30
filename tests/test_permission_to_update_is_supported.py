@@ -104,7 +104,37 @@ def test_update_unpermitted_resource_with_permitted_user_should_fail(
 
 
 @pytest.mark.django_db
-def test_update_permitted_resource_with_permitted_related_resource_should_succeed(
+def test_update_permitted_resource_with_permitted_simple_related_resource_should_succeed(
+    client: Client,
+) -> None:
+    """Test creating a resource with PUT request."""
+    admin = User.objects.create_user(ADMIN_USER)
+    std_usr = User.objects.create_user(STANDARD_USER)
+
+    author = models.Author.objects.create(
+        name="Update Author",
+        birth_date=datetime.date(1990, 1, 1),
+    )
+
+    client.force_login(admin)
+    response = client.put(
+        f"/api/gated-authors/{author.id}",
+        content_type="application/json",
+        data={
+            "user": std_usr.id,  # Referencing permitted OneToOneField related resource
+            "name": "Updated Author",
+            "birth_date": "1995-05-05",
+        },
+    )
+    assert response.status_code == status.HTTP_200_OK, response.json()
+    author.refresh_from_db()
+    assert author.user_id == std_usr.id
+    assert author.name == "Updated Author"
+    assert author.birth_date == datetime.date(1995, 5, 5)
+
+
+@pytest.mark.django_db
+def test_update_permitted_resource_with_permitted_complex_related_resource_should_succeed(
     client: Client,
 ) -> None:
     """Test updating a resource with PUT request."""
@@ -137,7 +167,7 @@ def test_update_permitted_resource_with_permitted_related_resource_should_succee
             "name": "Updated Author",
             "birth_date": "1995-05-05",
             "books": [
-                book.id  # Referencing related resource created by the user themselves
+                book.id  # Referencing permitted ManyToManyRel related resource
             ],
         },
     )
@@ -151,7 +181,35 @@ def test_update_permitted_resource_with_permitted_related_resource_should_succee
 
 
 @pytest.mark.django_db
-def test_update_permitted_resource_with_unpermitted_related_resource_should_fail(
+def test_update_permitted_resource_with_unpermitted_simple_related_resource_should_fail(
+    client: Client,
+) -> None:
+    """Test updating a resource with PUT request."""
+    admin = User.objects.create_user(ADMIN_USER)
+    std_usr = User.objects.create_user(STANDARD_USER)
+
+    # Resources created by the user themselves
+    author = models.Author.objects.create(
+        name="Update Author",
+        birth_date=datetime.date(1990, 1, 1),
+        created_by=std_usr,
+    )
+    client.force_login(std_usr)
+    response = client.put(
+        f"/api/gated-authors/{author.id}",
+        content_type="application/json",
+        data={
+            "user": admin.id,  # Referencing unpermitted OneToOneField related resource
+            "name": "Updated Author",
+            "birth_date": "1995-05-05",
+        },
+    )
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND, response.json()
+
+
+@pytest.mark.django_db
+def test_update_permitted_resource_with_unpermitted_complex_related_resource_should_fail(
     client: Client,
 ) -> None:
     """Test updating a resource with PUT request."""
@@ -187,7 +245,7 @@ def test_update_permitted_resource_with_unpermitted_related_resource_should_fail
             "name": "Updated Author",
             "birth_date": "1995-05-05",
             "books": [
-                book.id  # Referencing related resource created by admin
+                book.id  # Referencing unpermitted ManyToManyRel related resource
             ],
         },
     )

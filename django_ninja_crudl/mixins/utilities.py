@@ -51,39 +51,37 @@ class UtilitiesMixin(Generic[TDjangoModel]):
         model_class: type[TDjangoModel],
         payload: BaseModel,
         path_params: PathArgs | None = None,
-    ) -> tuple[list[DjangoFieldType], list[DjangoFieldType]]:
+    ) -> tuple[list[DjangoFieldType], list[DjangoFieldType], list[DjangoFieldType]]:
         """Get the fields to set for the create/update operations."""
         simple_fields: list[DjangoFieldType] = []
-        relational_fields: list[DjangoFieldType] = []
+        simple_relations: list[DjangoFieldType] = []
+        complex_relations: list[DjangoFieldType] = []
 
         fields: DictStrAny = payload.model_dump() | (path_params or {})
         for field, field_value in fields.items():  # pyright: ignore[reportAny]
             field_type = get_model_field(model_class, field)
 
-            # Complex relations that need to be handled separately
             if type(field_type) in {
+                models.ForeignKey,
+                models.OneToOneField,
+            }:
+                simple_relations.append(
+                    (field if field.endswith("_id") else f"{field}_id", field_value)
+                )
+                
+            elif type(field_type) in {
                 models.ManyToManyField,
                 models.ManyToManyRel,
                 models.ManyToOneRel,
                 models.OneToOneRel,
             }:
-                relational_fields.append((field, field_value))
+                complex_relations.append((field, field_value))
 
             else:
-                # Simple relations that can be set directly just like other fields
-                if type(field_type) in {
-                    models.ForeignKey,
-                    models.OneToOneField,
-                } and not field.endswith("_id"):
-                    field_name = f"{field}_id"
-
                 # Non-relational fields
-                else:
-                    field_name = field
+                simple_fields.append((field, field_value))
 
-                simple_fields.append((field_name, field_value))
-
-        return simple_fields, relational_fields
+        return simple_fields, simple_relations, complex_relations
 
     def get_model_filter_args(
         self,

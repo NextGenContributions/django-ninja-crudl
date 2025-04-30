@@ -30,6 +30,12 @@ class Author(BaseModel):
 
     id: int  # Just for type hinting
 
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+    )
     name = models.CharField(max_length=100)
     birth_date = models.DateField(null=True, blank=True)
 

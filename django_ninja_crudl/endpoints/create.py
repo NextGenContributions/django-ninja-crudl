@@ -1,7 +1,7 @@
 """CRUDL API base class."""
 
 from abc import ABC
-from typing import TYPE_CHECKING, Literal, Unpack, cast
+from typing import TYPE_CHECKING, Literal, Unpack
 
 from django.db import transaction
 from django.http import HttpRequest
@@ -30,7 +30,6 @@ from django_ninja_crudl.types import (
 )
 from django_ninja_crudl.utils import (
     replace_path_args_annotation,
-    validating_manager,
 )
 
 if TYPE_CHECKING:
@@ -137,7 +136,7 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 request=request,
                 schema=create_schema,
                 path_args=self._get_path_args(kwargs),
-                payload=payload,
+                payload=payload,  # pyright: ignore [reportUnknownArgumentType]
                 model_class=config.model,
             )
             if not self.is_authenticated(request_details):
@@ -146,37 +145,32 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 return self.get_403_error(request)
             self.pre_create(request_details)
 
-            simple_fields, relational_fields = self._get_fields_to_set(
-                config.model,
-                payload,
-                request_details.path_args,
+            simple_fields, simple_relations, complex_relations = (
+                self._get_fields_to_set(
+                    config.model,
+                    payload,  # pyright: ignore [reportUnknownArgumentType]
+                    request_details.path_args,
+                )
             )
 
-            # Create the object
-            created_obj: TDjangoModel | None = None
+            # Create the object, validate it, and check simple relations' permission
+            created_obj: TDjangoModel = config.model(  # noqa: F841, SLF001
+                **dict(simple_fields + simple_relations),
+            )
+            if clean_err := self._full_clean_obj(created_obj, request):
+                return clean_err
+            if simple_rel_err := self._check_simple_relations(
+                created_obj, simple_relations, request_details
+            ):
+                return simple_rel_err
 
-            def create() -> None:
-                nonlocal created_obj
-                with validating_manager(config.model):
-                    # TODO(phuongfi91): should we use validating_manager later as well?
-                    created_obj = config.model._default_manager.create(  # noqa: F841, SLF001
-                        **dict(simple_fields),
-                    )
-
-            if create_err := self._try(create, request):
-                return create_err
-
-            # The object is guaranteed to be created at this point
-            created_obj = cast(TDjangoModel, created_obj)  # pyright: ignore[reportInvalidCast]
-
-            # Update complex relations on the created object
-            if rel_err := self._update_complex_relations(
+            # Update and check complex relations on the created object
+            if complex_rel_err := self._update_and_check_complex_relations(
                 created_obj,
-                relational_fields,
-                request,
+                complex_relations,
                 request_details,
             ):
-                return rel_err
+                return complex_rel_err
 
             # Fully validate the created object as well as its related objects
             if clean_err := self._full_clean_obj(created_obj, request):
