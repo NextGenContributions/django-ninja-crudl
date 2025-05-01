@@ -12,6 +12,7 @@ from django_ninja_crudl.base import CrudlBaseMethodsMixin
 from django_ninja_crudl.errors.schemas import (
     Error401UnauthorizedSchema,
     Error403ForbiddenSchema,
+    Error404NotFoundSchema,
     Error422UnprocessableEntitySchema,
     Error503ServiceUnavailableSchema,
     ErrorSchema,
@@ -43,11 +44,12 @@ def get_get_one_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 status.HTTP_200_OK: get_one_schema,
                 status.HTTP_401_UNAUTHORIZED: Error401UnauthorizedSchema,
                 status.HTTP_403_FORBIDDEN: Error403ForbiddenSchema,
-                status.HTTP_404_NOT_FOUND: ErrorSchema,
+                status.HTTP_404_NOT_FOUND: Error404NotFoundSchema,
                 status.HTTP_422_UNPROCESSABLE_ENTITY: Error422UnprocessableEntitySchema,
                 status.HTTP_503_SERVICE_UNAVAILABLE: Error503ServiceUnavailableSchema,
             },
             operation_id=config.get_one_operation_id,
+            url_name=config.get_one_operation_id,
             by_alias=True,
         )
         @replace_path_args_annotation(config.get_one_path, config.model)
@@ -55,17 +57,18 @@ def get_get_one_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
             self,
             request: HttpRequest,
             **kwargs: Unpack[RequestParams],
-        ) -> tuple[Literal[403, 404], ErrorSchema] | TDjangoModel:
+        ) -> tuple[Literal[401, 403, 404], ErrorSchema] | TDjangoModel:
             """Retrieve an object."""
             request_details = RequestDetails[TDjangoModel](
                 action="get_one",
                 request=request,
-                schema=get_one_schema,
                 path_args=self._get_path_args(kwargs),
                 model_class=config.model,
             )
+            if not self.is_authenticated(request_details):
+                return self.get_401_error(request)
             if not self.has_permission(request_details):
-                return self.get_403_error(request)  # noqa: WPS220
+                return self.get_403_error(request)
 
             obj = (
                 self.get_pre_filtered_queryset(config.model, request_details.path_args)
@@ -74,10 +77,10 @@ def get_get_one_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 .first()
             )
             if obj is None:
-                return self.get_404_error(request)  # noqa: WPS220
+                return self.get_404_error(request)
             request_details.object = obj
             if not self.has_object_permission(request_details):
-                return self.get_404_error(request)  # noqa: WPS220
+                return self.get_404_error(request)
             return obj
 
     return GetOneEndpoint

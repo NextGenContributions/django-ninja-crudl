@@ -160,7 +160,7 @@ class CrudlConfig(Generic[TDjangoModel]):  # pylint: disable=too-many-instance-a
 
         # Permissions
         self.permission_classes: list[type[BasePermission[TDjangoModel]]] | None
-        self.permission_classes = permission_classes
+        self.permission_classes = permission_classes or []
 
         super().__init__()
 

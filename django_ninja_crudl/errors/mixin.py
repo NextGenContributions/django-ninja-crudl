@@ -6,6 +6,7 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 
 from django_ninja_crudl.errors.schemas import (
+    Error401UnauthorizedSchema,
     Error403ForbiddenSchema,
     Error404NotFoundSchema,
     Error409ConflictSchema,
@@ -37,6 +38,15 @@ class ErrorHandlerMixin:
         You may override this method to return a different value.
         """
         return 60
+
+    def get_401_error(
+        self,
+        request: HttpRequest,
+        response: HttpResponse | None = None,  # NOSONAR  # noqa: ARG002
+        exception: Exception | None = None,  # NOSONAR  # noqa: ARG002
+    ) -> tuple[Literal[401], ErrorSchema]:
+        """Return the 401 error message."""
+        return 401, Error401UnauthorizedSchema(request_id=self.get_request_id(request))
 
     def get_403_error(
         self,

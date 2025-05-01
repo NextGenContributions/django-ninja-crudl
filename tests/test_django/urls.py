@@ -1,26 +1,93 @@
 """URL configuration for the Django test project."""
 
-from typing import override
+from typing import cast, override
 
 from django.contrib import admin
+from django.contrib.auth.models import User
 from django.db.models import Q
 from django.urls import path
 from django.urls.resolvers import URLResolver
+from django.utils import timezone
 from django2pydantic import Infer
 from ninja_extra import NinjaExtraAPI
 
-from django_ninja_crudl import CrudlConfig, CrudlController, RequestDetails, Schema
+from django_ninja_crudl import (
+    BasePermission,
+    CrudlConfig,
+    CrudlController,
+    RequestDetails,
+    Schema,
+)
 from django_ninja_crudl.mixins.filters import FiltersMixin
 from django_ninja_crudl.types import TDjangoModel
 from tests.test_django.app.models import (
     AmazonAuthorProfile,
     Author,
+    BaseModel,
     Book,
     BookCopy,
     Borrowing,
     Library,
     Publisher,
 )
+
+ADMIN_USER = "john_doe"
+STANDARD_USER = "jane_doe"
+RESTRICTED_USER = "average_joe"
+
+
+class HasResourcePermissions(BasePermission[TDjangoModel]):
+    """Check if the user has permissions to access the resource."""
+
+    @override
+    def is_authenticated(self, request: RequestDetails[TDjangoModel]) -> bool:
+        if not getattr(request.request, "user", False):
+            return False
+        return isinstance(request.request.user, User)
+
+    @override
+    def has_permission(self, request: RequestDetails[TDjangoModel]) -> bool:
+        """Check if the user has permission to perform the action."""
+        user = cast(User, request.request.user)
+
+        if user.username in [ADMIN_USER, STANDARD_USER]:  # pyright: ignore [reportUnknownMemberType]
+            return True
+
+        return False
+
+    @override
+    def has_object_permission(self, request: RequestDetails[TDjangoModel]) -> bool:
+        """Check if the user has permission to perform the action on the object."""
+        user = cast(User, request.request.user)
+
+        if user.username == ADMIN_USER:  # pyright: ignore [reportUnknownMemberType]
+            return True
+
+        if user.username == STANDARD_USER:  # pyright: ignore [reportUnknownMemberType]
+            # Check if the user is the owner of the object
+            if request.object and hasattr(request.object, "created_by"):
+                obj = cast(BaseModel, request.object)
+                return obj.created_by == user  # pyright: ignore [reportUnknownVariableType, reportUnknownMemberType]
+
+        return False
+
+    @override
+    def has_related_object_permission(
+        self, request: RequestDetails[TDjangoModel]
+    ) -> bool:
+        """Check if the user has permission to perform the action on related object."""
+        user = cast(User, request.request.user)
+
+        if user.username == ADMIN_USER:  # pyright: ignore [reportUnknownMemberType]
+            return True
+
+        if user.username == STANDARD_USER:  # pyright: ignore [reportUnknownMemberType]
+            # Check if the user is the owner of the object
+            if request.related_object and hasattr(request.related_object, "created_by"):
+                obj = cast(BaseModel, request.related_object)
+                return obj.created_by == user  # pyright: ignore [reportUnknownVariableType, reportUnknownMemberType]
+
+        return False
 
 
 class DefaultFilter(FiltersMixin[TDjangoModel]):
@@ -52,6 +119,86 @@ class DefaultFilter(FiltersMixin[TDjangoModel]):
         return Q()
 
 
+class GatedAuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: disable=too-many-ancestors
+    """CRUDL controller for the Author model, with permission gating."""
+
+    @override
+    def post_create(self, request: RequestDetails[TDjangoModel]) -> None:
+        """Pre-create hook to check permissions before creating an author."""
+        if not request.object:
+            raise ValueError("Created object is not set.")
+
+        if not getattr(request.request, "user", False) or not isinstance(
+            request.request.user, User
+        ):
+            raise ValueError("Missing or invalid user.")
+
+        setattr(request.object, "created_at", timezone.now())
+        setattr(request.object, "created_by", request.request.user)
+        request.object.save()
+
+    @override
+    def get_filter_for_list(self, request: RequestDetails[TDjangoModel]) -> Q:
+        """Return the queryset filter that applies to the list operation."""
+        user = cast(User, request.request.user)
+
+        if user.username == ADMIN_USER:  # pyright: ignore [reportUnknownMemberType]
+            return Q()
+
+        if user.username == STANDARD_USER:  # pyright: ignore [reportUnknownMemberType]
+            return Q(created_by=user)
+
+        # Return nothing
+        return Q(pk=None)
+
+    config = CrudlConfig[Author](
+        model=Author,
+        base_path="/gated-authors",
+        permission_classes=[HasResourcePermissions],
+        create_schema=Schema[Author](
+            fields={
+                "user": Infer,
+                "name": Infer,
+                "birth_date": Infer,
+                "books": Infer,
+                "amazon_author_profile": Infer,
+            }
+        ),
+        update_schema=Schema[Author](
+            fields={
+                "user": Infer,
+                "name": Infer,
+                "birth_date": Infer,
+                "books": Infer,
+                "amazon_author_profile": Infer,
+            }
+        ),
+        get_one_schema=Schema[Author](
+            fields={
+                "id": Infer,
+                "name": Infer,
+                "birth_date": Infer,
+                "age": Infer,
+                "books_count": Infer,
+                "books": {"id": Infer, "title": Infer},
+                "amazon_author_profile": {"description": Infer},
+            }
+        ),
+        list_schema=Schema[Author](
+            fields={
+                "id": Infer,
+                "name": Infer,
+                "birth_date": Infer,
+                "age": Infer,
+                "books_count": Infer,
+                "books": {"id": Infer, "title": Infer},
+                "amazon_author_profile": {"description": Infer},
+            }
+        ),
+        delete_allowed=True,
+    )
+
+
 class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: disable=too-many-ancestors
     """CRUDL controller for the Author model."""
 
@@ -70,8 +217,6 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: di
             fields={
                 "name": Infer,
                 "birth_date": Infer,
-                # TODO(phuongfi91): support reverse relation handler
-                #  https://github.com/NextGenContributions/django-ninja-crudl/issues/11
                 "books": Infer,
                 "amazon_author_profile": Infer,
             }
@@ -372,6 +517,7 @@ api = NinjaExtraAPI()
 
 api.register_controllers(PublisherCrudl)
 api.register_controllers(BookCrudl)
+api.register_controllers(GatedAuthorCrudl)
 api.register_controllers(AuthorCrudl)
 api.register_controllers(AmazonAuthorProfileCrudl)
 api.register_controllers(BookCopyCrudl)

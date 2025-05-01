@@ -70,6 +70,7 @@ dev = [
     "project-config>=0.9.7",
     "pre-commit>=4.1.0",
     "python-semantic-release>=9.14.0",
+    "django-extensions>=3.2.3",
 ]
 
 [tool.uv.sources]

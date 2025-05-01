@@ -13,6 +13,11 @@ class BasePermission(Generic[TDjangoModel], ABC):
     """Base class for permissions."""
 
     @abstractmethod
+    def is_authenticated(self, request: RequestDetails[TDjangoModel]) -> bool:
+        """Check if the user has permission to perform the action."""
+        return False
+
+    @abstractmethod
     def has_permission(self, request: RequestDetails[TDjangoModel]) -> bool:
         """Check if the user has permission to perform the action."""
         return False
@@ -26,5 +31,5 @@ class BasePermission(Generic[TDjangoModel], ABC):
     def has_related_object_permission(
         self, request: RequestDetails[TDjangoModel]
     ) -> bool:
-        """Check if the user has permission to perform the action on the related object."""
+        """Check if the user has permission to perform the action on related object."""
         return False

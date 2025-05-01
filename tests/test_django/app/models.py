@@ -7,11 +7,35 @@ from django.contrib.auth.models import User
 from django.db import models
 
 
-class Author(models.Model):
+class BaseModel(models.Model):
+    """Base model with common fields for all models."""
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="%(class)s_created",
+    )
+
+    class Meta:
+        """Meta options for the model."""
+
+        abstract = True
+
+
+class Author(BaseModel):
     """Model for a book author."""
 
     id: int  # Just for type hinting
 
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+    )
     name = models.CharField(max_length=100)
     birth_date = models.DateField(null=True, blank=True)
 
@@ -44,7 +68,7 @@ class Author(models.Model):
 
 # TODO(phuongfi91): OneToOne relationship is not supported yet
 #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
-class AmazonAuthorProfile(models.Model):
+class AmazonAuthorProfile(BaseModel):
     """Model for an Amazon author profile."""
 
     author = models.OneToOneField(
@@ -72,7 +96,7 @@ class PublisherType(Enum):
     BOOKSTORE = "B"
 
 
-class Publisher(models.Model):
+class Publisher(BaseModel):
     """Model for a book publisher."""
 
     id: int  # Just for type hinting
@@ -97,7 +121,7 @@ class Publisher(models.Model):
         return str(self.name)
 
 
-class Book(models.Model):
+class Book(BaseModel):
     """Model for a book."""
 
     id: int  # Just for type hinting
@@ -137,7 +161,7 @@ class Book(models.Model):
         return self.book_copies.count()
 
 
-class Library(models.Model):
+class Library(BaseModel):
     """Model for a library."""
 
     name = models.CharField(max_length=100)
@@ -154,7 +178,7 @@ class Library(models.Model):
         return str(self.name)
 
 
-class BookCopy(models.Model):
+class BookCopy(BaseModel):
     """Model for a book copy."""
 
     book = models.ForeignKey(Book, on_delete=models.CASCADE)  # Foreign Key relationship
@@ -178,10 +202,12 @@ class BookCopy(models.Model):
         return f"{self.book.title} ({self.inventory_number})"
 
 
-class Borrowing(models.Model):
+class Borrowing(BaseModel):
     """Model for a borrowing."""
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)  # Foreign Key relationship
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="user_borrowings"
+    )  # Foreign Key relationship
     book_copy = models.ForeignKey(
         BookCopy,
         on_delete=models.CASCADE,

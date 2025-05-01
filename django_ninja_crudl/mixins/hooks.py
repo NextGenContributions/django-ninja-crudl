@@ -1,5 +1,7 @@
 """Mixins for pre- and post-hooks."""
 
+# pyright: reportUnusedParameter=false
+
 from abc import ABC
 from typing import Generic
 

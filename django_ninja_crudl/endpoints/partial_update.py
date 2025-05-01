@@ -26,7 +26,6 @@ from django_ninja_crudl.types import (
 )
 from django_ninja_crudl.utils import (
     replace_path_args_annotation,
-    validating_manager,
 )
 
 if TYPE_CHECKING:
@@ -46,6 +45,7 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | Non
         @http_patch(
             path=config.update_path,
             operation_id=config.partial_update_operation_id,
+            url_name=config.partial_update_operation_id,
             response={
                 status.HTTP_200_OK: partial_update_schema,
                 status.HTTP_401_UNAUTHORIZED: Error401UnauthorizedSchema,
@@ -65,18 +65,20 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | Non
             request: HttpRequest,
             payload: partial_update_schema,  # type: ignore[valid-type]
             **kwargs: Unpack[RequestParams],
-        ) -> tuple[Literal[403, 404, 409], ErrorSchema] | TDjangoModel:
+        ) -> tuple[Literal[401, 403, 404, 409], ErrorSchema] | TDjangoModel:
             """Partial update an object."""
             request_details = RequestDetails[TDjangoModel](
                 action="patch",
                 request=request,
                 schema=partial_update_schema,
                 path_args=self._get_path_args(kwargs),
-                payload=payload,
+                payload=payload,  # pyright: ignore [reportUnknownArgumentType]
                 model_class=config.model,
             )
+            if not self.is_authenticated(request_details):
+                return self.get_401_error(request)
             if not self.has_permission(request_details):
-                return self.get_403_error(request)  # noqa: WPS220
+                return self.get_403_error(request)
             obj: TDjangoModel | None = (
                 self.get_pre_filtered_queryset(config.model, request_details.path_args)
                 .filter(self.get_base_filter(request_details))
@@ -84,32 +86,30 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | Non
                 .first()
             )
             if obj is None:
-                return self.get_404_error(request)  # noqa: WPS220
+                return self.get_404_error(request)
             request_details.object = obj
             if not self.has_object_permission(request_details):
-                return self.get_404_error(request)  # noqa: WPS220
+                return self.get_404_error(request)
             self.pre_patch(request_details)
 
-            simple_fields, relational_fields = self._get_fields_to_set(
-                config.model, payload
+            simple_fields, simple_relations, complex_relations = (
+                self._get_fields_to_set(config.model, payload)  # pyright: ignore [reportUnknownArgumentType]
             )
 
-            def update() -> None:
-                nonlocal obj
-                with validating_manager(config.model):  # noqa: WPS220
-                    # TODO(phuongfi91): should we use validating_manager later as well?
-                    for attr_name, attr_value in simple_fields:
-                        setattr(obj, attr_name, attr_value)  # noqa: WPS220
-                    obj.save()  # pyright: ignore [reportOptionalMemberAccess]
+            # Update the object, validate it, and check simple relations' permission
+            for attr_name, attr_value in simple_fields + simple_relations:  # pyright: ignore [reportAny]
+                setattr(obj, attr_name, attr_value)  # noqa: WPS220
+            if clean_err := self._full_clean_obj(obj, request):
+                return clean_err
+            if simple_rel_err := self._check_simple_relations(
+                obj, simple_relations, request_details
+            ):
+                return simple_rel_err
 
-            if update_err := self._try(update, request):
-                return update_err
-
-            # Update complex relations on the created object
-            if rel_err := self._update_complex_relations(
+            # Update and check complex relations on the created object
+            if rel_err := self._update_and_check_complex_relations(
                 obj,
-                relational_fields,
-                request,
+                complex_relations,
                 request_details,
             ):
                 return rel_err

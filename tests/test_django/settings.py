@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "nplusone.ext.django",
+    "django_extensions",
     "ninja",
     "ninja_extra",
     "tests.test_django.app",
