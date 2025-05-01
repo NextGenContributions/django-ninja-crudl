@@ -32,7 +32,9 @@ class IntegerKeyJSONDecoder(json.JSONDecoder):
     def _convert_int_keys(self, obj: Any) -> Any:  # pyright: ignore [reportAny, reportExplicitAny]
         """Recursively convert string keys that represent positive integers to int."""
         if isinstance(obj, dict):
-            return {self._convert_key(k): self._convert_int_keys(v) for k, v in obj.items()}
+            return {
+                self._convert_key(k): self._convert_int_keys(v) for k, v in obj.items()
+            }
         if isinstance(obj, list):
             return [self._convert_int_keys(item) for item in obj]
         return obj  # pyright: ignore [reportAny]
