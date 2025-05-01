@@ -1,7 +1,7 @@
 """Configuration classes for the CRUDL controller."""
 
 from dataclasses import dataclass
-from typing import Generic, final, overload, override
+from typing import Generic, final, override
 
 from beartype import beartype
 from django2pydantic import BaseSchema
@@ -113,16 +113,34 @@ class CrudlConfig(Generic[TDjangoModel]):  # pylint: disable=too-many-instance-a
         self.partial_update_schema: type[BaseModel] | None
 
         self.delete_allowed: bool = delete_allowed
-        self.get_one_schema = self._set_schema(get_one_schema, model)
-        self.list_schema = self._set_schema(list_schema, model)
+        self.get_one_schema = self._set_schema(
+            get_one_schema,
+            model,
+            "GetOneResponse",
+        )
+        self.list_schema = self._set_schema(
+            list_schema,
+            model,
+            "ListResponse",
+        )
 
-        self.create_schema = self._set_schema(create_schema, model)
+        # TODO(phuongfi91): Support custom response schemas and rename schemas better
+        #  https://github.com/NextGenContributions/django-ninja-crudl/issues/12
+        self.create_schema = self._set_schema(
+            create_schema,
+            model,
+            "CreatePayload",
+        )
         if self.create_schema:
             self.create_response_schema = self._get_create_response_schema(model)
         else:
             self.create_response_schema = None
 
-        self.update_schema = self._set_schema(update_schema, model)
+        self.update_schema = self._set_schema(
+            update_schema,
+            model,
+            "UpdatePayload",
+        )
         if self.update_schema:
             self.partial_update_schema = PatchDict[self.update_schema]  # type: ignore[misc,name-defined]
         else:
@@ -164,26 +182,17 @@ class CrudlConfig(Generic[TDjangoModel]):  # pylint: disable=too-many-instance-a
 
         super().__init__()
 
-    @overload
-    @staticmethod
-    def _set_schema(schema_def: None, model: type[TDjangoModel]) -> None: ...  # noqa: E704
-
-    @overload
-    @staticmethod
-    def _set_schema(  # noqa: E704
-        schema_def: type[BaseModel] | Schema[TDjangoModel], model: type[TDjangoModel]
-    ) -> type[BaseModel]: ...
-
     @staticmethod
     def _set_schema(
         schema_def: type[BaseModel] | Schema[TDjangoModel] | None,
         model: type[TDjangoModel],
+        name_suffix: str = "",
     ) -> type[BaseModel] | None:
         """Return the endpoint schema."""
         if schema_def is None:
             return None
         if isinstance(schema_def, Schema):
-            return schema_def.create_pydantic_model(model)
+            return schema_def.create_pydantic_model(model, name_suffix)
         if schema_def is BaseModel:
             return schema_def
 
@@ -221,7 +230,7 @@ class CrudlConfig(Generic[TDjangoModel]):  # pylint: disable=too-many-instance-a
                 # TODO(phuongfi91): Check if using "pk" would work instead of "id"
                 #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
                 fields=["id"],
-                name=f"Create{model_class.__name__}Response",
+                name=f"{model_class.__name__}CreateResponse",
             )
 
         return CreateResponseSchema

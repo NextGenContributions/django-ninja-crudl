@@ -1,0 +1,375 @@
+{
+  "delete": {
+    "operationId": "Publisher_delete",
+    "summary": "Delete",
+    "parameters": [
+      {
+        "in": "path",
+        "name": "id",
+        "schema": {
+          "description": "ID",
+          "maximum": 9223372036854775807,
+          "minimum": -9223372036854775808,
+          "title": "ID",
+          "type": "integer"
+        },
+        "required": true,
+        "description": "ID"
+      }
+    ],
+    "responses": {
+      "204": {
+        "description": "No Content"
+      },
+      "401": {
+        "description": "Unauthorized",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error401UnauthorizedSchema"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error403ForbiddenSchema"
+            }
+          }
+        }
+      },
+      "404": {
+        "description": "Not Found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error404NotFoundSchema"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Unprocessable Entity",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error422UnprocessableEntitySchema"
+            }
+          }
+        }
+      },
+      "503": {
+        "description": "Service Unavailable",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error503ServiceUnavailableSchema"
+            }
+          }
+        }
+      }
+    },
+    "description": "Delete the object by id.",
+    "tags": [
+      "Publisher"
+    ]
+  },
+  "patch": {
+    "operationId": "Publisher_partial_update",
+    "summary": "Patch",
+    "parameters": [
+      {
+        "in": "path",
+        "name": "id",
+        "schema": {
+          "description": "ID",
+          "maximum": 9223372036854775807,
+          "minimum": -9223372036854775808,
+          "title": "ID",
+          "type": "integer"
+        },
+        "required": true,
+        "description": "ID"
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "OK",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PublisherSchemaUpdatePayloadPatch"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Unauthorized",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error401UnauthorizedSchema"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error403ForbiddenSchema"
+            }
+          }
+        }
+      },
+      "404": {
+        "description": "Not Found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error404NotFoundSchema"
+            }
+          }
+        }
+      },
+      "409": {
+        "description": "Conflict",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error409ConflictSchema"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Unprocessable Entity",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error422UnprocessableEntitySchema"
+            }
+          }
+        }
+      },
+      "503": {
+        "description": "Service Unavailable",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error503ServiceUnavailableSchema"
+            }
+          }
+        }
+      }
+    },
+    "description": "Partial update an object.",
+    "tags": [
+      "Publisher"
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "$ref": "#/components/schemas/PublisherSchemaUpdatePayloadPatch"
+          }
+        }
+      },
+      "required": true
+    }
+  },
+  "put": {
+    "operationId": "Publisher_update",
+    "summary": "Update",
+    "parameters": [
+      {
+        "in": "path",
+        "name": "id",
+        "schema": {
+          "description": "ID",
+          "maximum": 9223372036854775807,
+          "minimum": -9223372036854775808,
+          "title": "ID",
+          "type": "integer"
+        },
+        "required": true,
+        "description": "ID"
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "OK",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PublisherSchemaUpdatePayload"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Unauthorized",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error401UnauthorizedSchema"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error403ForbiddenSchema"
+            }
+          }
+        }
+      },
+      "404": {
+        "description": "Not Found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error404NotFoundSchema"
+            }
+          }
+        }
+      },
+      "409": {
+        "description": "Conflict",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error409ConflictSchema"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Unprocessable Entity",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error422UnprocessableEntitySchema"
+            }
+          }
+        }
+      },
+      "503": {
+        "description": "Service Unavailable",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error503ServiceUnavailableSchema"
+            }
+          }
+        }
+      }
+    },
+    "description": "Update an object.",
+    "tags": [
+      "Publisher"
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "$ref": "#/components/schemas/PublisherSchemaUpdatePayload"
+          }
+        }
+      },
+      "required": true
+    }
+  },
+  "get": {
+    "operationId": "Publisher_get_one",
+    "summary": "Get One",
+    "parameters": [
+      {
+        "in": "path",
+        "name": "id",
+        "schema": {
+          "description": "ID",
+          "maximum": 9223372036854775807,
+          "minimum": -9223372036854775808,
+          "title": "ID",
+          "type": "integer"
+        },
+        "required": true,
+        "description": "ID"
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "OK",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PublisherSchemaGetOneResponse"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Unauthorized",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error401UnauthorizedSchema"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error403ForbiddenSchema"
+            }
+          }
+        }
+      },
+      "404": {
+        "description": "Not Found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error404NotFoundSchema"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Unprocessable Entity",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error422UnprocessableEntitySchema"
+            }
+          }
+        }
+      },
+      "503": {
+        "description": "Service Unavailable",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error503ServiceUnavailableSchema"
+            }
+          }
+        }
+      }
+    },
+    "description": "Retrieve an object.",
+    "tags": [
+      "Publisher"
+    ]
+  }
+}

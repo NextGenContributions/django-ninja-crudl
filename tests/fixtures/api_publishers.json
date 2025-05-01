@@ -1,0 +1,208 @@
+{
+  "get": {
+    "operationId": "Publisher_list",
+    "summary": "Get Many",
+    "parameters": [],
+    "responses": {
+      "200": {
+        "description": "OK",
+        "content": {
+          "application/json": {
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/PublisherSchemaListResponse"
+              },
+              "title": "Response",
+              "type": "array"
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Unauthorized",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error401UnauthorizedSchema"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error403ForbiddenSchema"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Unprocessable Entity",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error422UnprocessableEntitySchema"
+            }
+          }
+        }
+      },
+      "503": {
+        "description": "Service Unavailable",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error503ServiceUnavailableSchema"
+            }
+          }
+        }
+      }
+    },
+    "description": "List all objects.",
+    "tags": [
+      "Publisher"
+    ]
+  },
+  "post": {
+    "operationId": "Publisher_create",
+    "summary": "Create Endpoint",
+    "parameters": [],
+    "responses": {
+      "201": {
+        "description": "Created",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PublisherCreateResponse"
+            }
+          }
+        },
+        "links": {
+          "UpdateById": {
+            "operationId": "Publisher_update",
+            "parameters": {
+              "id": "$response.body#/id"
+            },
+            "description": "Update publisher by id"
+          },
+          "DeleteById": {
+            "operationId": "Publisher_delete",
+            "parameters": {
+              "id": "$response.body#/id"
+            },
+            "description": "Delete publisher by id"
+          },
+          "GetById": {
+            "operationId": "Publisher_get_one",
+            "parameters": {
+              "id": "$response.body#/id"
+            },
+            "description": "Get publisher by id"
+          },
+          "PatchById": {
+            "operationId": "Publisher_partial_update",
+            "parameters": {
+              "id": "$response.body#/id"
+            },
+            "description": "Patch publisher by id"
+          }
+        }
+      },
+      "401": {
+        "description": "Unauthorized",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error401UnauthorizedSchema"
+            }
+          }
+        },
+        "headers": {
+          "WWW-Authenticate": {
+            "description": "The authentication method that should be used to gain access.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error403ForbiddenSchema"
+            }
+          }
+        }
+      },
+      "404": {
+        "description": "Not Found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error404NotFoundSchema"
+            }
+          }
+        }
+      },
+      "409": {
+        "description": "Conflict",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error409ConflictSchema"
+            }
+          }
+        }
+      },
+      "422": {
+        "description": "Unprocessable Entity",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error422UnprocessableEntitySchema"
+            }
+          }
+        }
+      },
+      "503": {
+        "description": "Service Unavailable",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error503ServiceUnavailableSchema"
+            }
+          }
+        }
+      },
+      "429": {
+        "description": "Too many requests",
+        "headers": {
+          "Retry-After": {
+            "description": "The number of seconds to wait before making a new request.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "description": "Create a new object.",
+    "tags": [
+      "Publisher"
+    ],
+    "requestBody": {
+      "content": {
+        "application/json": {
+          "schema": {
+            "$ref": "#/components/schemas/PublisherSchemaCreatePayload"
+          }
+        }
+      },
+      "required": true
+    }
+  }
+}
