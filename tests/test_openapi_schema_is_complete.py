@@ -50,8 +50,8 @@ def test_endpoints_has_right_path_parameters(
         "required": True,
         "schema": {
             "description": "ID",
-            "maximum": 2147483647,
-            "minimum": 1,
+            "maximum": 9223372036854775807,
+            "minimum": -9223372036854775808,
             "title": "ID",
             "type": "integer"
         }
@@ -63,8 +63,8 @@ def test_endpoints_has_right_path_parameters(
     assert param["in"] == "path"
     assert param["required"] is True
     assert param["schema"]["type"] == "integer"
-    assert param["schema"]["minimum"] == 1
-    assert param["schema"]["maximum"] == 2147483647
+    assert param["schema"]["minimum"] == -9223372036854775808
+    assert param["schema"]["maximum"] == 9223372036854775807
     assert param["schema"]["title"] == "ID"
 
 

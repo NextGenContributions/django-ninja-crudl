@@ -19,9 +19,10 @@ class Schema(Generic[TDjangoModel]):
     def create_pydantic_model(
         self,
         model: type[TDjangoModel],  # pyright: ignore [reportGeneralTypeIssues]
+        suffix: str = "",
     ) -> type[BaseSchema[TDjangoModel]]:
         """Create a Pydantic model from the schema."""
-        meta_name = f"{model.__name__}Schema"
+        meta_name = f"{model.__name__}Schema{suffix}"
         meta_fields = self.fields
         meta_model = model
 
