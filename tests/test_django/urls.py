@@ -9,7 +9,6 @@ from django.urls import path
 from django.urls.resolvers import URLResolver
 from django.utils import timezone
 from django2pydantic import Infer
-from ninja_extra import NinjaExtraAPI
 
 from django_ninja_crudl import (
     BasePermission,
@@ -18,6 +17,7 @@ from django_ninja_crudl import (
     RequestDetails,
     Schema,
 )
+from django_ninja_crudl.api import NinjaCrudlAPI
 from django_ninja_crudl.mixins.filters import FiltersMixin
 from django_ninja_crudl.types import TDjangoModel
 from tests.test_django.app.models import (
@@ -126,16 +126,19 @@ class GatedAuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylin
     def post_create(self, request: RequestDetails[TDjangoModel]) -> None:
         """Pre-create hook to check permissions before creating an author."""
         if not request.object:
-            raise ValueError("Created object is not set.")
+            msg = "Created object is not set."
+            raise ValueError(msg)
 
         if not getattr(request.request, "user", False) or not isinstance(
             request.request.user, User
         ):
-            raise ValueError("Missing or invalid user.")
+            msg = "Missing or invalid user."
+            raise ValueError(msg)
 
-        setattr(request.object, "created_at", timezone.now())
-        setattr(request.object, "created_by", request.request.user)
-        request.object.save()
+        if type(request.object) is BaseModel:
+            request.object.created_at = timezone.now()
+            request.object.created_by = request.request.user
+            request.object.save()
 
     @override
     def get_filter_for_list(self, request: RequestDetails[TDjangoModel]) -> Q:
@@ -155,6 +158,7 @@ class GatedAuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylin
         model=Author,
         base_path="/gated-authors",
         permission_classes=[HasResourcePermissions],
+        create_operation_id="GatedAuthor_create",
         create_schema=Schema[Author](
             fields={
                 "user": Infer,
@@ -164,6 +168,8 @@ class GatedAuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylin
                 "amazon_author_profile": Infer,
             }
         ),
+        partial_update_operation_id="GatedAuthor_partial_update",
+        update_operation_id="GatedAuthor_update",
         update_schema=Schema[Author](
             fields={
                 "user": Infer,
@@ -173,6 +179,7 @@ class GatedAuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylin
                 "amazon_author_profile": Infer,
             }
         ),
+        get_one_operation_id="GatedAuthor_get_one",
         get_one_schema=Schema[Author](
             fields={
                 "id": Infer,
@@ -184,6 +191,7 @@ class GatedAuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylin
                 "amazon_author_profile": {"description": Infer},
             }
         ),
+        list_operation_id="GatedAuthor_list",
         list_schema=Schema[Author](
             fields={
                 "id": Infer,
@@ -195,6 +203,7 @@ class GatedAuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylin
                 "amazon_author_profile": {"description": Infer},
             }
         ),
+        delete_operation_id="GatedAuthor_delete",
         delete_allowed=True,
     )
 
@@ -513,7 +522,7 @@ class BorrowingCrudl(CrudlController[Borrowing], DefaultFilter[Borrowing]):  # p
     )
 
 
-api = NinjaExtraAPI()
+api = NinjaCrudlAPI()
 
 api.register_controllers(PublisherCrudl)
 api.register_controllers(BookCrudl)
