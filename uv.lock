@@ -652,7 +652,7 @@ wheels = [
 [[package]]
 name = "django2pydantic"
 version = "0.2.0"
-source = { git = "https://github.com/NextGenContributions/django2pydantic?branch=main#87ef750d7a1b25f33c5ea2e467ed0e22a83c7b7a" }
+source = { git = "https://github.com/NextGenContributions/django2pydantic?branch=main#1160810a159316675ba6a8000bf6aab602e941b4" }
 dependencies = [
     { name = "django" },
     { name = "django-stubs-ext" },
