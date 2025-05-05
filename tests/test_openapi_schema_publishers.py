@@ -23,7 +23,7 @@ def openapi_schema() -> OpenAPISchema:
 def api_publishers() -> dict[str, Any]:  # pyright: ignore [reportExplicitAny]
     """Load a JSON fixture from the given file path."""
     fixture_path = Path(__file__).parent / "fixtures"
-    with open(fixture_path / "api_publishers.json") as file:
+    with Path.open(fixture_path / "api_publishers.json") as file:
         return json.load(file, cls=IntegerKeyJSONDecoder)  # type: ignore[no-any-return]
 
 
