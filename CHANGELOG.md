@@ -1,6 +1,196 @@
 # CHANGELOG
 
 
+## v0.3.0 (2025-05-05)
+
+### Bug Fixes
+
+- Trunk permission to create/update label
+  ([#52](https://github.com/NextGenContributions/django-ninja-crudl/pull/52),
+  [`20ae156`](https://github.com/NextGenContributions/django-ninja-crudl/commit/20ae15645ebf3e293c46fec919a0cf93183f216b))
+
+- **#49**: Openapi specs examples
+  ([#50](https://github.com/NextGenContributions/django-ninja-crudl/pull/50),
+  [`08d0161`](https://github.com/NextGenContributions/django-ninja-crudl/commit/08d0161a8dfce2fba978faa7034c5e1e785a47a3))
+
+- **#48**: Openapi schemas
+  ([#47](https://github.com/NextGenContributions/django-ninja-crudl/pull/47),
+  [`fbe4719`](https://github.com/NextGenContributions/django-ninja-crudl/commit/fbe471931bbbaea10011b5ca7923437fda679b92))
+
+* fix: OpenAPI schemas
+
+* style: format code with Ruff Formatter
+
+This commit fixes the style issues introduced in 413a026 according to the output from Ruff
+  Formatter.
+
+Details: https://github.com/NextGenContributions/django-ninja-crudl/pull/47
+
+* chore: Fix tests
+
+* chore: Fix tests
+
+---------
+
+Co-authored-by: deepsource-autofix[bot] <62050782+deepsource-autofix[bot]@users.noreply.github.com>
+
+### Features
+
+- Support reverse urls and permissions
+  ([#43](https://github.com/NextGenContributions/django-ninja-crudl/pull/43),
+  [`2e30296`](https://github.com/NextGenContributions/django-ninja-crudl/commit/2e3029654eeb6ab44191256c9ccc7f482c95ab2e))
+
+* feat: Support reverse urls and permissions
+
+* chore: Fix tests
+
+* feat: Overhaul permission handlings and tests
+
+* chore: Update uv.lock to reflect latest django2pydantic
+
+* style: format code with Ruff Formatter
+
+This commit fixes the style issues introduced in b20a287 according to the output from Ruff
+  Formatter.
+
+Details: https://github.com/NextGenContributions/django-ninja-crudl/pull/43
+
+* chore: Update to nox@2025.2.9 hoping to fix python nox issue
+
+* chore: Explicitly mark uv as nox venv backend
+
+* chore: Update pytest config for coverage report
+
+* chore: Fix none queryset in get_filter_for_list test setup
+
+* feat: Another permission handling overhaul to handle simple relations
+
+* style: format code with Ruff Formatter
+
+This commit fixes the style issues introduced in 3e5d2d8 according to the output from Ruff
+  Formatter.
+
+Details: https://github.com/NextGenContributions/django-ninja-crudl/pull/43
+
+---------
+
+Co-authored-by: deepsource-autofix[bot] <62050782+deepsource-autofix[bot]@users.noreply.github.com>
+
+- Support different type of Django relationships
+  ([#29](https://github.com/NextGenContributions/django-ninja-crudl/pull/29),
+  [`13c93f2`](https://github.com/NextGenContributions/django-ninja-crudl/commit/13c93f23de9a3c2e21b911b0528b52538eeb2133))
+
+* cicd: Implement same workflows as django2pydantic
+
+* cicd: Implement same noxfile as django2pydantic
+
+* fix: Broken tests and pre-2024-christmas refactor WIP
+
+* chore: Fix formatting
+
+* chore: Update nitpick and missing pyrightconfig.json
+
+* chore: Fix formatting
+
+* chore: Add pylint as dev deps
+
+* chore: Move some configs outside of .trunk and add .vale.ini
+
+* chore: WIP fixes
+
+* chore: WIP fixes
+
+* style: format code with Ruff Formatter
+
+This commit fixes the style issues introduced in 38752ea according to the output from Ruff
+  Formatter.
+
+Details: https://github.com/NextGenContributions/django-ninja-crudl/pull/20
+
+* chore: WIP fixes
+
+* chore: Restore openapi_extra for create endpoint
+
+* chore: WIP fixes
+
+* style: format code with Ruff Formatter
+
+This commit fixes the style issues introduced in 580a3ad according to the output from Ruff
+  Formatter.
+
+Details: https://github.com/NextGenContributions/django-ninja-crudl/pull/20
+
+* chore: WIP fixes
+
+* style: format code with Ruff Formatter
+
+This commit fixes the style issues introduced in fd0908e according to the output from Ruff
+  Formatter.
+
+Details: https://github.com/NextGenContributions/django-ninja-crudl/pull/20
+
+* chore: WIP fixes
+
+* chore: WIP fixes
+
+* chore: Restore crudl.py and minor permission fix
+
+* feat: Support m2m relationship update for PUT/PATCH
+
+* chore: Add tests and more WIP
+
+* style: format code with Ruff Formatter
+
+This commit fixes the style issues introduced in cda5e9f according to the output from Ruff
+  Formatter.
+
+Details: https://github.com/NextGenContributions/django-ninja-crudl/pull/29
+
+* chore: Undo changes to crudl.py
+
+* chore: Clean up/refactor and fix typings WIP
+
+* chore: More typing changes
+
+* chore: More typing changes
+
+* chore: More typing fixes and PatchDict to make beartype happy
+
+* chore: Fix issue with beartype patch_dict being annotated Body
+
+* style: format code with Ruff Formatter
+
+This commit fixes the style issues introduced in 6f11481 according to the output from Ruff
+  Formatter.
+
+Details: https://github.com/NextGenContributions/django-ninja-crudl/pull/29
+
+* chore: More typing changes
+
+* chore: Add tests for more forward/reverse relation tests
+
+* chore: Update tests, refactor and fix relation handling logic
+
+* style: format code with Ruff Formatter
+
+This commit fixes the style issues introduced in 93cde0a according to the output from Ruff
+  Formatter.
+
+Details: https://github.com/NextGenContributions/django-ninja-crudl/pull/29
+
+* chore: WIP fixes
+
+* chore: Fix tests
+
+---------
+
+Co-authored-by: deepsource-autofix[bot] <62050782+deepsource-autofix[bot]@users.noreply.github.com>
+
+- Add nitpick and configs
+  ([#15](https://github.com/NextGenContributions/django-ninja-crudl/pull/15),
+  [`f02a945`](https://github.com/NextGenContributions/django-ninja-crudl/commit/f02a94534177336e4129c683718cf7638b941af3))
+
+
 ## v0.2.3 (2024-12-13)
 
 ### Bug Fixes
