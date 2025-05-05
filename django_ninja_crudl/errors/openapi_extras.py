@@ -9,7 +9,8 @@ not_authorized_openapi_extra: JSON = {  # pyre-ignore[11]
         "description": "Unauthorized",
         "headers": {
             "WWW-Authenticate": {
-                "description": "The authentication method that should be used to gain access.",
+                "description": "The authentication method that should be used to "
+                "gain access.",
                 "schema": {
                     "type": "string",
                 },
@@ -23,7 +24,8 @@ throttle_openapi_extra: JSON = {
         "description": "Too many requests",
         "headers": {
             "Retry-After": {
-                "description": "The number of seconds to wait before making a new request.",
+                "description": "The number of seconds to wait before making a "
+                "new request.",
                 "schema": {
                     "type": "integer",
                     "minimum": 0,

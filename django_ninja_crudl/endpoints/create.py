@@ -1,19 +1,9 @@
 """CRUDL API base class."""
 
 from abc import ABC
-from enum import Enum, IntEnum
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Literal, Unpack
 
-from django.core.exceptions import ValidationError
-from django.db import IntegrityError, transaction
-from django.db.models import (
-    ForeignKey,
-    ManyToManyField,
-    ManyToManyRel,
-    ManyToOneRel,
-    Model,
-    OneToOneRel,
-)
+from django.db import transaction
 from django.http import HttpRequest
 from ninja_extra import http_post, status
 
@@ -35,33 +25,37 @@ from django_ninja_crudl.errors.schemas import (
 from django_ninja_crudl.types import (
     JSON,
     RequestDetails,
+    RequestParams,
     TDjangoModel,
-    TDjangoModel_co,
 )
 from django_ninja_crudl.utils import (
     replace_path_args_annotation,
-    validating_manager,
 )
 
+if TYPE_CHECKING:
+    from pydantic import BaseModel
 
-def _create_schema_extra(
-    config: CrudlConfig[TDjangoModel_co],
-) -> JSON:
+
+def _create_schema_extra(config: CrudlConfig[TDjangoModel]) -> JSON:
     """Create the OpenAPI links for the create operation.
 
     Ref: https://swagger.io/docs/specification/v3_0/links/
     """
+    if config.create_response_schema is None:
+        msg = "'create_response_schema' must be defined in Crudl config."
+        raise ValueError(msg)
+
+    create_response_name: str = config.create_response_schema.__name__
     get_one_operation_id: str = config.get_one_operation_id
     update_operation_id: str = config.update_operation_id
     partial_update_operation_id: str = config.partial_update_operation_id
     delete_operation_id: str = config.delete_operation_id
-    create_response_name: str = config.create_response_name
     resource_name: str = config.model.__name__.lower()
 
     res_body_id = "$response.body#/id"
     return {
         "responses": {
-            201: {
+            status.HTTP_201_CREATED: {
                 "description": "Created",
                 "content": {
                     "application/json": {
@@ -93,24 +87,29 @@ def _create_schema_extra(
                     },
                 },
             },
-            **not_authorized_openapi_extra,
-            **throttle_openapi_extra,
-        },
+            **not_authorized_openapi_extra,  # type: ignore[dict-item]
+            **throttle_openapi_extra,  # type: ignore[dict-item]
+        }
     }
 
 
-def get_create_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
+def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
     """Create the create endpoint class for the CRUDL operations."""
-    create_schema = config.create_schema
+    if not config.create_schema or not config.create_response_schema:
+        return None
 
-    class CreateEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):
+    create_schema: type[BaseModel] = config.create_schema
+    create_response_schema: type[BaseModel] = config.create_response_schema
+
+    class CreateEndpoint(CrudlBaseMethodsMixin[TDjangoModel], ABC):  # pyright: ignore [reportGeneralTypeIssues]
         """Create endpoint for CRUDL operations."""
 
         @http_post(
             path=config.create_path,
             operation_id=config.create_operation_id,
+            url_name=config.create_operation_id,
             response={
-                status.HTTP_201_CREATED: config.create_response_schema,
+                status.HTTP_201_CREATED: create_response_schema,
                 status.HTTP_401_UNAUTHORIZED: Error401UnauthorizedSchema,
                 status.HTTP_403_FORBIDDEN: Error403ForbiddenSchema,
                 status.HTTP_404_NOT_FOUND: Error404NotFoundSchema,
@@ -118,117 +117,68 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel_co]) -> type:
                 status.HTTP_422_UNPROCESSABLE_ENTITY: Error422UnprocessableEntitySchema,
                 status.HTTP_503_SERVICE_UNAVAILABLE: Error503ServiceUnavailableSchema,
             },
-            openapi_extra=_create_schema_extra(config),
+            openapi_extra=_create_schema_extra(config),  # type: ignore[arg-type]
         )
         @transaction.atomic
         @replace_path_args_annotation(config.create_path, config.model)
         def create_endpoint(
             self,
             request: HttpRequest,
-            payload: create_schema,
-            **kwargs,
-        ) -> tuple[Literal[403, 404, 409], ErrorSchema] | tuple[Literal[201], Model]:
+            payload: create_schema,  # type: ignore[valid-type]
+            **kwargs: Unpack[RequestParams],
+        ) -> (
+            tuple[Literal[401, 403, 404, 409], ErrorSchema]
+            | tuple[Literal[201], TDjangoModel]
+        ):
             """Create a new object."""
-            path_args = kwargs["path_args"].dict() if "path_args" in kwargs else {}
-            request_details = RequestDetails[TDjangoModel_co](
+            request_details = RequestDetails[TDjangoModel](
                 action="create",
                 request=request,
-                schema=config.create_schema,
-                path_args=path_args,
-                payload=payload,
+                schema=create_schema,
+                path_args=self._get_path_args(kwargs),
+                payload=payload,  # pyright: ignore [reportUnknownArgumentType]
                 model_class=config.model,
             )
+            if not self.is_authenticated(request_details):
+                return self.get_401_error(request)
             if not self.has_permission(request_details):
                 return self.get_403_error(request)
             self.pre_create(request_details)
 
-            obj_fields_to_set: list[tuple[str, Any]] = []  # pyright: ignore[reportExplicitAny]
-            m2m_fields_to_set: list[tuple[str, Any]] = []  # pyright: ignore[reportExplicitAny]
+            simple_fields, simple_relations, complex_relations = (
+                self._get_fields_to_set(
+                    config.model,
+                    payload,  # pyright: ignore [reportUnknownArgumentType]
+                    request_details.path_args,
+                )
+            )
 
-            for field, field_value in payload.model_dump().items():
-                if isinstance(field_value, Enum | IntEnum):
-                    field_value = field_value.value  # noqa: PLW2901, WPS220
-                if isinstance(
-                    config.model._meta.get_field(field),  # noqa: SLF001, WPS437
-                    ManyToManyField | ManyToManyRel | ManyToOneRel | OneToOneRel,
-                ):
-                    m2m_fields_to_set.append((field, field_value))
-                else:
-                    # Handle foreign key fields:
-                    if isinstance(  # noqa: WPS220, WPS337
-                        config.model._meta.get_field(field),  # noqa: SLF001, WPS437
-                        ForeignKey,
-                    ) and not field.endswith("_id"):
-                        field_name = f"{field}_id"
-                    else:  # Non-relational fields
-                        field_name = field
+            # Create the object, validate it, and check simple relations' permission
+            created_obj: TDjangoModel = config.model(  # noqa: F841, SLF001
+                **dict(simple_fields + simple_relations),
+            )
+            if clean_err := self._full_clean_obj(created_obj, request):
+                return clean_err
+            if simple_rel_err := self._check_simple_relations(
+                created_obj, simple_relations, request_details
+            ):
+                return simple_rel_err
 
-                    obj_fields_to_set.append((field_name, field_value))
-            try:
-                with validating_manager(config.model):
-                    created_obj: Model = config.model._default_manager.create(  # noqa: SLF001
-                        **dict(obj_fields_to_set),
-                    )
-            # if integrity error, return 409
-            except IntegrityError as integrity_error:
-                transaction.set_rollback(True)
-                return self.get_409_error(request, exception=integrity_error)
-            except ValidationError as validation_error:
-                transaction.set_rollback(True)
-                return self.get_409_error(request, exception=validation_error)
+            # Update and check complex relations on the created object
+            if complex_rel_err := self._update_and_check_complex_relations(
+                created_obj,
+                complex_relations,
+                request_details,
+            ):
+                return complex_rel_err
 
-            for (
-                m2m_field,
-                m2m_field_value,
-            ) in m2m_fields_to_set:  # pyright: ignore[reportAny]
-                related_model_class = self._get_related_model(config.model, m2m_field)  # pyright: ignore[reportPrivateUsage]
-
-                if isinstance(m2m_field_value, list):
-                    for m2m_field_value_item in m2m_field_value:
-                        try:
-                            related_obj = related_model_class._default_manager.get(
-                                id=m2m_field_value_item,
-                            )
-                        except related_model_class.DoesNotExist:
-                            transaction.set_rollback(True)
-                            return self.get_404_error(request)
-
-                        request_details_related = request_details  # noqa: WPS220
-                        request_details_related.related_model_class = (
-                            related_model_class
-                        )
-                        request_details_related.related_object = related_obj
-                        if not self.has_related_object_permission(
-                            request_details_related,
-                        ):
-                            transaction.set_rollback(True)
-                            return self.get_404_error(request)
-                else:
-                    related_obj = related_model_class._default_manager.get(
-                        id=m2m_field_value,
-                    )
-
-                    if not self.has_related_object_permission(request_details):
-                        transaction.set_rollback(True)
-                        return self.get_404_error(request)
-
-                try:
-                    getattr(created_obj, m2m_field).set(m2m_field_value)
-                except IntegrityError:
-                    transaction.set_rollback(True)  # noqa: WPS220
-                    return self.get_409_error(request)
-
-            # Perform full_clean() on the created object
-            # and raise an exception if it fails
-            try:
-                created_obj.full_clean()
-            except ValidationError as validation_error:
-                # revert the transaction
-                transaction.set_rollback(True)
-                return self.get_409_error(request, exception=validation_error)
+            # Fully validate the created object as well as its related objects
+            if clean_err := self._full_clean_obj(created_obj, request):
+                return clean_err
 
             request_details.object = created_obj
             self.post_create(request_details)
+
             return 201, created_obj
 
     return CreateEndpoint

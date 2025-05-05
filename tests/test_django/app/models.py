@@ -1,16 +1,41 @@
 """Models for the Django test project."""
 
+from enum import Enum
 from typing import override
 
 from django.contrib.auth.models import User
 from django.db import models
 
 
-class Author(models.Model):
+class BaseModel(models.Model):
+    """Base model with common fields for all models."""
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="%(class)s_created",
+    )
+
+    class Meta:
+        """Meta options for the model."""
+
+        abstract = True
+
+
+class Author(BaseModel):
     """Model for a book author."""
 
     id: int  # Just for type hinting
 
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+    )
     name = models.CharField(max_length=100)
     birth_date = models.DateField(null=True, blank=True)
 
@@ -41,13 +66,49 @@ class Author(models.Model):
         return self.books.count()
 
 
-class Publisher(models.Model):
+# TODO(phuongfi91): OneToOne relationship is not supported yet
+#  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
+class AmazonAuthorProfile(BaseModel):
+    """Model for an Amazon author profile."""
+
+    author = models.OneToOneField(
+        Author,
+        on_delete=models.CASCADE,
+        related_name="amazon_author_profile",
+        blank=True,
+        null=True,
+    )
+    description = models.TextField()
+
+    @override
+    def __str__(self) -> str:
+        """Return the string representation of the author profile."""
+        return f"{self.author.name}: {self.description}"
+
+
+# TODO(phuongfi91): This is for experimental purpose only
+#  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
+class PublisherType(Enum):
+    """Enum for publisher types."""
+
+    PUBLISHER = "P"
+    DISTRIBUTOR = "D"
+    BOOKSTORE = "B"
+
+
+class Publisher(BaseModel):
     """Model for a book publisher."""
 
     id: int  # Just for type hinting
 
     name = models.CharField(max_length=100)
     address = models.TextField(help_text="Publisher's official address")
+    # CharField with choices for publisher type
+    publisher_type = models.CharField(
+        max_length=10,
+        choices=[(t.value, t.name) for t in PublisherType],
+        default=PublisherType.PUBLISHER.value,
+    )
 
     class Meta:
         """Meta options for the model."""
@@ -60,7 +121,7 @@ class Publisher(models.Model):
         return str(self.name)
 
 
-class Book(models.Model):
+class Book(BaseModel):
     """Model for a book."""
 
     id: int  # Just for type hinting
@@ -100,7 +161,7 @@ class Book(models.Model):
         return self.book_copies.count()
 
 
-class Library(models.Model):
+class Library(BaseModel):
     """Model for a library."""
 
     name = models.CharField(max_length=100)
@@ -117,13 +178,16 @@ class Library(models.Model):
         return str(self.name)
 
 
-class BookCopy(models.Model):
+class BookCopy(BaseModel):
     """Model for a book copy."""
 
     book = models.ForeignKey(Book, on_delete=models.CASCADE)  # Foreign Key relationship
     library = models.ForeignKey(
         Library,
         on_delete=models.CASCADE,
+        limit_choices_to={"name__icontains": "library"},
+        null=True,
+        blank=True,
     )  # Foreign Key relationship
     inventory_number = models.CharField(max_length=20, unique=True)
 
@@ -138,10 +202,12 @@ class BookCopy(models.Model):
         return f"{self.book.title} ({self.inventory_number})"
 
 
-class Borrowing(models.Model):
+class Borrowing(BaseModel):
     """Model for a borrowing."""
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE)  # Foreign Key relationship
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="user_borrowings"
+    )  # Foreign Key relationship
     book_copy = models.ForeignKey(
         BookCopy,
         on_delete=models.CASCADE,

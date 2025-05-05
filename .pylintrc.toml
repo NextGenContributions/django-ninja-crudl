@@ -2,6 +2,7 @@
 # Disable everything that have been implemented by ruff
 # following this issue https://github.com/astral-sh/ruff/issues/970
 disable = [
+    "R0903",
     "E0237",
     "E1142",
     "E0014",
