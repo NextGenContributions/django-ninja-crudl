@@ -131,9 +131,9 @@ def test_http_500_with_debug_off_conforms_with_crudl_error_schema(
 ) -> None:
     """Test server error when DEBUG is OFF."""
     response = get_author_with_mock_internal_server_error(client)
-    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR, (
-        response.json()
-    )
+    assert (
+        response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    ), response.json()
     Error500InternalServerErrorSchema.model_validate(response.json())
     assert response.json()["detail"] is None
 
@@ -145,8 +145,8 @@ def test_http_500_with_debug_on_conforms_with_crudl_error_schema(
 ) -> None:
     """Test server error when DEBUG is ON."""
     response = get_author_with_mock_internal_server_error(client)
-    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR, (
-        response.json()
-    )
+    assert (
+        response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    ), response.json()
     Error500InternalServerErrorSchema.model_validate(response.json())
     assert response.json()["detail"] is not None

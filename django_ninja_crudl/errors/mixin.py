@@ -88,6 +88,4 @@ class ErrorHandlerMixin:
         """Return the 503 error message."""
         response["Retry-After"] = str(self.get_retry_after())
 
-        return 503, Error503ServiceUnavailableSchema(
-            request_id=get_request_id(request)
-        )
+        return 503, Error503ServiceUnavailableSchema(request_id=get_request_id(request))
