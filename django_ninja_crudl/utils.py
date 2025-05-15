@@ -9,6 +9,7 @@ from typing import Any, final
 from beartype import beartype
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.db.models import Field, ForeignObjectRel
+from django.http import HttpRequest
 from django2pydantic import BaseSchema
 from django2pydantic.schema import SchemaConfig
 from ninja import Path
@@ -122,3 +123,8 @@ def validating_manager(model_class: type[TDjangoModel]) -> Generator[None, None,
         yield
     finally:
         model_class.save = original_save
+
+
+def get_request_id(request: HttpRequest) -> str:
+    """Return the request ID from the request headers."""
+    return request.headers.get("X-Request-ID", "")
