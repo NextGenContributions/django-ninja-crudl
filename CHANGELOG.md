@@ -1,6 +1,28 @@
 # CHANGELOG
 
 
+## v0.4.0 (2025-05-15)
+
+### Features
+
+- **#63**: Unify error responses by using schemas defined by django-ninja-crudl
+  ([#64](https://github.com/NextGenContributions/django-ninja-crudl/pull/64),
+  [`888ff50`](https://github.com/NextGenContributions/django-ninja-crudl/commit/888ff506b7698faed0ae7b5466a678ac147f396e))
+
+* feat(#63): Unify error responses by using schemas defined by django-ninja-crudl
+
+* style: format code with Ruff Formatter
+
+This commit fixes the style issues introduced in f85633c according to the output from Ruff
+  Formatter.
+
+Details: https://github.com/NextGenContributions/django-ninja-crudl/pull/64
+
+---------
+
+Co-authored-by: deepsource-autofix[bot] <62050782+deepsource-autofix[bot]@users.noreply.github.com>
+
+
 ## v0.3.0 (2025-05-05)
 
 ### Bug Fixes
