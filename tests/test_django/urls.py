@@ -48,7 +48,7 @@ class HasResourcePermissions(BasePermission[TDjangoModel]):
     @override
     def has_permission(self, request: RequestDetails[TDjangoModel]) -> bool:
         """Check if the user has permission to perform the action."""
-        user = cast(User, request.request.user)
+        user = cast("User", request.request.user)
 
         if user.username in [ADMIN_USER, STANDARD_USER]:  # pyright: ignore [reportUnknownMemberType]
             return True
@@ -58,7 +58,7 @@ class HasResourcePermissions(BasePermission[TDjangoModel]):
     @override
     def has_object_permission(self, request: RequestDetails[TDjangoModel]) -> bool:
         """Check if the user has permission to perform the action on the object."""
-        user = cast(User, request.request.user)
+        user = cast("User", request.request.user)
 
         if user.username == ADMIN_USER:  # pyright: ignore [reportUnknownMemberType]
             return True
@@ -66,7 +66,7 @@ class HasResourcePermissions(BasePermission[TDjangoModel]):
         if user.username == STANDARD_USER:  # pyright: ignore [reportUnknownMemberType]
             # Check if the user is the owner of the object
             if request.object and hasattr(request.object, "created_by"):
-                obj = cast(BaseModel, request.object)
+                obj = cast("BaseModel", request.object)
                 return obj.created_by == user  # pyright: ignore [reportUnknownVariableType, reportUnknownMemberType]
 
         return False
@@ -76,7 +76,7 @@ class HasResourcePermissions(BasePermission[TDjangoModel]):
         self, request: RequestDetails[TDjangoModel]
     ) -> bool:
         """Check if the user has permission to perform the action on related object."""
-        user = cast(User, request.request.user)
+        user = cast("User", request.request.user)
 
         if user.username == ADMIN_USER:  # pyright: ignore [reportUnknownMemberType]
             return True
@@ -84,7 +84,7 @@ class HasResourcePermissions(BasePermission[TDjangoModel]):
         if user.username == STANDARD_USER:  # pyright: ignore [reportUnknownMemberType]
             # Check if the user is the owner of the object
             if request.related_object and hasattr(request.related_object, "created_by"):
-                obj = cast(BaseModel, request.related_object)
+                obj = cast("BaseModel", request.related_object)
                 return obj.created_by == user  # pyright: ignore [reportUnknownVariableType, reportUnknownMemberType]
 
         return False
@@ -143,7 +143,7 @@ class GatedAuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylin
     @override
     def get_filter_for_list(self, request: RequestDetails[TDjangoModel]) -> Q:
         """Return the queryset filter that applies to the list operation."""
-        user = cast(User, request.request.user)
+        user = cast("User", request.request.user)
 
         if user.username == ADMIN_USER:  # pyright: ignore [reportUnknownMemberType]
             return Q()

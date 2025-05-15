@@ -14,6 +14,7 @@ from django_ninja_crudl.errors.schemas import (
     ErrorSchema,
 )
 from django_ninja_crudl.errors.transform import get_exception_details
+from django_ninja_crudl.utils import get_request_id
 
 
 class ErrorHandlerMixin:
@@ -24,13 +25,6 @@ class ErrorHandlerMixin:
         if type(self) is ErrorHandlerMixin:
             msg = "ErrorHandlerMixin is a mixin and shall not be instantiated directly."
             raise NotImplementedError(msg)
-
-    def get_request_id(self, request: HttpRequest) -> str:
-        """Return the request ID from the request headers.
-
-        You may override this method to get the request ID from a different source.
-        """
-        return request.headers.get("X-Request-ID", "")
 
     def get_retry_after(self) -> int:
         """Return the number of seconds to wait before retrying the request.
@@ -46,7 +40,7 @@ class ErrorHandlerMixin:
         exception: Exception | None = None,  # NOSONAR  # noqa: ARG002
     ) -> tuple[Literal[401], ErrorSchema]:
         """Return the 401 error message."""
-        return 401, Error401UnauthorizedSchema(request_id=self.get_request_id(request))
+        return 401, Error401UnauthorizedSchema(request_id=get_request_id(request))
 
     def get_403_error(
         self,
@@ -55,7 +49,7 @@ class ErrorHandlerMixin:
         exception: Exception | None = None,  # NOSONAR  # noqa: ARG002
     ) -> tuple[Literal[403], Error403ForbiddenSchema]:
         """Return the 403 error message."""
-        return 403, Error403ForbiddenSchema(request_id=self.get_request_id(request))
+        return 403, Error403ForbiddenSchema(request_id=get_request_id(request))
 
     def get_404_error(
         self,
@@ -64,7 +58,7 @@ class ErrorHandlerMixin:
         exception: Exception | None = None,  # NOSONAR  # noqa: ARG002
     ) -> tuple[Literal[404], ErrorSchema]:
         """Return the 404 error message."""
-        return 404, Error404NotFoundSchema(request_id=self.get_request_id(request))
+        return 404, Error404NotFoundSchema(request_id=get_request_id(request))
 
     def get_409_error(
         self,
@@ -81,8 +75,8 @@ class ErrorHandlerMixin:
             traceback.print_exc()
 
         return 409, Error409ConflictSchema(
-            request_id=self.get_request_id(request),
-            details=get_exception_details(exception),
+            request_id=get_request_id(request),
+            detail=get_exception_details(exception),
         )
 
     def get_503_error(
@@ -94,6 +88,4 @@ class ErrorHandlerMixin:
         """Return the 503 error message."""
         response["Retry-After"] = str(self.get_retry_after())
 
-        return 503, Error503ServiceUnavailableSchema(
-            request_id=self.get_request_id(request)
-        )
+        return 503, Error503ServiceUnavailableSchema(request_id=get_request_id(request))

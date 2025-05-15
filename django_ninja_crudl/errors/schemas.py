@@ -23,7 +23,7 @@ class ErrorSchema(BaseModel):
     message: str = ""
     user_friendly_message: str = ""
     request_id: str = ""
-    details: str | list[DictStrAny] | None = None
+    detail: str | list[DictStrAny] | None = None
 
 
 class Error401UnauthorizedSchema(ErrorSchema):
@@ -89,6 +89,17 @@ class Error429TooManyRequestSchema(ErrorSchema):
     user_friendly_message: str = _(
         "You have exceeded the rate limit. You can try again in a few minutes."
     )
+
+
+class Error500InternalServerErrorSchema(ErrorSchema):
+    """The default service unavailable schema."""
+
+    code: str = "InternalServerError"
+    message: str = (
+        "The server encountered an unexpected condition "
+        "that prevented it from fulfilling the request."
+    )
+    user_friendly_message: str = _("The server encountered an unexpected condition.")
 
 
 class Error503ServiceUnavailableSchema(ErrorSchema):
