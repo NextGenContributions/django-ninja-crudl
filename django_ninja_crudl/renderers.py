@@ -17,9 +17,7 @@ class CrudlJSONEncoder(DjangoJSONEncoder):
     def default(self, o: Any) -> Any:  # pyright: ignore [reportExplicitAny, reportAny]
         if isinstance(o, BaseModel):
             return o.model_dump()
-        if isinstance(o, Url):
-            return str(o)
-        if isinstance(o, AnyUrl):
+        if isinstance(o, (Url, AnyUrl)):
             return str(o)
         if isinstance(o, (IPv4Address, IPv4Network, IPv6Address, IPv6Network)):
             return str(o)
