@@ -156,6 +156,9 @@ def test_getting_relation_with_get_many_should_work(client: Client) -> None:
     assert (
         response.json()[0]["amazon_author_profile"]["description"] == "Some description"
     )
+    assert response.json()[0]["user"] is None
+    assert response.json()[0]["age"] == 35
+    assert response.json()[0]["books_count"] == 0
 
 
 @pytest.mark.django_db
@@ -174,3 +177,6 @@ def test_getting_relation_with_get_one_should_work(client: Client) -> None:
     assert response.json()["name"] == "Some author"
     assert response.json()["birth_date"] == "1990-01-01"
     assert response.json()["amazon_author_profile"]["description"] == "Some description"
+    assert response.json()["age"] == 35
+    assert response.json()["books_count"] == 0
+    assert response.json()["user"] is None
