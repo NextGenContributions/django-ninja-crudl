@@ -16,6 +16,7 @@ __all__ = ["CrudlJSONEncoder", "CrudlJSONRenderer"]
 
 class CrudlJSONEncoder(DjangoJSONEncoder):
     """Custom JSON encoder for Django Ninja CRUDL."""
+
     @override
     def default(self, o: Any) -> Any:  # pyright: ignore [reportExplicitAny, reportAny]
         if isinstance(o, BaseModel):
@@ -31,4 +32,5 @@ class CrudlJSONEncoder(DjangoJSONEncoder):
 
 class CrudlJSONRenderer(JSONRenderer):
     """Custom JSON renderer for Django Ninja CRUDL."""
+
     encoder_class: type[json.JSONEncoder] = CrudlJSONEncoder
