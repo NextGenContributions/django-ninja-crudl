@@ -5,12 +5,11 @@ from typing import Any, override
 
 from django.core.serializers.json import DjangoJSONEncoder
 from ninja.renderers import JSONRenderer
-from ninja.responses import NinjaJSONEncoder
 from pydantic import BaseModel
 from pydantic.networks import AnyUrl
 from pydantic_core import Url
 
-__all__ = ["CrudlJSONRenderer", "NinjaJSONEncoder"]
+__all__ = ["CrudlJSONEncoder", "CrudlJSONRenderer"]
 
 
 class CrudlJSONEncoder(DjangoJSONEncoder):
