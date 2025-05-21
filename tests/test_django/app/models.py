@@ -1,6 +1,5 @@
 """Models for the Django test project."""
 
-from enum import Enum
 from typing import override
 
 from django.contrib.auth.models import User
@@ -66,8 +65,6 @@ class Author(BaseModel):
         return self.books.count()
 
 
-# TODO(phuongfi91): OneToOne relationship is not supported yet
-#  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
 class AmazonAuthorProfile(BaseModel):
     """Model for an Amazon author profile."""
 
@@ -78,22 +75,13 @@ class AmazonAuthorProfile(BaseModel):
         blank=True,
         null=True,
     )
+    profile_url = models.URLField(null=True, blank=True, max_length=200)
     description = models.TextField()
 
     @override
     def __str__(self) -> str:
         """Return the string representation of the author profile."""
         return f"{self.author.name}: {self.description}"
-
-
-# TODO(phuongfi91): This is for experimental purpose only
-#  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
-class PublisherType(Enum):
-    """Enum for publisher types."""
-
-    PUBLISHER = "P"
-    DISTRIBUTOR = "D"
-    BOOKSTORE = "B"
 
 
 class Publisher(BaseModel):
@@ -104,11 +92,6 @@ class Publisher(BaseModel):
     name = models.CharField(max_length=100)
     address = models.TextField(help_text="Publisher's official address")
     # CharField with choices for publisher type
-    publisher_type = models.CharField(
-        max_length=10,
-        choices=[(t.value, t.name) for t in PublisherType],
-        default=PublisherType.PUBLISHER.value,
-    )
 
     class Meta:
         """Meta options for the model."""

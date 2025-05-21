@@ -267,12 +267,14 @@ class AmazonAuthorProfileCrudl(
         create_schema=Schema[AmazonAuthorProfile](
             fields={
                 "author": Infer,
+                "profile_url": Infer,
                 "description": Infer,
             }
         ),
         update_schema=Schema[AmazonAuthorProfile](
             fields={
                 "author": Infer,
+                "profile_url": Infer,
                 "description": Infer,
             }
         ),
@@ -280,6 +282,7 @@ class AmazonAuthorProfileCrudl(
             fields={
                 "id": Infer,
                 "author": {"id": Infer, "name": Infer},
+                "profile_url": Infer,
                 "description": Infer,
             }
         ),
@@ -287,6 +290,7 @@ class AmazonAuthorProfileCrudl(
             fields={
                 "id": Infer,
                 "author": {"id": Infer, "name": Infer},
+                "profile_url": Infer,
                 "description": Infer,
             }
         ),
@@ -310,7 +314,6 @@ class PublisherCrudl(CrudlController[Publisher], DefaultFilter[Publisher]):  # p
             fields={
                 "name": Infer,
                 "address": Infer,
-                "publisher_type": Infer,
             }
         ),
         update_schema=Schema[Publisher](
