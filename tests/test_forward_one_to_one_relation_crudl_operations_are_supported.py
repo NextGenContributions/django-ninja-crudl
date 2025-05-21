@@ -146,7 +146,10 @@ def test_getting_relation_with_get_many_should_work(client: Client) -> None:
     assert len(response.json()) == 1
     assert response.json()[0]["author"]["id"] == author.id
     assert response.json()[0]["author"]["name"] == "Some author"
-    assert response.json()[0]["profile_url"] == "https://www.amazon-profile.com/some-author"
+    assert (
+        response.json()[0]["profile_url"]
+        == "https://www.amazon-profile.com/some-author"
+    )
     assert response.json()[0]["description"] == "Some description"
 
 
@@ -166,5 +169,7 @@ def test_getting_relation_with_get_one_should_work(client: Client) -> None:
     assert response.status_code == status.HTTP_200_OK, response.json()
     assert response.json()["author"]["id"] == author.id
     assert response.json()["author"]["name"] == "Some author"
-    assert response.json()["profile_url"] == "https://www.amazon-profile.com/some-author"
+    assert (
+        response.json()["profile_url"] == "https://www.amazon-profile.com/some-author"
+    )
     assert response.json()["description"] == "Some description"
