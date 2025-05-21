@@ -20,6 +20,7 @@ def test_creating_relation_with_post_should_work(client: Client) -> None:
         content_type="application/json",
         data={
             "author": author.id,
+            "profile_url": "https://www.amazon-profile.com/some-author",
             "description": "Some description",
         },
     )
@@ -51,6 +52,7 @@ def test_updating_relation_with_put_should_work(client: Client) -> None:
         content_type="application/json",
         data={
             "author": author_2.id,
+            "profile_url": "https://www.amazon-profile.com/some-author",
             "description": "Some updated description",
         },
     )
@@ -134,8 +136,9 @@ def test_getting_relation_with_get_many_should_work(client: Client) -> None:
         name="Some author",
         birth_date="1990-01-01",
     )
-    amz_author_profile = models.AmazonAuthorProfile.objects.create(
+    _ = models.AmazonAuthorProfile.objects.create(
         author=author,
+        profile_url="https://www.amazon-profile.com/some-author",
         description="Some description",
     )
     response = client.get("/api/amazon_author_profiles")
@@ -143,6 +146,10 @@ def test_getting_relation_with_get_many_should_work(client: Client) -> None:
     assert len(response.json()) == 1
     assert response.json()[0]["author"]["id"] == author.id
     assert response.json()[0]["author"]["name"] == "Some author"
+    assert (
+        response.json()[0]["profile_url"]
+        == "https://www.amazon-profile.com/some-author"
+    )
     assert response.json()[0]["description"] == "Some description"
 
 
@@ -155,10 +162,14 @@ def test_getting_relation_with_get_one_should_work(client: Client) -> None:
     )
     amz_author_profile = models.AmazonAuthorProfile.objects.create(
         author=author,
+        profile_url="https://www.amazon-profile.com/some-author",
         description="Some description",
     )
     response = client.get(f"/api/amazon_author_profiles/{amz_author_profile.id}")
     assert response.status_code == status.HTTP_200_OK, response.json()
     assert response.json()["author"]["id"] == author.id
     assert response.json()["author"]["name"] == "Some author"
+    assert (
+        response.json()["profile_url"] == "https://www.amazon-profile.com/some-author"
+    )
     assert response.json()["description"] == "Some description"

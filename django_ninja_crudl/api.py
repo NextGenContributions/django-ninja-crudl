@@ -25,6 +25,7 @@ from django_ninja_crudl.errors.schemas import (
     Error500InternalServerErrorSchema,
     ErrorSchema,
 )
+from django_ninja_crudl.renderers import CrudlJSONRenderer
 from django_ninja_crudl.utils import get_request_id
 
 logger = logging.getLogger("django")
@@ -109,7 +110,7 @@ class NinjaCrudlAPI(NinjaExtraAPI):
             csrf=csrf,
             auth=auth,
             throttle=throttle,
-            renderer=renderer,
+            renderer=renderer or CrudlJSONRenderer(),
             parser=parser,
             openapi_extra=openapi_extra,
             app_name=app_name,
