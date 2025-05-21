@@ -239,6 +239,7 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: di
                 "books_count": Infer,
                 "books": {"id": Infer, "title": Infer},
                 "amazon_author_profile": {"description": Infer},
+                "user": {"first_name": Infer, "last_name": Infer},
             }
         ),
         list_schema=Schema[Author](
@@ -250,6 +251,7 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: di
                 "books_count": Infer,
                 "books": {"id": Infer, "title": Infer},
                 "amazon_author_profile": {"description": Infer},
+                "user": {"first_name": Infer, "last_name": Infer},
             }
         ),
         delete_allowed=True,
