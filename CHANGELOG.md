@@ -1,6 +1,15 @@
 # CHANGELOG
 
 
+## v0.5.1 (2025-05-21)
+
+### Bug Fixes
+
+- List endpoint support for model's property and related fields
+  ([#71](https://github.com/NextGenContributions/django-ninja-crudl/pull/71),
+  [`5eee317`](https://github.com/NextGenContributions/django-ninja-crudl/commit/5eee3170ac63e51fb38743e53a65071bdc7524d9))
+
+
 ## v0.5.0 (2025-05-21)
 
 ### Features
