@@ -499,7 +499,7 @@ wheels = [
 
 [[package]]
 name = "django-ninja-crudl"
-version = "0.4.0"
+version = "0.5.1"
 source = { editable = "." }
 dependencies = [
     { name = "beartype" },
@@ -654,8 +654,8 @@ wheels = [
 
 [[package]]
 name = "django2pydantic"
-version = "0.3.0"
-source = { git = "https://github.com/NextGenContributions/django2pydantic?branch=main#1bb466fbeada856259882d7855a78b6c92956189" }
+version = "0.4.1"
+source = { git = "https://github.com/NextGenContributions/django2pydantic?branch=main#a1ca51e26a867928f0810020e69ecda0172b0ffb" }
 dependencies = [
     { name = "django" },
     { name = "django-stubs-ext" },
