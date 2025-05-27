@@ -50,7 +50,7 @@ class CrudlBaseMethodsMixin(  # noqa: WPS215 too many base classes
     ) -> tuple[Literal[404], ErrorSchema] | None:
         """Check if the object has permission for object(s) of the related field."""
         related_model_class = self._get_related_model(
-            cast(type[TDjangoModel], obj._meta.model),  # noqa: SLF001
+            cast("type[TDjangoModel]", obj._meta.model),  # noqa: SLF001
             rel_field,
         )
 
@@ -141,9 +141,9 @@ class CrudlBaseMethodsMixin(  # noqa: WPS215 too many base classes
             # Perform the update
             try:
                 update_rel = (
-                    self._update_many_rel
-                    if isinstance(rel_field_val, list)
-                    else self._update_one_to_one_rel
+                    self._update_one_to_one_rel
+                    if obj._meta.get_field(rel_field).one_to_one
+                    else self._update_many_rel
                 )
                 update_rel(obj, rel_field, rel_field_val)
             except IntegrityError:
@@ -160,11 +160,15 @@ class CrudlBaseMethodsMixin(  # noqa: WPS215 too many base classes
     ) -> None:
         """Handle ManyToManyField, ManyToManyRel, ManyToOneRel."""
         related_model_class = self._get_related_model(
-            cast(type[TDjangoModel], obj._meta.model),  # noqa: SLF001
+            cast("type[TDjangoModel]", obj._meta.model),  # noqa: SLF001
             rel_field,
         )
-        related_objs = related_model_class._default_manager.filter(  # noqa: SLF001
-            pk__in=rel_field_val,
+        related_objs = (  # pyright: ignore [reportUnknownVariableType]
+            []
+            if rel_field_val is None
+            else related_model_class._default_manager.filter(  # noqa: SLF001
+                pk__in=rel_field_val,
+            )
         )
         getattr(obj, rel_field).set(related_objs)  # pyright: ignore[reportAny]
 
@@ -178,13 +182,13 @@ class CrudlBaseMethodsMixin(  # noqa: WPS215 too many base classes
         # setattr(obj, f"{field}_pk", pk)) does not work for "OneToOneRel"
         # and save() must be called on 'related_obj' instead of 'obj'
         related_model_class = self._get_related_model(
-            cast(type[TDjangoModel], obj._meta.model),  # noqa: SLF001
+            cast("type[TDjangoModel]", obj._meta.model),  # noqa: SLF001
             rel_field,
         )
         related_obj: TDjangoModel | None
         if rel_field_val is None:
             # Removing the relation, if exists
-            related_obj = cast(TDjangoModel | None, getattr(obj, rel_field, None))
+            related_obj = cast("TDjangoModel | None", getattr(obj, rel_field, None))
             if related_obj:
                 setattr(obj, rel_field, None)
                 related_obj.save()
