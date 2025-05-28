@@ -65,6 +65,7 @@ def get_delete_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
 
             obj = (
                 self.get_pre_filtered_queryset(config.model, request_details.path_args)
+                .filter(self.get_base_filter(request_details))
                 .filter(self.get_filter_for_delete(request_details))
                 .first()
             )
