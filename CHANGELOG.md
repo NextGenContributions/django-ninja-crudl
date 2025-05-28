@@ -1,6 +1,15 @@
 # CHANGELOG
 
 
+## v0.5.3 (2025-05-28)
+
+### Bug Fixes
+
+- Add missing base filter for delete
+  ([#79](https://github.com/NextGenContributions/django-ninja-crudl/pull/79),
+  [`5eba170`](https://github.com/NextGenContributions/django-ninja-crudl/commit/5eba17072bf330002a8ae10ad6a41ac92e898ef7))
+
+
 ## v0.5.2 (2025-05-27)
 
 ### Bug Fixes
