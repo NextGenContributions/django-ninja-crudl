@@ -112,17 +112,16 @@ def validating_manager(model_class: type[TDjangoModel]) -> Generator[None, None,
     """Replace the save method of a model class with a version that calls full_clean() before save."""
     original_save: SaveMethod = model_class.save
 
-    def validating_save(self: TDjangoModel, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
+    def validating_save(self: TDjangoModel, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401  # pyright: ignore [reportExplicitAny, reportAny]
         """Call full_clean() before saving."""
-        if not self.pk:
-            self.full_clean()
+        self.full_clean()
         return original_save(self, *args, **kwargs)
 
-    model_class.save = validating_save
+    model_class.save = validating_save  # type: ignore[method-assign,assignment]
     try:
         yield
     finally:
-        model_class.save = original_save
+        model_class.save = original_save  # type: ignore[method-assign]
 
 
 def get_request_id(request: HttpRequest) -> str:
