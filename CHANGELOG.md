@@ -1,6 +1,15 @@
 # CHANGELOG
 
 
+## v0.5.4 (2025-06-09)
+
+### Bug Fixes
+
+- Full_clean() not getting called on update
+  ([#91](https://github.com/NextGenContributions/django-ninja-crudl/pull/91),
+  [`090fb8e`](https://github.com/NextGenContributions/django-ninja-crudl/commit/090fb8ecf2ffb77ba0217f23554f7856ebed2156))
+
+
 ## v0.5.3 (2025-05-28)
 
 ### Bug Fixes
