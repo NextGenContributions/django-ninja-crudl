@@ -41,86 +41,84 @@ With uv:
 uv add git+https://github.com/NextGenContributions/django-ninja-crudl
 ```
 
+
 ## Define the Django model and the CRUDL controller class along the fields exposed via the CRUDL endpoints
 
-Lets assume you have the following Django models:
+Let's assume you have the following Django models:
 
 ```python
-
 # models.py:
-
 from django.db import models
 
 class SomeRelatedModel(models.Model):
-
     id = models.AutoField(primary_key=True)
     details = models.CharField(max_length=255)
 
-
 class MyModel(models.Model):
-
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
     description = models.TextField()
-    some_related_model = models.ForeignKey(MyModelB, on_delete=models.CASCADE)
-
+    some_related_model = models.ForeignKey(SomeRelatedModel, on_delete=models.CASCADE)
 ```
 
-Then you need to define the CRUDL controller for the model:
+Then you need to define the CRUDL controller for the model using the new config-based approach:
 
 ```python
-
 # crudl.py:
 
-from typing import ClassVar
+from django_ninja_crudl import CrudlController, CrudlConfig, Infer, Schema
+from .models import MyModel
 
-from django_ninja_crudl import Crudl, Infer, ModelFields
-
-
-class MyModelCrudl(Crudl):
-    """A CRUDL controller for the model."""
-
-    class Meta(Crudl.Meta):
-        model_class = MyModel # <-- Add reference to your model class here that you defined previously
-
-        # Here you define the fields that shall be exposed via the CRUDL endpoints:
-        create_fields: ClassVar[ModelFields] = { # <-- These will be used for the create (POST) endpoint:
-            "name": Infer,
-            "description": Infer,
-            "some_related_model_id": Infer, # <-- This is the related object field
-        }
-        update_fields: ClassVar[ModelFields] = { # <-- These will be used for the update (PUT) and partial update (PATCH) endpoint:
-            "name": Infer,
-            "description": Infer,
-        }
-        get_one_fields: ClassVar[ModelFields] = { # <-- These will be used for the get one (GET) endpoint:
-            "id": Infer,
-            "name": Infer,
-            "description": Infer,
-            "some_related_model": { # These are the related object fields you want to expose:
+class MyModelCrudl(CrudlController[MyModel]):
+    config = CrudlConfig[MyModel](
+        model=MyModel,
+        base_path="/my_model",
+        create_schema=Schema[MyModel](
+            fields={
+                "name": Infer,
+                "description": Infer,
+                "some_related_model_id": Infer,
+            }
+        ),
+        update_schema=Schema[MyModel](
+            fields={
+                "name": Infer,
+                "description": Infer,
+            }
+        ),
+        get_one_schema=Schema[MyModel](
+            fields={
                 "id": Infer,
-                "details": Infer,
-            },
-        }
-        list_fields: ClassVar[ModelFields] = { # <-- These will be used for the list (GET) endpoint:
-            "id": Infer,
-            "name": Infer,
-            "some_related_model": { # These are the related object fields you want to expose:
+                "name": Infer,
+                "description": Infer,
+                "some_related_model": {
+                    "id": Infer,
+                    "details": Infer,
+                },
+            }
+        ),
+        list_schema=Schema[MyModel](
+            fields={
                 "id": Infer,
-            },
-        }
-        delete_allowed = True # <-- This enables the delete (DELETE) endpoint
+                "name": Infer,
+                "some_related_model": {
+                    "id": Infer,
+                },
+            }
+        ),
+        delete_allowed=True,
+    )
 ```
 
-NOTE: In order to avoid accidentally exposing sensitive fields, you need to explicitly define the model fields that shall be exposed via the CRUDL endpoints. Some other libraries support exposing all fields (with optional exlude) which can lead to unintentional exposure of sensitive data.
+**NOTE:** In order to avoid accidentally exposing sensitive fields, you need to explicitly define the model fields that shall be exposed via the CRUDL endpoints. Some other libraries support exposing all fields (with optional exclude) which can lead to unintentional exposure of sensitive data.
 
-NOTE: If any of `create_fields`, `update_fields`, `get_one_fields`, or `list_fields` are not defined or is set as `None`, then that specific endpoint will not be exposed. If `delete_allowed` is not defined or set as `False`, then the delete endpoint will not be exposed.
+**NOTE:** If any of `create_schema`, `update_schema`, `get_one_schema`, or `list_schema` are not defined or are set as `None`, then that specific endpoint will not be exposed. If `delete_allowed` is not defined or set as `False`, then the delete endpoint will not be exposed.
 
-NOTE: For delete operation, the currently it performs a hard delete by default. You might customize the delete operation to perform a soft delete by [overriding the delete method in the model]().
+**NOTE:** For delete operation, it currently performs a hard delete by default. You might customize the delete operation to perform a soft delete by [overriding the delete method in the model]().
 
-NOTE: The `Infer` class from the [django2pydantic](https://github.com/NextGenContributions/django2pydantic) library is used tell that the field type and other details shall be inferred from the Django model field.
+**NOTE:** The `Infer` class from the [django2pydantic](https://github.com/NextGenContributions/django2pydantic) library is used to tell that the field type and other details shall be inferred from the Django model field.
 
-NOTE: As you can see from the above example, the library allows using different schemas for the `create`, `update`/`partial update`, `get one`, and `list` operations. For example, this can have the following practical advantages:
+**NOTE:** As you can see from the above example, the library allows using different schemas for the `create`, `update`/`partial update`, `get one`, and `list` operations. For example, this can have the following practical advantages:
 
 - Allows that some fields can be used during create but cannot be updated after the creation
 - The `list` operation can expose only the fields that are needed for the list view
@@ -128,22 +126,18 @@ NOTE: As you can see from the above example, the library allows using different 
 
 ## Register the endpoint
 
-Then you need to register the CRUDL controller in the API itself for Django.
+
+Then you need to register the CRUDL controller in the API for Django:
 
 ```python
-
 # api.py:
-
-from ninja_extra import NinjaExtraAPI
-
+from django_ninja_crudl.api import NinjaCrudlAPI
 from .crudl import MyModelCrudl
 
-api = NinjaExtraAPI()
-
+api = NinjaCrudlAPI()
 api.register_controllers(MyModelCrudl)
 
 # urls.py:
-
 from django.contrib import admin
 from django.urls import path
 from .api import api
@@ -152,7 +146,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", api.urls),
 ]
-
 ```
 
 [Further instructions](https://eadwincode.github.io/django-ninja-extra/tutorial/#first-steps).
