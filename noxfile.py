@@ -12,7 +12,8 @@ nox.options.default_venv_backend = "uv"
 @nox.session(python=["3.12", "3.13"], reuse_venv=True)
 def tests(session: nox.Session) -> None:
     """Run the test suite."""
-    session.run("pytest")
+    session.install(".")
+    session.run("pytest", "-vv")
 
 
 @nox.session

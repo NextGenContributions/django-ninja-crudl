@@ -1,6 +1,7 @@
 """Utility functions for testing."""
 
 import json
+import sys
 from pathlib import Path
 from typing import Any, override
 
@@ -45,3 +46,30 @@ class IntegerKeyJSONDecoder(json.JSONDecoder):
         if isinstance(key, str) and key.isdigit():
             return int(key)
         return key
+
+
+def normalize_http_status_descriptions(data: Any) -> Any:  # pyright: ignore [reportAny, reportExplicitAny]  # noqa: ANN401
+    """Normalize HTTP status descriptions for Python 3.12 and 3.13 compatibility.
+
+    See diff for 422:
+    - https://docs.python.org/3.12/library/http.html#http-status-codes
+    - https://docs.python.org/3.13/library/http.html#http-status-codes
+    """
+    if isinstance(data, dict):
+        normalized = {}
+        for key, value in data.items():
+            if key == "description" and value in (
+                "Unprocessable Entity",
+                "Unprocessable Content",
+            ):
+                # Use the correct description for the current Python version
+                if sys.version_info >= (3, 13):
+                    normalized[key] = "Unprocessable Content"
+                else:
+                    normalized[key] = "Unprocessable Entity"
+            else:
+                normalized[key] = normalize_http_status_descriptions(value)
+        return normalized
+    if isinstance(data, list):
+        return [normalize_http_status_descriptions(item) for item in data]
+    return data
