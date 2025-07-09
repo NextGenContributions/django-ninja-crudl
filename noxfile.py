@@ -9,10 +9,11 @@ import nox
 nox.options.default_venv_backend = "uv"
 
 
-@nox.session(python=["3.12", "3.13"], reuse_venv=True)
-def tests(session: nox.Session) -> None:
+@nox.session(python=["3.12", "3.13"])
+@nox.parametrize("django_version", ["5.1", "5.2"])
+def tests(session: nox.Session, django_version: str) -> None:
     """Run the test suite."""
-    session.install(".")
+    session.install(".", f"django=={django_version}", "--group", "tests")
     session.run("pytest", "-vv")
 
 
