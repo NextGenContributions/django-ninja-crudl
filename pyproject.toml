@@ -71,6 +71,7 @@ tests = [
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
     "pytest-django>=4.11.1",
+    "pytest-xdist[psutil]>=3.8.0",
     "rich>=14.0.0",
     "schemathesis>=3.39.16,<4",
 ]
