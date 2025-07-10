@@ -1,11 +1,20 @@
 # CHANGELOG
 
 
+## v0.6.0 (2025-07-10)
+
+### Features
+
+- Python 3.12-3.13 & django 5.1-5.2 support + doc updates (#110)
+  ([#110](https://github.com/NextGenContributions/django-ninja-crudl/pull/110),
+  [`652aa09`](https://github.com/NextGenContributions/django-ninja-crudl/commit/652aa09e83b18a4820e6f381bf1970a78208071e))
+
+
 ## v0.5.4 (2025-06-09)
 
 ### Bug Fixes
 
-- Full_clean() not getting called on update
+- Full_clean() not getting called on update (#91)
   ([#91](https://github.com/NextGenContributions/django-ninja-crudl/pull/91),
   [`090fb8e`](https://github.com/NextGenContributions/django-ninja-crudl/commit/090fb8ecf2ffb77ba0217f23554f7856ebed2156))
 
@@ -14,7 +23,7 @@
 
 ### Bug Fixes
 
-- Add missing base filter for delete
+- Add missing base filter for delete (#79)
   ([#79](https://github.com/NextGenContributions/django-ninja-crudl/pull/79),
   [`5eba170`](https://github.com/NextGenContributions/django-ninja-crudl/commit/5eba17072bf330002a8ae10ad6a41ac92e898ef7))
 
@@ -23,7 +32,7 @@
 
 ### Bug Fixes
 
-- Incorrect handling of relation updates
+- Incorrect handling of relation updates (#76)
   ([#76](https://github.com/NextGenContributions/django-ninja-crudl/pull/76),
   [`c61ab05`](https://github.com/NextGenContributions/django-ninja-crudl/commit/c61ab05109059e10239bb6e9147d58e68c3dc8fc))
 
@@ -32,7 +41,7 @@
 
 ### Bug Fixes
 
-- List endpoint support for model's property and related fields
+- List endpoint support for model's property and related fields (#71)
   ([#71](https://github.com/NextGenContributions/django-ninja-crudl/pull/71),
   [`5eee317`](https://github.com/NextGenContributions/django-ninja-crudl/commit/5eee3170ac63e51fb38743e53a65071bdc7524d9))
 
@@ -41,7 +50,7 @@
 
 ### Features
 
-- **#69**: Support serializing pydantic.networks.AnyUrl
+- **#69**: Support serializing pydantic.networks.AnyUrl (#70)
   ([#70](https://github.com/NextGenContributions/django-ninja-crudl/pull/70),
   [`9c1b382`](https://github.com/NextGenContributions/django-ninja-crudl/commit/9c1b3825319ef271ca9664baf56fa4c2012d98dd))
 
@@ -50,7 +59,7 @@
 
 ### Features
 
-- **#63**: Unify error responses by using schemas defined by django-ninja-crudl
+- **#63**: Unify error responses by using schemas defined by django-ninja-crudl (#64)
   ([#64](https://github.com/NextGenContributions/django-ninja-crudl/pull/64),
   [`888ff50`](https://github.com/NextGenContributions/django-ninja-crudl/commit/888ff506b7698faed0ae7b5466a678ac147f396e))
 
@@ -59,29 +68,29 @@
 
 ### Bug Fixes
 
-- Trunk permission to create/update label
+- Trunk permission to create/update label (#52)
   ([#52](https://github.com/NextGenContributions/django-ninja-crudl/pull/52),
   [`20ae156`](https://github.com/NextGenContributions/django-ninja-crudl/commit/20ae15645ebf3e293c46fec919a0cf93183f216b))
 
-- **#48**: Openapi schemas
+- **#48**: OpenAPI schemas (#47)
   ([#47](https://github.com/NextGenContributions/django-ninja-crudl/pull/47),
   [`fbe4719`](https://github.com/NextGenContributions/django-ninja-crudl/commit/fbe471931bbbaea10011b5ca7923437fda679b92))
 
-- **#49**: Openapi specs examples
+- **#49**: OpenAPI specs examples (#50)
   ([#50](https://github.com/NextGenContributions/django-ninja-crudl/pull/50),
   [`08d0161`](https://github.com/NextGenContributions/django-ninja-crudl/commit/08d0161a8dfce2fba978faa7034c5e1e785a47a3))
 
 ### Features
 
-- Add nitpick and configs
+- Add nitpick and configs (#15)
   ([#15](https://github.com/NextGenContributions/django-ninja-crudl/pull/15),
   [`f02a945`](https://github.com/NextGenContributions/django-ninja-crudl/commit/f02a94534177336e4129c683718cf7638b941af3))
 
-- Support different type of Django relationships
+- Support different type of Django relationships (#29)
   ([#29](https://github.com/NextGenContributions/django-ninja-crudl/pull/29),
   [`13c93f2`](https://github.com/NextGenContributions/django-ninja-crudl/commit/13c93f23de9a3c2e21b911b0528b52538eeb2133))
 
-- Support reverse urls and permissions
+- Support reverse urls and permissions (#43)
   ([#43](https://github.com/NextGenContributions/django-ninja-crudl/pull/43),
   [`2e30296`](https://github.com/NextGenContributions/django-ninja-crudl/commit/2e3029654eeb6ab44191256c9ccc7f482c95ab2e))
 
@@ -90,7 +99,8 @@
 
 ### Bug Fixes
 
-- Partial payload patch ([#9](https://github.com/NextGenContributions/django-ninja-crudl/pull/9),
+- Partial payload patch (#9)
+  ([#9](https://github.com/NextGenContributions/django-ninja-crudl/pull/9),
   [`ba5bda5`](https://github.com/NextGenContributions/django-ninja-crudl/commit/ba5bda5be54e50ebe5eaa0ea482517e9d43db5c7))
 
 
