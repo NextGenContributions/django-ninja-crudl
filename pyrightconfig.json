@@ -1,6 +1,6 @@
 {
   "include": ["."],
-  "exclude": ["typings", "out", ".pyre", ".pytype", ".mypy_cache", "*.pyi"],
+  "exclude": ["typings", "out", "**/node_modules", "**/__pycache__", "**/.*"],
   "ignore": ["**/*.pyi"],
   "defineConstant": {
     "DEBUG": true

@@ -8,12 +8,12 @@ from django.db.models import Q
 from django.urls import path
 from django.urls.resolvers import URLResolver
 from django.utils import timezone
-from django2pydantic import Infer
 
 from django_ninja_crudl import (
     BasePermission,
     CrudlConfig,
     CrudlController,
+    Infer,
     RequestDetails,
     Schema,
 )

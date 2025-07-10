@@ -1,6 +1,6 @@
 """Super schema packages."""
 
-from django2pydantic import Infer, ModelFields  # hoisting/bubbling up
+from django2pydantic import Infer, InferExcept, ModelFields  # hoisting/bubbling up
 from ninja_extra import ControllerBase, status  # hoisting/bubbling up
 
 from django_ninja_crudl.config import CrudlConfig
@@ -22,6 +22,7 @@ __all__ = [
     "CrudlConfig",
     "CrudlController",
     "Infer",
+    "InferExcept",
     "ModelFields",
     "ObjectlessActions",
     "PathArgs",

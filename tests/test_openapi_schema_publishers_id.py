@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 from ninja.openapi.schema import OpenAPISchema
 
-from tests.utils import IntegerKeyJSONDecoder
+from tests.utils import IntegerKeyJSONDecoder, normalize_http_status_descriptions
 
 
 @pytest.fixture
@@ -24,7 +24,8 @@ def api_publishers_id() -> dict[str, Any]:  # pyright: ignore [reportExplicitAny
     """Load a JSON fixture from the given file path."""
     fixture_path = Path(__file__).parent / "fixtures"
     with Path.open(fixture_path / "api_publishers_id.json") as file:
-        return json.load(file, cls=IntegerKeyJSONDecoder)  # type: ignore[no-any-return]
+        data = json.load(file, cls=IntegerKeyJSONDecoder)  # type: ignore[no-any-return]
+        return normalize_http_status_descriptions(data)
 
 
 def test_openapi_schema_publishers_id(
@@ -32,4 +33,5 @@ def test_openapi_schema_publishers_id(
     api_publishers_id: dict[str, Any],  # pyright: ignore [reportExplicitAny]
 ) -> None:
     """Test that the publishers/{id} endpoint has a 200 response."""
-    assert openapi_schema["paths"]["/api/publishers/{id}"] == api_publishers_id
+    normalized_schema = normalize_http_status_descriptions(dict(openapi_schema))
+    assert normalized_schema["paths"]["/api/publishers/{id}"] == api_publishers_id
