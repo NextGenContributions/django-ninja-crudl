@@ -73,7 +73,7 @@ tests = [
     "pytest-django>=4.11.1",
     "pytest-xdist[psutil]>=3.8.0",
     "rich>=14.0.0",
-    "schemathesis>=3.39.16,<4",
+    "schemathesis>=4.0.19,<5",
 ]
 
 [tool.uv.sources]
