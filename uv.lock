@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -3342,16 +3342,16 @@ wheels = [
 
 [[package]]
 name = "wemake-python-styleguide"
-version = "1.2.0"
+version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
     { name = "flake8" },
     { name = "pygments" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/67/76/d8155fcfc8dd8e54d12da1b4505ad6cbd0bf65fd98bc5abecf64ab5f1e29/wemake_python_styleguide-1.2.0.tar.gz", hash = "sha256:85a662a9ca8f85ca731924fcac6029ee7ab169bc52160235c6ddd46d9e59797a", size = 156916, upload-time = "2025-07-02T15:22:59.393Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/de/59/489140f56e1d21c1785066f06ec19b539f5bd8f1d572983b9fdc1071979f/wemake_python_styleguide-1.3.0.tar.gz", hash = "sha256:b8fcbeb1271a0a324c30daca2940c4cf769b14215a57ba55412af543cc153c77", size = 156768, upload-time = "2025-07-13T06:22:44.689Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4c/97/aafd60d86390eaeb2013d342a039899e29e6b57927085908d11ba166e5e4/wemake_python_styleguide-1.2.0-py3-none-any.whl", hash = "sha256:38880161cd5d4101ba120aa34e26f4028a536b37729cffe2e3103f7ffe10207b", size = 219143, upload-time = "2025-07-02T15:22:57.88Z" },
+    { url = "https://files.pythonhosted.org/packages/38/75/ded3793e08269a4e0e1551ff94aafc7efd32d21de442b8d3960f314955fa/wemake_python_styleguide-1.3.0-py3-none-any.whl", hash = "sha256:3fd39228b80442f22bc4068c57930c9d468f6f5e91f52ca3b13ba5e286d63fad", size = 218520, upload-time = "2025-07-13T06:22:43.034Z" },
 ]
 
 [[package]]
