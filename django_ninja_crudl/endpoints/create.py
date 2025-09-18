@@ -3,7 +3,8 @@
 from abc import ABC
 from typing import TYPE_CHECKING, Literal, Unpack
 
-from django.db import transaction
+from django.db import connection, transaction
+from django.db.models.fields import NOT_PROVIDED, AutoFieldMixin
 from django.http import HttpRequest
 from ninja_extra import http_post, status
 
@@ -157,8 +158,7 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
             created_obj: TDjangoModel = config.model(  # noqa: F841, SLF001
                 **dict(simple_fields + simple_relations),
             )
-            if clean_err := self._full_clean_obj(created_obj, request):
-                return clean_err
+            self._ensure_object_pk(config.model, created_obj, request)
             if simple_rel_err := self._check_simple_relations(
                 created_obj, simple_relations, request_details
             ):
@@ -180,5 +180,59 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
             self.post_create(request_details)
 
             return 201, created_obj
+
+        def _ensure_object_pk(
+            self,
+            model_class: type[TDjangoModel],
+            created_obj: TDjangoModel,
+            request: HttpRequest,
+        ) -> tuple[Literal[409], ErrorSchema] | None:
+            """Give the object a PK if it doesn't have one.
+
+            Having a PK allows us to save the object only once. Otherwise, the object
+            has to be saved first to obtain a PK, before we can add relations to it.
+
+            Adding relation without having a PK will result in error such as this:
+            "<Book: Some book>" needs to have a value for field "id" before this
+            many-to-many relationship can be used."
+
+            In the worst case scenario, in which we can't insert a PK manually, the
+            object will have to be saved here first. This will result in two separate
+            saves by the end of CREATE request.
+            """
+            if created_obj.pk:  # pyright: ignore[reportAny]
+                # The object already has a pk, all is good!
+                return None
+
+            pk_field = model_class._meta.pk  # pyright: ignore[reportUnknownVariableType]
+            if isinstance(pk_field, AutoFieldMixin):
+                print("is_autofield")
+                created_obj.pk = self._get_next_autofield_pk(model_class)
+            elif pk_field.default and pk_field.default != NOT_PROVIDED:  # pyright: ignore[reportAny]
+                print("is other types with default")
+                created_obj.pk = (
+                    pk_field.default()
+                    if callable(pk_field.default)  # pyright: ignore[reportAny]
+                    else pk_field.default  # pyright: ignore[reportAny]
+                )
+            else:
+                # It wasn't possible to add a PK ourselves, so we need to save the
+                # object first to obtain a PK
+                if clean_err := self._full_clean_obj(created_obj, request):
+                    return clean_err
+
+            return None
+
+        def _get_next_autofield_pk(self, model_class: type[TDjangoModel]) -> int:
+            pk_field_name = model_class._meta.pk.name
+            table_name = model_class._meta.db_table
+
+            # TODO(phuongfi91): Handle potential concurrency issues, lock the table?
+            #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT COALESCE(MAX({pk_field_name}), 0) + 1 FROM {table_name}"
+                )
+                return int(cursor.fetchone()[0])  # pyright: ignore[reportAny]
 
     return CreateEndpoint
