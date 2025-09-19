@@ -10,6 +10,8 @@ from ninja_extra import http_post, status
 
 from django_ninja_crudl.base import CrudlBaseMethodsMixin
 from django_ninja_crudl.config import CrudlConfig
+from django_ninja_crudl.db_table_locker.context_manager import atomic_lock_tables
+from django_ninja_crudl.db_table_locker.locker import DatabaseTableLocker
 from django_ninja_crudl.errors.openapi_extras import (
     not_authorized_openapi_extra,
     throttle_openapi_extra,
@@ -154,17 +156,18 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 )
             )
 
-            # Create the object, validate it, and check simple relations' permission
+            # Create the object and check simple relations' permission
             created_obj: TDjangoModel = config.model(  # noqa: F841, SLF001
                 **dict(simple_fields + simple_relations),
             )
-            self._ensure_object_pk(config.model, created_obj, request)
             if simple_rel_err := self._check_simple_relations(
                 created_obj, simple_relations, request_details
             ):
                 return simple_rel_err
 
             # Update and check complex relations on the created object
+            if complex_relations:  # Such relations can't be saved without a PK
+                self._ensure_object_pk(config.model, created_obj, request)
             if complex_rel_err := self._update_and_check_complex_relations(
                 created_obj,
                 complex_relations,
@@ -204,34 +207,32 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 # The object already has a pk, all is good!
                 return None
 
-            pk_field = model_class._meta.pk  # pyright: ignore[reportUnknownVariableType]
+            pk_field = model_class._meta.pk  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]  # noqa: SLF001
             if isinstance(pk_field, AutoFieldMixin):
-                print("is_autofield")
                 created_obj.pk = self._get_next_autofield_pk(model_class)
             elif pk_field.default and pk_field.default != NOT_PROVIDED:  # pyright: ignore[reportAny]
-                print("is other types with default")
                 created_obj.pk = (
                     pk_field.default()
                     if callable(pk_field.default)  # pyright: ignore[reportAny]
                     else pk_field.default  # pyright: ignore[reportAny]
                 )
-            else:
-                # It wasn't possible to add a PK ourselves, so we need to save the
-                # object first to obtain a PK
-                if clean_err := self._full_clean_obj(created_obj, request):
-                    return clean_err
+            # It wasn't possible to add a PK ourselves, so we need to save the
+            # object first to obtain a PK
+            elif clean_err := self._full_clean_obj(created_obj, request):
+                return clean_err
 
             return None
 
         def _get_next_autofield_pk(self, model_class: type[TDjangoModel]) -> int:
-            pk_field_name = model_class._meta.pk.name
-            table_name = model_class._meta.db_table
+            model_meta = model_class._meta  # noqa: SLF001
+            pk_field_name = model_meta.pk.name  # pyright: ignore[reportUnknownMemberType]
+            table_name = model_meta.db_table
 
             # TODO(phuongfi91): Handle potential concurrency issues, lock the table?
             #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT COALESCE(MAX({pk_field_name}), 0) + 1 FROM {table_name}"
+                    f"SELECT COALESCE(MAX({pk_field_name}), 0) + 1 FROM {table_name}"  # noqa: S608
                 )
                 return int(cursor.fetchone()[0])  # pyright: ignore[reportAny]
 
