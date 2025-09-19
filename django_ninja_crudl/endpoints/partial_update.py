@@ -96,11 +96,9 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | Non
                 self._get_fields_to_set(config.model, payload)  # pyright: ignore [reportUnknownArgumentType]
             )
 
-            # Update the object, validate it, and check simple relations' permission
+            # Update the object, and check simple relations' permission
             for attr_name, attr_value in simple_fields + simple_relations:  # pyright: ignore [reportAny]
                 setattr(obj, attr_name, attr_value)  # noqa: WPS220
-            if clean_err := self._full_clean_obj(obj, request):
-                return clean_err
             if simple_rel_err := self._check_simple_relations(
                 obj, simple_relations, request_details
             ):

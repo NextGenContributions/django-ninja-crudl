@@ -7,6 +7,7 @@ from typing import Any, Generic, Literal, cast
 from beartype import beartype
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, models, transaction
+from django.db.models import QuerySet
 from django.http import HttpRequest
 
 from django_ninja_crudl.errors import (
@@ -142,7 +143,7 @@ class CrudlBaseMethodsMixin(  # noqa: WPS215 too many base classes
             try:
                 update_rel = (
                     self._update_one_to_one_rel
-                    if obj._meta.get_field(rel_field).one_to_one
+                    if obj._meta.get_field(rel_field).one_to_one  # noqa: SLF001  # pyright: ignore[reportUnknownMemberType]
                     else self._update_many_rel
                 )
                 update_rel(obj, rel_field, rel_field_val)
@@ -170,6 +171,8 @@ class CrudlBaseMethodsMixin(  # noqa: WPS215 too many base classes
                 pk__in=rel_field_val,
             )
         )
+        if isinstance(related_objs, QuerySet):
+            self._ensure_state_db(obj, related_objs.first())
         getattr(obj, rel_field).set(related_objs)  # pyright: ignore[reportAny]
 
     def _update_one_to_one_rel(
@@ -195,8 +198,27 @@ class CrudlBaseMethodsMixin(  # noqa: WPS215 too many base classes
         else:
             # Updating the relation
             related_obj = related_model_class._default_manager.get(pk=rel_field_val)  # noqa: SLF001
+            self._ensure_state_db(obj, related_obj)
             setattr(obj, rel_field, related_obj)
             related_obj.save()
+
+    def _ensure_state_db(
+        self, obj: TDjangoModel, related_obj: TDjangoModel | None
+    ) -> None:
+        """Ensure the object's state db is set prior to relation assignment.
+
+        This is needed if the object has not yet been saved in DB and a related field
+        need to be set on it. Without this, an error such as this would be raised:
+            ValueError: Cannot add "<Author: Some author 1>": instance is on database
+            "None", value is on database "default"
+        """
+        if related_obj is None:
+            # There's no related object to reference its DB, this should not cause
+            # any errors to be raised since there's no relations to set on the object.
+            return
+
+        if obj._state.db is None:  # noqa: SLF001
+            obj._state.db = related_obj._state.db  # noqa: SLF001
 
     def _full_clean_obj(
         self, obj: models.Model, request: HttpRequest
@@ -208,7 +230,7 @@ class CrudlBaseMethodsMixin(  # noqa: WPS215 too many base classes
             # TODO(phuongfi91): should this be also done in a through model?
             #  (if the manytomanyfield has a through model set)
             #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
-            with validating_manager(obj._meta.model):
+            with validating_manager(obj._meta.model):  # noqa: SLF001
                 obj.save()
         except (IntegrityError, ValidationError) as error:
             # revert the transaction
