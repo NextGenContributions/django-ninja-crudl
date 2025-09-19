@@ -12,6 +12,7 @@ from django_ninja_crudl.base import CrudlBaseMethodsMixin
 from django_ninja_crudl.config import CrudlConfig
 from django_ninja_crudl.db_table_locker.context_manager import atomic_lock_tables
 from django_ninja_crudl.db_table_locker.locker import DatabaseTableLocker
+from django_ninja_crudl.errors import ErrorSchema
 from django_ninja_crudl.errors.openapi_extras import (
     not_authorized_openapi_extra,
     throttle_openapi_extra,
@@ -165,19 +166,37 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
             ):
                 return simple_rel_err
 
-            # Update and check complex relations on the created object
-            if complex_relations:  # Such relations can't be saved without a PK
-                self._ensure_object_pk(config.model, created_obj, request)
-            if complex_rel_err := self._update_and_check_complex_relations(
-                created_obj,
-                complex_relations,
-                request_details,
-            ):
-                return complex_rel_err
+            def finalize_obj_creation() -> tuple[Literal[404, 409], ErrorSchema] | None:
+                # Update and check complex relations on the created object
+                if complex_rel_err := self._update_and_check_complex_relations(
+                    created_obj,
+                    complex_relations,
+                    request_details,
+                ):
+                    return complex_rel_err
 
-            # Fully validate the created object as well as its related objects
-            if clean_err := self._full_clean_obj(created_obj, request):
-                return clean_err
+                # Fully validate the created object as well as its related objects
+                if clean_err := self._full_clean_obj(created_obj, request):
+                    return clean_err
+
+                return None
+
+            # Complex relations can't be saved without a PK
+            # We'll lock the table here to generate a PK without saving the object
+            # The locking is necessary especially for auto-incrementing PKs like
+            # AutoField.
+            # The lock can only be released after the object is finalized and saved.
+            if complex_relations:
+                with atomic_lock_tables(
+                    tables=config.model, lock_mode=DatabaseTableLocker.LOCK_EXCLUSIVE
+                ):
+                    self._ensure_object_pk(config.model, created_obj, request)
+
+                    if err := finalize_obj_creation():
+                        return err
+
+            elif err := finalize_obj_creation():
+                return err
 
             request_details.object = created_obj
             self.post_create(request_details)
@@ -228,8 +247,6 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
             pk_field_name = model_meta.pk.name  # pyright: ignore[reportUnknownMemberType]
             table_name = model_meta.db_table
 
-            # TODO(phuongfi91): Handle potential concurrency issues, lock the table?
-            #  https://github.com/NextGenContributions/django-ninja-crudl/issues/35
             with connection.cursor() as cursor:
                 cursor.execute(
                     f"SELECT COALESCE(MAX({pk_field_name}), 0) + 1 FROM {table_name}"  # noqa: S608

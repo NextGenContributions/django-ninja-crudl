@@ -1,5 +1,7 @@
 """Provide database-agnostic table locking utilities for Django."""
 
+# TODO(phuongfi91): Properly test DB table locking in all supported databases
+
 import logging
 from typing import final
 
