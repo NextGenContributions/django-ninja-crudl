@@ -1,4 +1,5 @@
 """App config."""
+
 from typing import override
 
 from django.apps import AppConfig as BaseAppConfig
