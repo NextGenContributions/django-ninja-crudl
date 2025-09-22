@@ -1,8 +1,8 @@
 """Shared types for the CRUDL classes."""
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Generic, Literal, TypedDict, TypeVar
+from typing import Any, Generic, Literal, NamedTuple, TypedDict, TypeVar
 
 from beartype import beartype
 from django.db.models import (
@@ -100,3 +100,10 @@ class RequestDetails(Generic[TDjangoModel]):  # pylint: disable=too-many-instanc
 
     related_object: TDjangoModel | None = None
     """The related Django model object to use."""
+
+
+class RegisteredReceiver(NamedTuple):
+    """A registered Django signal receiver."""
+
+    receiver_key: int | tuple[int, int]
+    receiver: Callable[[Any], Any]  # pyright: ignore[reportExplicitAny]

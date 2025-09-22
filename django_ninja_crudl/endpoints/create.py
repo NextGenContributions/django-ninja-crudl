@@ -1,18 +1,17 @@
 """CRUDL API base class."""
 
+import weakref
 from abc import ABC
 from typing import TYPE_CHECKING, Literal, Unpack
 
-from django.db import connection, transaction
-from django.db.models.fields import NOT_PROVIDED, AutoFieldMixin
+from django.db import transaction
+from django.db.models.signals import ModelSignal, post_save, pre_save
+from django.dispatch.dispatcher import _make_id  # type: ignore[attr-defined]
 from django.http import HttpRequest
 from ninja_extra import http_post, status
 
 from django_ninja_crudl.base import CrudlBaseMethodsMixin
 from django_ninja_crudl.config import CrudlConfig
-from django_ninja_crudl.db_table_locker.context_manager import atomic_lock_tables
-from django_ninja_crudl.db_table_locker.locker import DatabaseTableLocker
-from django_ninja_crudl.errors import ErrorSchema
 from django_ninja_crudl.errors.openapi_extras import (
     not_authorized_openapi_extra,
     throttle_openapi_extra,
@@ -28,6 +27,7 @@ from django_ninja_crudl.errors.schemas import (
 )
 from django_ninja_crudl.types import (
     JSON,
+    RegisteredReceiver,
     RequestDetails,
     RequestParams,
     TDjangoModel,
@@ -157,100 +157,85 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 )
             )
 
-            # Create the object and check simple relations' permission
+            # Disconnect and backup signals to avoid triggering them twice during create
+            d_pre_save_signals = self._disconnect_signals(pre_save, config.model)
+            d_post_save_signals = self._disconnect_signals(post_save, config.model)
+
+            # Create the object, validate it, and check simple relations' permission
             created_obj: TDjangoModel = config.model(  # noqa: F841, SLF001
                 **dict(simple_fields + simple_relations),
             )
+            if clean_err := self._full_clean_obj(created_obj, request):
+                return clean_err
             if simple_rel_err := self._check_simple_relations(
                 created_obj, simple_relations, request_details
             ):
                 return simple_rel_err
 
-            def finalize_obj_creation() -> tuple[Literal[404, 409], ErrorSchema] | None:
-                # Update and check complex relations on the created object
-                if complex_rel_err := self._update_and_check_complex_relations(
-                    created_obj,
-                    complex_relations,
-                    request_details,
-                ):
-                    return complex_rel_err
+            # Update and check complex relations on the created object
+            if complex_rel_err := self._update_and_check_complex_relations(
+                created_obj,
+                complex_relations,
+                request_details,
+            ):
+                return complex_rel_err
 
-                # Fully validate the created object as well as its related objects
-                if clean_err := self._full_clean_obj(created_obj, request):
-                    return clean_err
+            # Reconnect previously backed up save signals
+            self._reconnect_signals(pre_save, config.model, d_pre_save_signals)
+            self._reconnect_signals(post_save, config.model, d_post_save_signals)
 
-                return None
-
-            # Complex relations can't be saved without a PK
-            # We'll lock the table here to generate a PK without saving the object
-            # The locking is necessary especially for auto-incrementing PKs like
-            # AutoField.
-            # The lock can only be released after the object is finalized and saved.
-            if complex_relations:
-                with atomic_lock_tables(
-                    tables=config.model, lock_mode=DatabaseTableLocker.LOCK_EXCLUSIVE
-                ):
-                    self._ensure_object_pk(config.model, created_obj, request)
-
-                    if err := finalize_obj_creation():
-                        return err
-
-            elif err := finalize_obj_creation():
-                return err
+            # Fully validate the created object as well as its related objects
+            if clean_err := self._full_clean_obj(created_obj, request):
+                return clean_err
 
             request_details.object = created_obj
             self.post_create(request_details)
 
             return 201, created_obj
 
-        def _ensure_object_pk(
+        def _disconnect_signals(
+            self, signal: ModelSignal, model_class: type[TDjangoModel]
+        ) -> list[RegisteredReceiver]:
+            """Disconnect the signals that are connected to the model."""
+            model_sender_key = _make_id(model_class)  # pyright: ignore[reportUnknownVariableType]
+
+            disconnected_signals: list[RegisteredReceiver] = []
+            for (receiver_key, sender_key), receiver, _ in signal.receivers:  # pyright: ignore[reportAny]
+                if sender_key != model_sender_key:
+                    continue
+
+                disconnected = signal.disconnect(  # pyright: ignore[reportUnknownMemberType]
+                    dispatch_uid=receiver_key,  # pyright: ignore[reportAny]
+                    sender=model_class,
+                )
+                if not disconnected:
+                    msg = f"Failed to disconnect {receiver} from signal {signal}."
+                    raise RuntimeError(msg)
+
+                disconnected_signals.append(
+                    RegisteredReceiver(
+                        receiver_key=receiver_key,  # pyright: ignore[reportAny]
+                        # Dereference the weak reference if needed.
+                        receiver=receiver()  # type: ignore[arg-type]
+                        if isinstance(receiver, weakref.ReferenceType)
+                        else receiver,
+                    )
+                )
+
+            return disconnected_signals
+
+        def _reconnect_signals(
             self,
+            signal: ModelSignal,
             model_class: type[TDjangoModel],
-            created_obj: TDjangoModel,
-            request: HttpRequest,
-        ) -> tuple[Literal[409], ErrorSchema] | None:
-            """Give the object a PK if it doesn't have one.
-
-            Having a PK allows us to save the object only once. Otherwise, the object
-            has to be saved first to obtain a PK, before we can add relations to it.
-
-            Adding relation without having a PK will result in error such as this:
-            "<Book: Some book>" needs to have a value for field "id" before this
-            many-to-many relationship can be used."
-
-            In the worst case scenario, in which we can't insert a PK manually, the
-            object will have to be saved here first. This will result in two separate
-            saves by the end of CREATE request.
-            """
-            if created_obj.pk:  # pyright: ignore[reportAny]
-                # The object already has a pk, all is good!
-                return None
-
-            pk_field = model_class._meta.pk  # pyright: ignore[reportUnknownVariableType, reportUnknownMemberType]  # noqa: SLF001
-            if isinstance(pk_field, AutoFieldMixin):
-                created_obj.pk = self._get_next_autofield_pk(model_class)
-            elif pk_field.default and pk_field.default != NOT_PROVIDED:  # pyright: ignore[reportAny]
-                created_obj.pk = (
-                    pk_field.default()
-                    if callable(pk_field.default)  # pyright: ignore[reportAny]
-                    else pk_field.default  # pyright: ignore[reportAny]
+            registered_receivers: list[RegisteredReceiver],
+        ) -> None:
+            """Reconnect the signals that were disconnected by `_disconnect_signals`."""
+            for receiver_key, receiver in registered_receivers:
+                signal.connect(  # pyright: ignore[reportUnknownMemberType]
+                    receiver=receiver,
+                    sender=model_class,
+                    dispatch_uid=receiver_key,  # type: ignore[arg-type]
                 )
-            # It wasn't possible to add a PK ourselves, so we need to save the
-            # object first to obtain a PK
-            elif clean_err := self._full_clean_obj(created_obj, request):
-                return clean_err
-
-            return None
-
-        def _get_next_autofield_pk(self, model_class: type[TDjangoModel]) -> int:
-            model_meta = model_class._meta  # noqa: SLF001
-            pk_field_name = model_meta.pk.name  # pyright: ignore[reportUnknownMemberType]
-            table_name = model_meta.db_table
-
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    f"SELECT COALESCE(MAX({pk_field_name}), 0) + 1 FROM {table_name}"  # noqa: S608
-                )
-                return int(cursor.fetchone()[0])  # pyright: ignore[reportAny]
 
     return CreateEndpoint

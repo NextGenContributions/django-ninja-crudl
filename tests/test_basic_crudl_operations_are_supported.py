@@ -1,10 +1,31 @@
 """Test the API endpoints."""
 
+from unittest.mock import patch
+
 import pytest
 from django.test import Client
 from ninja_extra import status
 
 from tests.test_django.app.models import Publisher
+
+
+@pytest.mark.django_db
+def test_publisher_save_signals_are_called_only_once(client: Client) -> None:
+    """Test that the save signals are called only once during POST request."""
+    with (
+        patch("tests.test_django.app.signals.pre_save_publisher_mock") as pre_save,
+        patch("tests.test_django.app.signals.post_save_publisher_mock") as post_save,
+    ):
+        _ = client.post(
+            "/api/publishers",
+            content_type="application/json",
+            data={
+                "name": "Some publisher",
+                "address": "Some address",
+            },
+        )
+        pre_save.assert_called_once()
+        post_save.assert_called_once()
 
 
 @pytest.mark.django_db
