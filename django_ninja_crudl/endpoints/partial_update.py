@@ -92,12 +92,14 @@ def get_partial_update_endpoint(config: CrudlConfig[TDjangoModel]) -> type | Non
                 return self.get_404_error(request)
             self.pre_patch(request_details)
 
-            simple_fields, simple_relations, complex_relations = (
+            simple_fields, property_fields, simple_relations, complex_relations = (
                 self._get_fields_to_set(config.model, payload)  # pyright: ignore [reportUnknownArgumentType]
             )
 
             # Update the object, and check simple relations' permission
-            for attr_name, attr_value in simple_fields + simple_relations:  # pyright: ignore [reportAny]
+            for attr_name, attr_value in (
+                simple_fields + property_fields + simple_relations
+            ):  # pyright: ignore [reportAny]
                 setattr(obj, attr_name, attr_value)  # noqa: WPS220
             if simple_rel_err := self._check_simple_relations(
                 obj, simple_relations, request_details

@@ -51,9 +51,15 @@ class UtilitiesMixin(Generic[TDjangoModel]):
         model_class: type[TDjangoModel],
         payload: BaseModel,
         path_params: PathArgs | None = None,
-    ) -> tuple[list[DjangoFieldType], list[DjangoFieldType], list[DjangoFieldType]]:
+    ) -> tuple[
+        list[DjangoFieldType],
+        list[DjangoFieldType],
+        list[DjangoFieldType],
+        list[DjangoFieldType],
+    ]:
         """Get the fields to set for the create/update operations."""
         simple_fields: list[DjangoFieldType] = []
+        property_fields: list[DjangoFieldType] = []
         simple_relations: list[DjangoFieldType] = []
         complex_relations: list[DjangoFieldType] = []
 
@@ -77,11 +83,14 @@ class UtilitiesMixin(Generic[TDjangoModel]):
             }:
                 complex_relations.append((field, field_value))
 
+            elif type(field_type) is property:
+                property_fields.append((field, field_value))
+
             else:
                 # Non-relational fields
                 simple_fields.append((field, field_value))
 
-        return simple_fields, simple_relations, complex_relations
+        return simple_fields, property_fields, simple_relations, complex_relations
 
     def get_model_filter_args(
         self,

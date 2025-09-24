@@ -149,7 +149,7 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 return self.get_403_error(request)
             self.pre_create(request_details)
 
-            simple_fields, simple_relations, complex_relations = (
+            simple_fields, property_fields, simple_relations, complex_relations = (
                 self._get_fields_to_set(
                     config.model,
                     payload,  # pyright: ignore [reportUnknownArgumentType]
@@ -167,6 +167,10 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
             )
             if clean_err := self._full_clean_obj(created_obj, request):
                 return clean_err
+            # Saving properties prior to saving the object will raise exception such as:
+            # ValueError: save() prohibited to prevent data loss due to unsaved related object 'model_name'
+            for attr_name, attr_value in property_fields:  # pyright: ignore [reportAny]
+                setattr(created_obj, attr_name, attr_value)  # noqa: WPS220
             if simple_rel_err := self._check_simple_relations(
                 created_obj, simple_relations, request_details
             ):

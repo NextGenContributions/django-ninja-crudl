@@ -4,10 +4,11 @@ import inspect
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, final
+from typing import Any, cast, final
 
 from beartype import beartype
 from django.contrib.contenttypes.fields import GenericForeignKey
+from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Field, ForeignObjectRel
 from django.http import HttpRequest
 from django2pydantic import BaseSchema
@@ -19,13 +20,21 @@ from django_ninja_crudl.types import TDjangoModel
 
 def get_model_field(
     model_class: type[TDjangoModel], field_name: str
-) -> Field[Any, Any] | ForeignObjectRel | GenericForeignKey:
+) -> Field[Any, Any] | ForeignObjectRel | GenericForeignKey | property:  # pyright: ignore[reportExplicitAny]
     """Get the field object from Django's model class.
 
     Exceptions:
         - FieldDoesNotExist: If the field does not exist in the model.
     """
-    return model_class._meta.get_field(field_name)  # noqa: SLF001  # pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
+    try:
+        return model_class._meta.get_field(field_name)  # noqa: SLF001  # pyright: ignore [reportUnknownMemberType, reportUnknownVariableType]
+    except FieldDoesNotExist:
+        if field_name in model_class._meta._property_names and hasattr(  # type: ignore[attr-defined]
+            model_class, field_name
+        ):
+            return cast(property, getattr(model_class, field_name))
+
+        raise
 
 
 def get_path_spec_args(path_spec: str) -> list[str]:
