@@ -132,3 +132,60 @@ def test_delete_resource_works(client: Client) -> None:
     assert response.status_code == status.HTTP_204_NO_CONTENT, response.json()
     with pytest.raises(Publisher.DoesNotExist):
         p.refresh_from_db()
+
+
+@pytest.mark.django_db
+def test_create_property_with_post_works(client: Client) -> None:
+    """Test creating a resource that has a property with POST request."""
+    response = client.post(
+        f"/api/publishers",
+        content_type="application/json",
+        data={
+            "name": "Some publisher",
+            "address": "Some address",
+            "website": "https://some-publisher.com",
+        },
+    )
+    assert response.status_code == status.HTTP_201_CREATED, response.json()
+    p = Publisher.objects.get(id=response.json()["id"])
+    assert p.name == "Some publisher"
+    assert p.address == "Some address"
+    assert str(p.website) == "https://some-publisher.com/"
+
+
+@pytest.mark.django_db
+def test_update_property_with_put_patch_works(client: Client) -> None:
+    """Test updating a resource that has a property with PUT/PATCH request."""
+    p: Publisher = Publisher.objects.create(
+        name="Some publisher",
+        address="Some address",
+    )
+    # PATCH
+    response = client.patch(
+        f"/api/publishers/{p.id}",
+        content_type="application/json",
+        data={
+            "website": "https://some-publisher.com",
+        },
+    )
+    assert response.status_code == status.HTTP_200_OK, response.json()
+    p.refresh_from_db()
+    assert p.name == "Some publisher"
+    assert p.address == "Some address"
+    assert str(p.website) == "https://some-publisher.com/"
+
+    # PUT
+    response = client.put(
+        f"/api/publishers/{p.id}",
+        content_type="application/json",
+        data={
+            "name": "Updated publisher",
+            "address": "Updated address",
+            "website": "https://updated-publisher.com",
+        },
+    )
+    assert response.status_code == status.HTTP_200_OK, response.json()
+    p.refresh_from_db()
+    assert p.name == "Updated publisher"
+    assert p.address == "Updated address"
+    assert str(p.website) == "https://updated-publisher.com/"
