@@ -4,6 +4,7 @@ from typing import override
 
 from django.contrib.auth.models import User
 from django.db import models
+from pydantic import HttpUrl
 
 
 class BaseModel(models.Model):
@@ -84,6 +85,17 @@ class AmazonAuthorProfile(BaseModel):
         return f"{self.author.name}: {self.description}"
 
 
+class PublisherWebsite(BaseModel):
+    """Model for a website."""
+
+    id: int  # Just for type hinting
+    url = models.URLField[str, str](max_length=200)
+    publisher = models.ForeignKey("app.Publisher", on_delete=models.CASCADE)
+
+    class Meta:
+        default_related_name = "websites"
+
+
 class Publisher(BaseModel):
     """Model for a book publisher."""
 
@@ -97,6 +109,19 @@ class Publisher(BaseModel):
         """Meta options for the model."""
 
         default_related_name = "publishers"
+
+    @property
+    def website(self) -> HttpUrl | None:
+        latest_website = (
+            PublisherWebsite.objects.filter(publisher=self).order_by("-id").first()
+        )
+        return HttpUrl(latest_website.url) if latest_website else None
+
+    @website.setter
+    def website(self, url: HttpUrl | None) -> None:
+        if not url:
+            return
+        PublisherWebsite.objects.create(publisher=self, url=str(url))
 
     @override
     def __str__(self) -> str:

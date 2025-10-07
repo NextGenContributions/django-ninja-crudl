@@ -14,6 +14,7 @@ from django_ninja_crudl import (
     CrudlConfig,
     CrudlController,
     Infer,
+    InferExcept,
     RequestDetails,
     Schema,
 )
@@ -316,12 +317,14 @@ class PublisherCrudl(CrudlController[Publisher], DefaultFilter[Publisher]):  # p
             fields={
                 "name": Infer,
                 "address": Infer,
+                "website": InferExcept(default=None),  # optional field
             }
         ),
         update_schema=Schema[Publisher](
             fields={
                 "name": Infer,
                 "address": Infer,
+                "website": InferExcept(default=None),  # optional field
             }
         ),
         get_one_schema=Schema[Publisher](
