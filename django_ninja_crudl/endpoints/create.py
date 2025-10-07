@@ -1,9 +1,12 @@
 """CRUDL API base class."""
 
+import weakref
 from abc import ABC
 from typing import TYPE_CHECKING, Literal, Unpack
 
 from django.db import transaction
+from django.db.models.signals import ModelSignal, post_save, pre_save
+from django.dispatch.dispatcher import _make_id  # type: ignore[attr-defined]
 from django.http import HttpRequest
 from ninja_extra import http_post, status
 
@@ -24,6 +27,7 @@ from django_ninja_crudl.errors.schemas import (
 )
 from django_ninja_crudl.types import (
     JSON,
+    RegisteredReceiver,
     RequestDetails,
     RequestParams,
     TDjangoModel,
@@ -145,7 +149,7 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 return self.get_403_error(request)
             self.pre_create(request_details)
 
-            simple_fields, simple_relations, complex_relations = (
+            simple_fields, property_fields, simple_relations, complex_relations = (
                 self._get_fields_to_set(
                     config.model,
                     payload,  # pyright: ignore [reportUnknownArgumentType]
@@ -153,12 +157,20 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
                 )
             )
 
+            # Disconnect and backup signals to avoid triggering them twice during create
+            d_pre_save_signals = self._disconnect_signals(pre_save, config.model)
+            d_post_save_signals = self._disconnect_signals(post_save, config.model)
+
             # Create the object, validate it, and check simple relations' permission
             created_obj: TDjangoModel = config.model(  # noqa: F841, SLF001
                 **dict(simple_fields + simple_relations),
             )
             if clean_err := self._full_clean_obj(created_obj, request):
                 return clean_err
+            # Saving properties prior to saving the object will raise exception such as:
+            # ValueError: save() prohibited to prevent data loss due to unsaved related object 'model_name'
+            for attr_name, attr_value in property_fields:  # pyright: ignore [reportAny]
+                setattr(created_obj, attr_name, attr_value)  # noqa: WPS220
             if simple_rel_err := self._check_simple_relations(
                 created_obj, simple_relations, request_details
             ):
@@ -172,6 +184,10 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
             ):
                 return complex_rel_err
 
+            # Reconnect previously backed up save signals
+            self._reconnect_signals(pre_save, config.model, d_pre_save_signals)
+            self._reconnect_signals(post_save, config.model, d_post_save_signals)
+
             # Fully validate the created object as well as its related objects
             if clean_err := self._full_clean_obj(created_obj, request):
                 return clean_err
@@ -180,5 +196,50 @@ def get_create_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:
             self.post_create(request_details)
 
             return 201, created_obj
+
+        def _disconnect_signals(
+            self, signal: ModelSignal, model_class: type[TDjangoModel]
+        ) -> list[RegisteredReceiver]:
+            """Disconnect the signals that are connected to the model."""
+            model_sender_key = _make_id(model_class)  # pyright: ignore[reportUnknownVariableType]
+
+            disconnected_signals: list[RegisteredReceiver] = []
+            for (receiver_key, sender_key), receiver, _ in signal.receivers:  # pyright: ignore[reportAny]
+                if sender_key != model_sender_key:
+                    continue
+
+                disconnected = signal.disconnect(  # pyright: ignore[reportUnknownMemberType]
+                    dispatch_uid=receiver_key,  # pyright: ignore[reportAny]
+                    sender=model_class,
+                )
+                if not disconnected:
+                    msg = f"Failed to disconnect {receiver} from signal {signal}."
+                    raise RuntimeError(msg)
+
+                disconnected_signals.append(
+                    RegisteredReceiver(
+                        receiver_key=receiver_key,  # pyright: ignore[reportAny]
+                        # Dereference the weak reference if needed.
+                        receiver=receiver()  # type: ignore[arg-type]
+                        if isinstance(receiver, weakref.ReferenceType)
+                        else receiver,
+                    )
+                )
+
+            return disconnected_signals
+
+        def _reconnect_signals(
+            self,
+            signal: ModelSignal,
+            model_class: type[TDjangoModel],
+            registered_receivers: list[RegisteredReceiver],
+        ) -> None:
+            """Reconnect the signals that were disconnected by `_disconnect_signals`."""
+            for receiver_key, receiver in registered_receivers:
+                signal.connect(  # pyright: ignore[reportUnknownMemberType]
+                    receiver=receiver,
+                    sender=model_class,
+                    dispatch_uid=receiver_key,  # type: ignore[arg-type]
+                )
 
     return CreateEndpoint

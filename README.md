@@ -465,6 +465,53 @@ class MyModel(models.Model):
 
 ```
 
+### Writable property field
+
+In case your model's property field need to be writable, you can implement the following:
+
+```python
+from django.db import models
+
+class MyModel(models.Model):
+    id = models.AutoField(primary_key=True)
+    _value = models.CharField(max_length=255, default="")
+    
+    @property
+    def my_value(self) -> str:
+        return self._value
+
+    @my_value.setter
+    def my_value(self, value: str) -> None:
+        self._value = value
+```
+
+
+```python
+# crudl.py:
+
+from django_ninja_crudl import CrudlController, CrudlConfig, Infer, InferExcept, Schema
+from .models import MyModel
+
+class MyModelCrudl(CrudlController[MyModel]):
+    config = CrudlConfig[MyModel](
+        model=MyModel,
+        base_path="/my_model",
+        create_schema=Schema[MyModel](
+            fields={
+                "id": Infer,
+                "my_value": Infer,
+            }
+        ),
+        update_schema=Schema[MyModel](
+            fields={
+                "my_value": Infer,
+                # Alternatively to make the field optional, give it a default value:
+                # "my_value": InferExcept(default=""),
+            }
+        ),
+    )
+```
+
 ## Validations
 
 The framework provides the following validations:
