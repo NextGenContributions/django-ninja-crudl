@@ -1,6 +1,25 @@
 # CHANGELOG
 
 
+## v0.7.0 (2025-10-08)
+
+### Bug Fixes
+
+- Test runs with nox should respect uv.lock deps (#187)
+  ([#187](https://github.com/NextGenContributions/django-ninja-crudl/pull/187),
+  [`f0ea783`](https://github.com/NextGenContributions/django-ninja-crudl/commit/f0ea783cbebf5e2be4753153135344ab4a525488))
+
+- **#173**: CREATE/PUT/PATCH requests can trigger two separate save signals (#174)
+  ([#174](https://github.com/NextGenContributions/django-ninja-crudl/pull/174),
+  [`6874cec`](https://github.com/NextGenContributions/django-ninja-crudl/commit/6874cec5bc227602211e317c80df079db4e0fc99))
+
+### Features
+
+- **#176**: Support property field in POST/PUT/PATCH requests (#177)
+  ([#177](https://github.com/NextGenContributions/django-ninja-crudl/pull/177),
+  [`622df45`](https://github.com/NextGenContributions/django-ninja-crudl/commit/622df45453b6651efcf03e60920fdacdfbf4cd0a))
+
+
 ## v0.6.0 (2025-07-10)
 
 ### Features
