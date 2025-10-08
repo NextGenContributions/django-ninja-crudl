@@ -13,7 +13,17 @@ nox.options.default_venv_backend = "uv"
 @nox.parametrize("django_version", ["5.1", "5.2"])
 def tests(session: nox.Session, django_version: str) -> None:
     """Run the test suite."""
-    session.install(".", f"django=={django_version}", "--group", "tests")
+    # https://nox.thea.codes/en/stable/cookbook.html#using-a-lockfile
+    session.run_install(
+        "uv",
+        "sync",
+        "--no-dev",
+        "--group=tests",
+        f"--python={session.virtualenv.location}",
+        env={"UV_PROJECT_ENVIRONMENT": session.virtualenv.location},
+    )
+    # Override django version from lockfile
+    session.install(f"django=={django_version}")
     session.run("pytest", "-vv")
 
 
