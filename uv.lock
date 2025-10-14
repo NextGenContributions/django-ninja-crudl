@@ -735,15 +735,15 @@ compatible-mypy = [
 
 [[package]]
 name = "django-stubs-ext"
-version = "5.2.0"
+version = "5.2.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7c/7a/84338605817960942c1ea9d852685923ccccd0d91ba0d49532605973491f/django_stubs_ext-5.2.0.tar.gz", hash = "sha256:00c4ae307b538f5643af761a914c3f8e4e3f25f4e7c6d7098f1906c0d8f2aac9", size = 9618, upload-time = "2025-04-26T10:48:38.05Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9b/6f/a0bab0e6a7676ab3ca02d51b459444e9bd6dd747e3a43b9c24cae6d0a1c6/django_stubs_ext-5.2.7.tar.gz", hash = "sha256:b690655bd4cb8a44ae57abb314e0995dc90414280db8f26fff0cb9fb367d1cac", size = 6524, upload-time = "2025-10-08T08:00:38.895Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e2/65/9f5ca467d84a67c0c547f10b0ece9fd9c26c5efc818a01bf6a3d306c2a0c/django_stubs_ext-5.2.0-py3-none-any.whl", hash = "sha256:b27ae0aab970af4894ba4e9b3fcd3e03421dc8731516669659ee56122d148b23", size = 9066, upload-time = "2025-04-26T10:48:36.032Z" },
+    { url = "https://files.pythonhosted.org/packages/f8/c9/60445606e26706d3fccadf3b80ee1a9f32c1012683ff2ada7580937b2da9/django_stubs_ext-5.2.7-py3-none-any.whl", hash = "sha256:0466a7132587d49c5bbe12082ac9824d117a0dedcad5d0ada75a6e0d3aca6f60", size = 9979, upload-time = "2025-10-08T08:00:37.499Z" },
 ]
 
 [[package]]
