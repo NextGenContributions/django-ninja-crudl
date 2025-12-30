@@ -5,6 +5,7 @@ from abc import ABC
 from typing import TYPE_CHECKING, Literal, Unpack
 
 from django.db import router, transaction
+from django.db.models import ProtectedError
 from django.db.models.deletion import Collector
 from django.http import HttpRequest
 from ninja_extra import http_delete, status
@@ -15,6 +16,7 @@ from django_ninja_crudl.errors.schemas import (
     Error401UnauthorizedSchema,
     Error403ForbiddenSchema,
     Error404NotFoundSchema,
+    Error409ConflictSchema,
     Error422UnprocessableEntitySchema,
     Error503ServiceUnavailableSchema,
     ErrorSchema,
@@ -47,6 +49,7 @@ def get_delete_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
                 status.HTTP_401_UNAUTHORIZED: Error401UnauthorizedSchema,
                 status.HTTP_403_FORBIDDEN: Error403ForbiddenSchema,
                 status.HTTP_404_NOT_FOUND: Error404NotFoundSchema,
+                status.HTTP_409_CONFLICT: Error409ConflictSchema,
                 status.HTTP_422_UNPROCESSABLE_ENTITY: Error422UnprocessableEntitySchema,
                 status.HTTP_503_SERVICE_UNAVAILABLE: Error503ServiceUnavailableSchema,
             },
@@ -57,7 +60,9 @@ def get_delete_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
             self,
             request: HttpRequest,
             **kwargs: Unpack[RequestParams],
-        ) -> tuple[Literal[401, 403, 404], ErrorSchema] | tuple[Literal[204], None]:
+        ) -> (
+            tuple[Literal[401, 403, 404, 409], ErrorSchema] | tuple[Literal[204], None]
+        ):
             """Delete the object by id."""
             request_details = RequestDetails[TDjangoModel](
                 action="delete",
@@ -83,7 +88,10 @@ def get_delete_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
                 return self.get_404_error(request)
 
             self.pre_delete(request_details)
-            self.delete_obj(obj, request_details, mode=config.delete_options.mode)
+            try:
+                self.delete_obj(obj, request_details, mode=config.delete_options.mode)
+            except ProtectedError as exc:
+                return self.get_409_error(request, exception=exc)
             self.post_delete(request_details)
             return 204, None
 
