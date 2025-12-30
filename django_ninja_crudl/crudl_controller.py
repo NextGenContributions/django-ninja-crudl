@@ -23,7 +23,7 @@ from django_ninja_crudl.endpoints import (
 )
 from django_ninja_crudl.types import DictStrAny, TDjangoModel
 
-logger: logging.Logger = logging.getLogger("django_ninja_crudl")
+logger = logging.getLogger(__name__)
 
 
 class CrudlMeta(ABCMeta):
