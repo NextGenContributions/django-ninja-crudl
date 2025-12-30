@@ -277,7 +277,7 @@ class BookCopy(BaseModel):
     """Model for a book copy."""
 
     book = models.ForeignKey[Book, Book](
-        Book, on_delete=models.CASCADE
+        Book, on_delete=models.PROTECT
     )  # Foreign Key relationship
     library = models.ForeignKey[Library | None, Library | None](
         Library,
