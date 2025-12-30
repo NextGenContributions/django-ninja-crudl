@@ -106,15 +106,18 @@ class MyModelCrudl(CrudlController[MyModel]):
                 },
             }
         ),
-        delete_allowed=True,
+        delete_options=DeleteOptions(
+            allowed=True,
+            mode="hard",  # or "soft" if you implement soft_delete()
+        )
     )
 ```
 
 **NOTE:** In order to avoid accidentally exposing sensitive fields, you need to explicitly define the model fields that shall be exposed via the CRUDL endpoints. Some other libraries support exposing all fields (with optional exclude) which can lead to unintentional exposure of sensitive data.
 
-**NOTE:** If any of `create_schema`, `update_schema`, `get_one_schema`, or `list_schema` are not defined or are set as `None`, then that specific endpoint will not be exposed. If `delete_allowed` is not defined or set as `False`, then the delete endpoint will not be exposed.
+**NOTE:** If any of `create_schema`, `update_schema`, `get_one_schema`, or `list_schema` are not defined or are set as `None`, then that specific endpoint will not be exposed. If `delete_options` is not defined or `allowed` is set as `False`, then the delete endpoint will not be exposed.
 
-**NOTE:** For delete operation, it currently performs a hard delete by default. You might customize the delete operation to perform a soft delete by [overriding the delete method in the model]().
+**NOTE:** For delete operation, it currently performs a hard delete by default. You might customize the delete operation to perform a soft delete by [overriding the delete method in the model]() or **alternatively** by setting `mode="soft"` in the `DeleteOptions` and implementing the `soft_delete()` method in your model CRUDL config.
 
 **NOTE:** The `Infer` class from the [django2pydantic](https://github.com/NextGenContributions/django2pydantic) library is used to tell that the field type and other details shall be inferred from the Django model field.
 
@@ -446,6 +449,8 @@ class MyModel(models.Model):
 
 ### Customizing the delete operation
 
+#### Hard-delete
+
 The delete operation is done through the Django models' `delete()` method.
 
 If you want to customize the delete operation, you can [override the delete method in the model](https://docs.djangoproject.com/en/5.1/topics/db/models/#overriding-predefined-model-methods).
@@ -464,6 +469,83 @@ class MyModel(models.Model):
         # return super().delete(using=using, keep_parents=keep_parents)
 
 ```
+
+#### Soft-delete
+
+If you want to implement soft delete, you can override the delete method in the model to mark the object as deleted instead of actually deleting it from the database.
+
+**Alternatively**, you can set the `mode="soft"` in the `DeleteOptions` and implement the `soft_delete()` method in your model CRUDL config. You only need to define how object(s) should be marked as deleted. Django Ninja CRUDL will handle **cascade** deletion logic to related objects as needed. `soft_delete()` method is called multiple times during soft-delete request, each time with a different QuerySet of (related) objects, similarly to how Django's `obj.delete()` handle hard-delete.
+
+```python
+from django.db import models
+from django_ninja_crudl import Crudl, RequestDetails
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+class BaseModel(models.Model):
+    deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey(
+        "auth.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="%(class)s_deleted_by",
+    )
+
+    class Meta:
+        abstract = True
+
+
+class MyModel(BaseModel):
+    ...
+
+
+class MyModelCrudl(CrudlController[MyModel]):
+    """A CRUDL controller for the MyModel model."""
+
+    config = CrudlConfig[MyModel](
+        model=MyModel,
+        base_path="/soft-delete-my-model",
+        delete_options=DeleteOptions(
+            allowed=True,
+            mode="soft",
+        ),
+    )
+
+    @override
+    def soft_delete(
+        self,
+        qs: QuerySet[Model],
+        request_details: RequestDetails[MyModel],
+        using_db: str,
+    ) -> None:
+        """Example of how to implement soft-delete logic on (related) objects.
+
+        Feel free to customize the logic as needed.
+        """
+        try:
+            qs.update(
+                deleted=True,
+                deleted_at=timezone.now(),
+                deleted_by=request_details.request.user.pk,
+            )
+        except FieldDoesNotExist as e:
+            logger.warning(
+                "Model %s does not support soft-delete: %s. "
+                "Falling back to hard-delete.",
+                qs.model,
+                e,
+            )
+            # If all self-defined models support soft-delete, then this is likely an
+            # auto-created relation model. Fallback to HARD-delete in this case.
+            # Using _raw_delete just like how collector.delete() does it.
+            # No signals are sent and there is no protection for cascades.
+            qs._raw_delete(using=using_db)
+```
+
 
 ### Writable property field
 
