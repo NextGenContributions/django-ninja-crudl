@@ -20,6 +20,7 @@ from django_ninja_crudl.mixins import (
     PermissionMixin,
     UtilitiesMixin,
 )
+from django_ninja_crudl.mixins.soft_delete import SoftDeleteMixin
 from django_ninja_crudl.types import (
     DjangoFieldType,
     PathArgs,
@@ -38,6 +39,7 @@ class CrudlBaseMethodsMixin(  # noqa: WPS215 too many base classes
     HooksMixin[TDjangoModel],
     PermissionMixin[TDjangoModel],
     UtilitiesMixin[TDjangoModel],
+    SoftDeleteMixin[TDjangoModel],
     ABC,
 ):
     """Provide base feature methods for the CrudlController."""
