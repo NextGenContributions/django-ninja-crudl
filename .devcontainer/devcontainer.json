@@ -16,16 +16,28 @@
 	"customizations": {
 		"vscode": {
 			"extensions": [
-				"ms-python.vscode-pylance",
 				"ms-python.python",
+				"ms-azuretools.vscode-docker",
+				"ms-python.debugpy",
+				"github.vscode-github-actions",
+				"ms-python.pylint",
 				"ms-python.mypy-type-checker",
 				"charliermarsh.ruff",
+				"astral-sh.ty",
+				"GitHub.vscode-pull-request-github",
 				"ms-python.flake8",
-				"ms-python.pylint",
+				"SonarSource.sonarlint-vscode",
+				"eamodio.gitlens",
+				"GitHub.copilot-chat",
+				"streetsidesoftware.code-spell-checker",
+				"timonwong.shellcheck",
+				"marclipovsky.string-manipulation",
 				"fb-pyre-check.pyre-vscode",
-				"ms-azuretools.vscode-docker",
-				"github.vscode-github-actions",
-				"ms-python.isort",
+				"Semgrep.semgrep",
+				"snyk-security.snyk-vulnerability-scanner",
+				"exiasr.hadolint",
+				"meta.pyrefly",
+				"detachhead.basedpyright",
 				"ms-toolsai.jupyter"
 			]
 		}
