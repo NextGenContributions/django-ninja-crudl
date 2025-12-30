@@ -552,6 +552,7 @@ class SoftDeletePublisherCrudl(CrudlController[Publisher], DefaultFilter[Publish
     config = CrudlConfig[Publisher](
         model=Publisher,
         base_path="/soft-delete-publishers",
+        delete_operation_id="SoftDeletePublisher_delete",
         delete_options=DeleteOptions(
             allowed=True,
             mode="soft",
