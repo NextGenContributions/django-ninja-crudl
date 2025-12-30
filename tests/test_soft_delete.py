@@ -17,7 +17,6 @@ from tests.test_django.app.models import (
     BaseModel,
     Book,
     BookCopy,
-    Borrowing,
     Library,
     Publisher,
     PublisherWebsite,
@@ -84,12 +83,6 @@ def test_soft_delete_related_resources_works(client: Client) -> None:
         publication_date=timezone.now().date(),
         publisher=p,
     )
-    book_copy = BookCopy.objects.create(
-        book=book, library=library, inventory_number="INV-1"
-    )
-    borrowing = Borrowing.objects.create(
-        user=user, book_copy=book_copy, borrow_date=timezone.now().date()
-    )
 
     # Perform soft-delete on the main publisher object
     deleter = User.objects.create(username="deleter")
@@ -103,8 +96,6 @@ def test_soft_delete_related_resources_works(client: Client) -> None:
     # Related objects should also be soft-deleted via CASCADE
     assert_soft_deleted(website, expected_deleter=deleter)
     assert_soft_deleted(book, expected_deleter=deleter)
-    assert_soft_deleted(book_copy, expected_deleter=deleter)
-    assert_soft_deleted(borrowing, expected_deleter=deleter)
 
     # Un-related objects should NOT be deleted
     assert Library.objects.filter(id=library.id).exists(), (
@@ -113,6 +104,39 @@ def test_soft_delete_related_resources_works(client: Client) -> None:
     assert User.objects.filter(id=user.pk).exists(), (  # pyright: ignore[reportAny]
         "User should not be deleted"
     )
+
+
+@pytest.mark.django_db
+def test_soft_delete_related_protected_resources_should_not_works(
+    client: Client,
+) -> None:
+    """Test deleting a resource which has related resources with DELETE request."""
+    p: Publisher = Publisher.objects.create(
+        name="Some publisher",
+        address="Some address",
+    )
+
+    # Related objects that should be cascade-deleted
+    book = Book.objects.create(
+        title="Some book",
+        isbn="0000000000001",
+        publication_date=timezone.now().date(),
+        publisher=p,
+    )
+    book_copy = BookCopy.objects.create(book=book, inventory_number="INV-1")
+
+    # Perform soft-delete on the main publisher object
+    deleter = User.objects.create(username="deleter")
+    client.force_login(deleter)
+    response = client.delete(f"/api/soft-delete-publishers/{p.id}")
+    assert response.status_code == status.HTTP_409_CONFLICT, response.json()
+
+    # Main publisher object should NOT be soft-deleted
+    _ = Publisher.objects.get(id=p.id)  # Should still exist
+
+    # Related objects should also NOT be soft-deleted via CASCADE
+    _ = Book.objects.get(id=book.id)  # Should still exist
+    _ = BookCopy.objects.get(id=book_copy.id)  # Should still exist
 
 
 @pytest.mark.django_db
