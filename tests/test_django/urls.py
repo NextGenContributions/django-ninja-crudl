@@ -1,10 +1,12 @@
 """URL configuration for the Django test project."""
 
+import logging
 from typing import cast, override
 
 from django.contrib import admin
 from django.contrib.auth.models import User
-from django.db.models import Q
+from django.core.exceptions import FieldDoesNotExist
+from django.db.models import Model, Q, QuerySet
 from django.urls import path
 from django.urls.resolvers import URLResolver
 from django.utils import timezone
@@ -20,7 +22,7 @@ from django_ninja_crudl import (
 )
 from django_ninja_crudl.api import NinjaCrudlAPI
 from django_ninja_crudl.mixins.filters import FiltersMixin
-from django_ninja_crudl.types import TDjangoModel
+from django_ninja_crudl.types import DeleteOptions, TDjangoModel
 from tests.test_django.app.models import (
     AmazonAuthorProfile,
     Author,
@@ -31,6 +33,8 @@ from tests.test_django.app.models import (
     Library,
     Publisher,
 )
+
+logger = logging.getLogger(__name__)
 
 ADMIN_USER = "john_doe"
 STANDARD_USER = "jane_doe"
@@ -205,7 +209,9 @@ class GatedAuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylin
             }
         ),
         delete_operation_id="GatedAuthor_delete",
-        delete_allowed=True,
+        delete_options=DeleteOptions(
+            allowed=True,
+        ),
     )
 
 
@@ -255,7 +261,9 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: di
                 "user": {"first_name": Infer, "last_name": Infer},
             }
         ),
-        delete_allowed=True,
+        delete_options=DeleteOptions(
+            allowed=True,
+        ),
     )
 
 
@@ -297,7 +305,9 @@ class AmazonAuthorProfileCrudl(
                 "description": Infer,
             }
         ),
-        delete_allowed=True,
+        delete_options=DeleteOptions(
+            allowed=True,
+        ),
     )
 
 
@@ -341,7 +351,9 @@ class PublisherCrudl(CrudlController[Publisher], DefaultFilter[Publisher]):  # p
                 "address": Infer,
             }
         ),
-        delete_allowed=True,
+        delete_options=DeleteOptions(
+            allowed=True,
+        ),
     )
 
 
@@ -392,7 +404,9 @@ class BookCrudl(CrudlController[Book], DefaultFilter[Book]):  # pylint: disable=
                 "authors": {"id": Infer, "name": Infer},
             }
         ),
-        delete_allowed=True,
+        delete_options=DeleteOptions(
+            allowed=True,
+        ),
         # TODO(phuongfi91): implement 'search_fields'
         #  https://github.com/NextGenContributions/django-ninja-crudl/issues/33
         #  search_fields: ClassVar[list[str]] = [
@@ -448,7 +462,9 @@ class LibraryCrudl(CrudlController[Library], DefaultFilter[Library]):  # pylint:
                 },
             }
         ),
-        delete_allowed=True,
+        delete_options=DeleteOptions(
+            allowed=True,
+        ),
     )
 
 
@@ -530,6 +546,45 @@ class BorrowingCrudl(CrudlController[Borrowing], DefaultFilter[Borrowing]):  # p
     )
 
 
+class SoftDeletePublisherCrudl(CrudlController[Publisher], DefaultFilter[Publisher]):
+    """CRUDL controller for the Publisher model with soft delete."""
+
+    config = CrudlConfig[Publisher](
+        model=Publisher,
+        base_path="/soft-delete-publishers",
+        delete_options=DeleteOptions(
+            allowed=True,
+            mode="soft",
+        ),
+    )
+
+    @override
+    def soft_delete(
+        self,
+        qs: QuerySet[Model],
+        request_details: RequestDetails[Publisher],
+        using_db: str,
+    ) -> None:
+        try:
+            qs.update(
+                deleted=True,
+                deleted_at=timezone.now(),
+                deleted_by=request_details.request.user.pk,
+            )
+        except FieldDoesNotExist as e:
+            logger.warning(
+                "Model %s does not support soft-delete: %s. "
+                "Falling back to hard-delete.",
+                qs.model,
+                e,
+            )
+            # If all self-defined models support soft-delete, then this is likely an
+            # auto-created relation model. Fallback to HARD-delete in this case.
+            # Using _raw_delete just like how collector.delete() does it.
+            # No signals are sent and there is no protection for cascades.
+            qs._raw_delete(using=using_db)  # noqa: SLF001
+
+
 api = NinjaCrudlAPI()
 
 api.register_controllers(PublisherCrudl)
@@ -540,6 +595,7 @@ api.register_controllers(AmazonAuthorProfileCrudl)
 api.register_controllers(BookCopyCrudl)
 api.register_controllers(BorrowingCrudl)
 api.register_controllers(LibraryCrudl)
+api.register_controllers(SoftDeletePublisherCrudl)
 
 
 urlpatterns: list[URLResolver] = [
