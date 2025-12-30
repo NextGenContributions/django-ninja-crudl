@@ -40,7 +40,7 @@ class CrudlMeta(ABCMeta):
         if not dct.get("config") or name == "CrudlController":
             return super().__new__(mcs, name, bases, dct)
 
-        config = dct.get("config")
+        config = cast("CrudlConfig[Model]", dct.get("config"))
 
         if not config or not mcs.is_crudl_config(config):  # pyright: ignore[reportAny]
             class_name = __name__
@@ -62,7 +62,7 @@ class CrudlMeta(ABCMeta):
             endpoints.append(update_endpoint)
         if partial_update_endpoint := get_partial_update_endpoint(config):
             endpoints.append(partial_update_endpoint)
-        if config.delete_allowed:
+        if config.delete_options.allowed:
             delete_endpoint = get_delete_endpoint(config)
             endpoints.append(delete_endpoint)
 
@@ -87,7 +87,7 @@ class CrudlMeta(ABCMeta):
         bases = (ControllerBase, CrudlBaseMethodsMixin)
         final_bases = tuple(endpoints) + bases
         return cast(
-            type[ControllerBase],
+            "type[ControllerBase]",
             api_controller(tags=config.tags)(
                 type(
                     name,

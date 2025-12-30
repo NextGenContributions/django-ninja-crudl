@@ -107,3 +107,15 @@ class RegisteredReceiver(NamedTuple):
 
     receiver_key: int | tuple[int, int]
     receiver: Callable[[Any], Any]  # pyright: ignore[reportExplicitAny]
+
+
+@beartype
+@dataclass
+class DeleteOptions:
+    """Configuration for delete endpoint."""
+
+    allowed: bool
+    """Whether the delete endpoint is allowed."""
+
+    mode: Literal["hard", "soft"] = "hard"
+    """The delete mode. Can be "hard" or "soft"."""

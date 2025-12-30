@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from django_ninja_crudl.patch_dict import PatchDict
 from django_ninja_crudl.permissions import BasePermission
 from django_ninja_crudl.schema import Schema
-from django_ninja_crudl.types import TDjangoModel
+from django_ninja_crudl.types import DeleteOptions, TDjangoModel
 
 
 @dataclass(kw_only=True)
@@ -38,7 +38,7 @@ class CrudlConfig(Generic[TDjangoModel]):  # pylint: disable=too-many-instance-a
     list_schema: type[BaseModel] | None: The request schema for the list endpoint.
         If not provided, the endpoint will not be created.
 
-    delete_allowed: bool: Whether the delete endpoint is created.
+    delete_options: DeleteOptions | None: Options for the delete endpoint.
 
     create_response_name: str | None: The name of the response class for the
         create operation.
@@ -81,7 +81,7 @@ class CrudlConfig(Generic[TDjangoModel]):  # pylint: disable=too-many-instance-a
         update_schema: Schema[TDjangoModel] | type[BaseModel] | None = None,
         get_one_schema: Schema[TDjangoModel] | type[BaseModel] | None = None,
         list_schema: Schema[TDjangoModel] | type[BaseModel] | None = None,
-        delete_allowed: bool = False,
+        delete_options: DeleteOptions | None = None,
         create_path: str | None = None,
         update_path: str | None = None,
         get_one_path: str | None = None,
@@ -112,7 +112,9 @@ class CrudlConfig(Generic[TDjangoModel]):  # pylint: disable=too-many-instance-a
         self.update_schema: type[BaseModel] | None
         self.partial_update_schema: type[BaseModel] | None
 
-        self.delete_allowed: bool = delete_allowed
+        self.delete_options: DeleteOptions = delete_options or DeleteOptions(
+            allowed=False
+        )
         self.get_one_schema = self._set_schema(
             get_one_schema,
             model,
