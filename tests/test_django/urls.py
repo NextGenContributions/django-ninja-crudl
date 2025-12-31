@@ -22,6 +22,7 @@ from django_ninja_crudl import (
 )
 from django_ninja_crudl.api import NinjaCrudlAPI
 from django_ninja_crudl.mixins.filters import FiltersMixin
+from django_ninja_crudl.mixins.soft_delete import SoftDeleteMixin
 from django_ninja_crudl.types import DeleteOptions, TDjangoModel
 from tests.test_django.app.models import (
     AmazonAuthorProfile,
@@ -122,6 +123,36 @@ class DefaultFilter(FiltersMixin[TDjangoModel]):
     def get_filter_for_get_one(self, request: RequestDetails[TDjangoModel]) -> Q:
         """Return the queryset filter that applies to the get_one operation."""
         return Q()
+
+
+class DefaultSoftDelete(SoftDeleteMixin[TDjangoModel]):
+    """Default soft delete mixin for the CRUDL operations."""
+
+    @override
+    def soft_delete(
+        self,
+        qs: QuerySet[Model],
+        request_details: RequestDetails[TDjangoModel],
+        using_db: str,
+    ) -> None:
+        try:
+            qs.update(
+                deleted=True,
+                deleted_at=timezone.now(),
+                deleted_by=request_details.request.user.pk,
+            )
+        except FieldDoesNotExist as e:
+            logger.warning(
+                "Model %s does not support soft-delete: %s. "
+                "Falling back to hard-delete.",
+                qs.model,
+                e,
+            )
+            # If all self-defined models support soft-delete, then this is likely an
+            # auto-created relation model. Fallback to HARD-delete in this case.
+            # Using _raw_delete just like how collector.delete() does it.
+            # No signals are sent and there is no protection for cascades.
+            qs._raw_delete(using=using_db)  # noqa: SLF001
 
 
 class GatedAuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: disable=too-many-ancestors
@@ -546,7 +577,9 @@ class BorrowingCrudl(CrudlController[Borrowing], DefaultFilter[Borrowing]):  # p
     )
 
 
-class SoftDeletePublisherCrudl(CrudlController[Publisher], DefaultFilter[Publisher]):
+class SoftDeletePublisherCrudl(
+    CrudlController[Publisher], DefaultFilter[Publisher], DefaultSoftDelete[Publisher]
+):
     """CRUDL controller for the Publisher model with soft delete."""
 
     config = CrudlConfig[Publisher](
@@ -559,31 +592,37 @@ class SoftDeletePublisherCrudl(CrudlController[Publisher], DefaultFilter[Publish
         ),
     )
 
-    @override
-    def soft_delete(
-        self,
-        qs: QuerySet[Model],
-        request_details: RequestDetails[Publisher],
-        using_db: str,
-    ) -> None:
-        try:
-            qs.update(
-                deleted=True,
-                deleted_at=timezone.now(),
-                deleted_by=request_details.request.user.pk,
-            )
-        except FieldDoesNotExist as e:
-            logger.warning(
-                "Model %s does not support soft-delete: %s. "
-                "Falling back to hard-delete.",
-                qs.model,
-                e,
-            )
-            # If all self-defined models support soft-delete, then this is likely an
-            # auto-created relation model. Fallback to HARD-delete in this case.
-            # Using _raw_delete just like how collector.delete() does it.
-            # No signals are sent and there is no protection for cascades.
-            qs._raw_delete(using=using_db)  # noqa: SLF001
+
+class SoftDeleteLibraryCrudl(
+    CrudlController[Library], DefaultFilter[Library], DefaultSoftDelete[Library]
+):
+    """CRUDL controller for the Library model with soft delete."""
+
+    config = CrudlConfig[Library](
+        model=Library,
+        base_path="/soft-delete-libraries",
+        delete_operation_id="SoftDeleteLibrary_delete",
+        delete_options=DeleteOptions(
+            allowed=True,
+            mode="soft",
+        ),
+    )
+
+
+class SoftDeleteBookCopyCrudl(
+    CrudlController[BookCopy], DefaultFilter[BookCopy], DefaultSoftDelete[BookCopy]
+):
+    """CRUDL controller for the BookCopy model with soft delete."""
+
+    config = CrudlConfig[BookCopy](
+        model=BookCopy,
+        base_path="/soft-delete-book-copies",
+        delete_operation_id="SoftDeleteBookCopy_delete",
+        delete_options=DeleteOptions(
+            allowed=True,
+            mode="soft",
+        ),
+    )
 
 
 api = NinjaCrudlAPI()
@@ -597,6 +636,8 @@ api.register_controllers(BookCopyCrudl)
 api.register_controllers(BorrowingCrudl)
 api.register_controllers(LibraryCrudl)
 api.register_controllers(SoftDeletePublisherCrudl)
+api.register_controllers(SoftDeleteLibraryCrudl)
+api.register_controllers(SoftDeleteBookCopyCrudl)
 
 
 urlpatterns: list[URLResolver] = [

@@ -8,6 +8,7 @@ from typing import cast
 
 import pytest
 from django.contrib.auth.models import User
+from django.db.models import Model
 from django.test import Client
 from django.utils import timezone
 from ninja_extra import status
@@ -17,6 +18,7 @@ from tests.test_django.app.models import (
     BaseModel,
     Book,
     BookCopy,
+    Borrowing,
     Library,
     Publisher,
     PublisherWebsite,
@@ -25,8 +27,7 @@ from tests.test_django.app.models import (
 
 
 def assert_soft_deleted(
-    obj: BaseModel,
-    expected_deleter: User | None = None,
+    obj: BaseModel | Model, expected_deleter: User | None = None
 ) -> None:
     """Assert that an object is soft deleted."""
     model_class = obj.__class__
@@ -36,18 +37,48 @@ def assert_soft_deleted(
     with pytest.raises(model_class.DoesNotExist):
         model_class.objects.get(id=obj_id)
 
+    if not issubclass(model_class, BaseModel):
+        return
+
     # Object should exist via all_objects
-    obj = model_class.all_objects.get(id=obj_id)
+    refreshed_obj = model_class.all_objects.get(id=obj_id)
 
     # Soft delete fields should be set
-    assert obj.deleted is True, f"{model_class.__name__} should be marked as deleted"
-    assert obj.deleted_at is not None, (
+    assert refreshed_obj.deleted is True, (
+        f"{model_class.__name__} should be marked as deleted"
+    )
+    assert refreshed_obj.deleted_at is not None, (
         f"{model_class.__name__} should have deleted_at timestamp"
     )
     if expected_deleter is not None:
-        assert obj.deleted_by == expected_deleter, (
+        assert refreshed_obj.deleted_by == expected_deleter, (
             f"{model_class.__name__} should be deleted by expected user"
         )
+
+
+def assert_exists(obj: BaseModel | Model) -> None:
+    """Assert that an object exists (is not soft-deleted)."""
+    model_class = obj.__class__
+    obj_id = cast("int", obj.pk)
+
+    # Retrieve the object again
+    # Object should exist via default objects manager
+    refreshed_obj = model_class.objects.filter(id=obj_id).first()
+    assert refreshed_obj is not None, f"{model_class.__name__} should exist"
+
+    if not isinstance(refreshed_obj, BaseModel):
+        return
+
+    # Soft delete fields should NOT be set
+    assert refreshed_obj.deleted is False, (
+        f"{model_class.__name__} should not be marked as deleted"
+    )
+    assert refreshed_obj.deleted_at is None, (
+        f"{model_class.__name__} should not have deleted_at timestamp"
+    )
+    assert refreshed_obj.deleted_by is None, (
+        f"{model_class.__name__} should not have deleted_by user"
+    )
 
 
 @pytest.mark.django_db
@@ -98,19 +129,15 @@ def test_soft_delete_related_resources_works(client: Client) -> None:
     assert_soft_deleted(book, expected_deleter=deleter)
 
     # Un-related objects should NOT be deleted
-    assert Library.objects.filter(id=library.id).exists(), (
-        "Library should not be deleted"
-    )
-    assert User.objects.filter(id=user.pk).exists(), (  # pyright: ignore[reportAny]
-        "User should not be deleted"
-    )
+    assert_exists(library)
+    assert_exists(user)
 
 
 @pytest.mark.django_db
 def test_soft_delete_related_protected_resources_should_not_works(
     client: Client,
 ) -> None:
-    """Test deleting a resource which has related resources with DELETE request."""
+    """Test deleting a resource which has PROTECT constraint on related resources."""
     p: Publisher = Publisher.objects.create(
         name="Some publisher",
         address="Some address",
@@ -132,11 +159,75 @@ def test_soft_delete_related_protected_resources_should_not_works(
     assert response.status_code == status.HTTP_409_CONFLICT, response.json()
 
     # Main publisher object should NOT be soft-deleted
-    _ = Publisher.objects.get(id=p.id)  # Should still exist
+    assert_exists(p)
 
     # Related objects should also NOT be soft-deleted via CASCADE
-    _ = Book.objects.get(id=book.id)  # Should still exist
-    _ = BookCopy.objects.get(id=book_copy.id)  # Should still exist
+    assert_exists(book)
+    assert_exists(book_copy)
+
+
+@pytest.mark.django_db
+def test_soft_delete_related_restricted_resources_should_works_appropriately(
+    client: Client,
+) -> None:
+    """Test deleting a resource which has RESTRICT constraint on related resources.
+
+    This test references the example of RESTRICT constraint documented at:
+    https://docs.djangoproject.com/en/5.2/ref/models/fields/#django.db.models.RESTRICT
+    """
+    p: Publisher = Publisher.objects.create(
+        name="Some publisher",
+        address="Some address",
+    )
+    user = User.objects.create(username="borrower")
+    library = Library.objects.create(name="Main Library", address="Library address")
+
+    # Related objects that should be cascade-deleted
+    book = Book.objects.create(
+        title="Some book",
+        isbn="0000000000001",
+        publication_date=timezone.now().date(),
+        publisher=p,
+    )
+    book_copy = BookCopy.objects.create(
+        book=book,
+        library=library,
+        inventory_number="INV-1",
+    )
+    borrowing = Borrowing.objects.create(
+        user=user,
+        library=library,
+        book_copy=book_copy,
+        borrow_date=timezone.now().date(),
+    )
+
+    # Prepare deleter user
+    deleter = User.objects.create(username="deleter")
+    client.force_login(deleter)
+
+    # Performing soft-delete on a BookCopy object should FAIL due to RESTRICT constraint
+    # on Borrowing model when deleting BookCopy
+    response = client.delete(f"/api/soft-delete-book-copies/{book_copy.id}")
+    assert response.status_code == status.HTTP_409_CONFLICT, response.json()
+    # BookCopy object should NOT be soft-deleted
+    assert_exists(book_copy)
+    # Related objects should also NOT be soft-deleted via CASCADE
+    assert_exists(borrowing)
+
+    # HOWEVER, performing soft-delete on a Library object should SUCCEED since deleting
+    # a Library would also CASCADE delete both BookCopy and Borrowing at the same time
+    response = client.delete(f"/api/soft-delete-libraries/{library.id}")
+    assert response.status_code == status.HTTP_204_NO_CONTENT, response.json()
+    # Library object should be soft-deleted
+    assert_soft_deleted(library, expected_deleter=deleter)
+    # Related objects should also be soft-deleted via CASCADE
+    assert_soft_deleted(book_copy, expected_deleter=deleter)
+    assert_soft_deleted(borrowing, expected_deleter=deleter)
+
+    # Un-related objects should NOT be deleted
+    assert_exists(user)
+    assert_exists(p)
+    assert_exists(book)
 
 
 @pytest.mark.django_db

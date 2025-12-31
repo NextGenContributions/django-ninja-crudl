@@ -278,7 +278,7 @@ class BookCopy(BaseModel):
 
     book = models.ForeignKey[Book, Book](
         Book, on_delete=models.PROTECT
-    )  # Foreign Key relationship
+    )  # Foreign Key relationship that PROTECTs deletion if referenced
     library = models.ForeignKey[Library | None, Library | None](
         Library,
         on_delete=models.CASCADE,
@@ -307,10 +307,13 @@ class Borrowing(BaseModel):
     user = models.ForeignKey[User, User](
         User, on_delete=models.CASCADE, related_name="user_borrowings"
     )  # Foreign Key relationship
+    library = models.ForeignKey[Library, Library](
+        Library, on_delete=models.CASCADE
+    )  # Foreign Key relationship
     book_copy = models.ForeignKey[BookCopy, BookCopy](
         BookCopy,
-        on_delete=models.CASCADE,
-    )  # Foreign Key relationship
+        on_delete=models.RESTRICT,
+    )  # Foreign Key relationship that RESTRICTs deletion if referenced
     borrow_date = models.DateField[date, date]()
     return_date = models.DateField[date | None, date | None](null=True, blank=True)
 

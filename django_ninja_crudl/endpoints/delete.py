@@ -5,7 +5,7 @@ from abc import ABC
 from typing import TYPE_CHECKING, Literal, Unpack
 
 from django.db import router, transaction
-from django.db.models import ProtectedError
+from django.db.models import ProtectedError, RestrictedError
 from django.db.models.deletion import Collector
 from django.http import HttpRequest
 from ninja_extra import http_delete, status
@@ -90,7 +90,7 @@ def get_delete_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
             self.pre_delete(request_details)
             try:
                 self.delete_obj(obj, request_details, mode=config.delete_options.mode)
-            except ProtectedError as exc:
+            except (ProtectedError, RestrictedError) as exc:
                 return self.get_409_error(request, exception=exc)
             self.post_delete(request_details)
             return 204, None
