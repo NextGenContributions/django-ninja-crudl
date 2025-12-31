@@ -117,7 +117,6 @@ def get_delete_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
 
             # SOFT DELETE
             # Collect objects to be soft-deleted in cascade
-            # TODO(phuongfi91): Pass 'using' parameter and handle multi-db scenario
             collector = self.collect_for_deletion(model=config.model, obj=obj)
             logger.debug("Collected objects: %s", collector.data)
 
@@ -146,8 +145,7 @@ def get_delete_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
         ) -> Collector:
             """Collect objects to be deleted in cascade.
 
-            By default, only the main object is collected.
-            Override this method to collect related objects as well.
+            This method uses the same logic as obj.delete() to collect related objects.
             """
             using = using or router.db_for_write(model, instance=obj)
             collector = Collector(using=using, origin=obj)

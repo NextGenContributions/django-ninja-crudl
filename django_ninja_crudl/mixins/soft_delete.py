@@ -9,7 +9,7 @@ from django.db.models import Model, QuerySet
 from django_ninja_crudl.types import RequestDetails, TDjangoModel
 
 
-class SoftDeleteMixin(Generic[TDjangoModel], ABC):
+class SoftDeleteMixin(ABC, Generic[TDjangoModel]):
     """Mixin for soft-delete handling."""
 
     def soft_delete(
