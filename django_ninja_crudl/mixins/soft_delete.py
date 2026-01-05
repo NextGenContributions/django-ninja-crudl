@@ -136,7 +136,9 @@ class SoftDeleteMixin(Generic[TDjangoModel], ABC):
                 ):
                     updates.append(instances)  # ty:ignore[invalid-argument-type]
                 else:
-                    objs.extend(instances)  # ty:ignore[invalid-argument-type]  # pyright: ignore[reportArgumentType]
+                    objs.extend(
+                        instances
+                    )  # ty:ignore[invalid-argument-type]  # pyright: ignore[reportArgumentType]
             if updates:
                 combined_updates = reduce(or_, updates)  # pyright: ignore[reportAny]
                 combined_updates.update(**{field.name: value})  # pyright: ignore[reportAny]
