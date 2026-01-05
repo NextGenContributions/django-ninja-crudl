@@ -4,7 +4,6 @@ import logging
 from typing import cast, override
 
 from django.contrib import admin
-from django.contrib.auth.models import User
 from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Model, Q, QuerySet
 from django.urls import path
@@ -33,6 +32,7 @@ from tests.test_django.app.models import (
     Borrowing,
     Library,
     Publisher,
+    User,
 )
 
 logger = logging.getLogger(__name__)
@@ -577,6 +577,22 @@ class BorrowingCrudl(CrudlController[Borrowing], DefaultFilter[Borrowing]):  # p
     )
 
 
+class SoftDeleteUserCrudl(
+    CrudlController[User], DefaultFilter[User], DefaultSoftDelete[User]
+):
+    """CRUDL controller for the User model with soft delete."""
+
+    config = CrudlConfig[User](
+        model=User,
+        base_path="/soft-delete-users",
+        delete_operation_id="SoftDeleteUser_delete",
+        delete_options=DeleteOptions(
+            allowed=True,
+            mode="soft",
+        ),
+    )
+
+
 class SoftDeletePublisherCrudl(
     CrudlController[Publisher], DefaultFilter[Publisher], DefaultSoftDelete[Publisher]
 ):
@@ -635,6 +651,7 @@ api.register_controllers(AmazonAuthorProfileCrudl)
 api.register_controllers(BookCopyCrudl)
 api.register_controllers(BorrowingCrudl)
 api.register_controllers(LibraryCrudl)
+api.register_controllers(SoftDeleteUserCrudl)
 api.register_controllers(SoftDeletePublisherCrudl)
 api.register_controllers(SoftDeleteLibraryCrudl)
 api.register_controllers(SoftDeleteBookCopyCrudl)
