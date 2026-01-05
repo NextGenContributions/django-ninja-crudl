@@ -1,17 +1,15 @@
 """Models for the Django test project."""
 
 from datetime import UTC, date, datetime
-from typing import ClassVar, Self, final, override
+from typing import ClassVar, Self, cast, final, override
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 from django2pydantic.types import TDjangoModel
 from pydantic import HttpUrl
 
 
-class SoftDeleteManager(
-    models.Manager[TDjangoModel]
-):  # ty:ignore[invalid-type-arguments]
+class SoftDeleteManager(models.Manager[TDjangoModel]):  # ty:ignore[invalid-type-arguments]
     """Manager that filters out soft-deleted objects by default."""
 
     @override
@@ -28,8 +26,8 @@ class BaseModel(models.Model):
     id: int  # Just for type hinting
 
     created_at = models.DateTimeField[datetime, datetime](auto_now_add=True)
-    created_by = models.ForeignKey[User | None, User | None](
-        User,
+    created_by = models.ForeignKey["User | None", "User | None"](
+        "User",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -39,8 +37,8 @@ class BaseModel(models.Model):
     deleted_at = models.DateTimeField[datetime | None, datetime | None](
         null=True, blank=True
     )
-    deleted_by = models.ForeignKey[User | None, User | None](
-        User,
+    deleted_by = models.ForeignKey["User | None", "User | None"](
+        "User",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -48,18 +46,31 @@ class BaseModel(models.Model):
     )
 
     # Use soft delete manager as default
-    objects: ClassVar[models.Manager[Self]] = (
-        SoftDeleteManager()
-    )  # ty:ignore[invalid-type-arguments]
+    objects: ClassVar[models.Manager[Self]] = SoftDeleteManager()  # ty:ignore[invalid-type-arguments]
     # Manager to access all objects including deleted ones
-    all_objects: ClassVar[models.Manager[Self]] = (
-        models.Manager()
-    )  # ty:ignore[invalid-type-arguments]
+    all_objects: ClassVar[models.Manager[Self]] = models.Manager()  # ty:ignore[invalid-type-arguments]
 
     class Meta:
         """Meta options for the model."""
 
         abstract = True
+
+
+class SoftDeleteUserManager(UserManager["User"]):
+    """User Manager that filters out soft-deleted objects by default."""
+
+    @override
+    def get_queryset(
+        self,
+    ) -> models.QuerySet["User"]:  # ty:ignore[invalid-type-arguments]
+        """Return queryset excluding soft-deleted objects."""
+        return super().get_queryset().filter(deleted=False)
+
+
+class User(AbstractUser, BaseModel):
+    """Custom User model extending Django's AbstractUser."""
+
+    objects: ClassVar[UserManager["User"]] = SoftDeleteUserManager()  # ty:ignore[invalid-type-arguments]
 
 
 @final
@@ -172,6 +183,57 @@ class Publisher(BaseModel):
         if not url:
             return
         PublisherWebsite.objects.create(publisher=self, url=str(url))
+
+
+def default_contact_user() -> User:
+    """Return the user that represents the default contact."""
+    return User.objects.get_or_create(
+        username="default_contact", defaults={"email": "ceo@earth.com"}
+    )[0]
+
+
+def deleted_user() -> User:
+    """Return dummy user that represents a deleted user."""
+    return User.objects.get_or_create(username="deleted")[0]
+
+
+@final
+class ContactPerson(BaseModel):
+    """Model for a contact person associated with a publisher."""
+
+    publisher = models.ForeignKey[Publisher | None, Publisher | None](
+        Publisher,
+        on_delete=models.SET_NULL,  # Set to NULL on publisher deletion
+        null=True,
+        blank=True,
+    )
+    user = models.ForeignKey[User, User](
+        User,
+        on_delete=models.SET_DEFAULT,
+        default=default_contact_user,
+    )
+    assistant = models.ForeignKey[User | None, User | None](
+        User,
+        on_delete=models.SET(deleted_user),
+        null=True,
+        blank=True,
+        related_name="assistant_contacts",
+    )
+
+    @final
+    class Meta:
+        """Meta options for the model."""
+
+        default_related_name = "contacts"
+
+    @override
+    def __str__(self) -> str:
+        """Return the string representation of the publisher contact."""
+        publisher_name = self.publisher.name if self.publisher else "No Publisher"
+        contact_name = cast("str", self.user.username)
+        if self.assistant:
+            contact_name += f" (Assistant: {cast('str', self.assistant.username)})"
+        return f"{contact_name} - ({publisher_name})"
 
 
 @final
