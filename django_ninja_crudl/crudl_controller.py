@@ -37,12 +37,11 @@ class CrudlMeta(ABCMeta):
     ) -> "type[ControllerBase] | CrudlMeta":
         """Create a new class."""
         # Quit if this is an abstract base class
-        if not dct.get("config") or name == "CrudlController":
+        if name == "CrudlController":
             return super().__new__(mcs, name, bases, dct)
 
-        config = cast("CrudlConfig[Model]", dct.get("config"))
-
-        if not config or not mcs.is_crudl_config(config):  # pyright: ignore[reportAny]
+        config = cast("CrudlConfig[Model] | None", dct.get("config"))
+        if not config or not mcs.is_crudl_config(config):
             class_name = __name__
             config_module = f"{CrudlConfig.__module__}.{CrudlConfig.__qualname__}"
             msg = (

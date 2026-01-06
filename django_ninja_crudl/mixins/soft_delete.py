@@ -2,7 +2,6 @@
 
 # pyright: reportUnusedParameter=false
 import logging
-from abc import ABC
 from functools import reduce
 from operator import attrgetter, or_
 from typing import Generic, cast
@@ -16,7 +15,7 @@ from django_ninja_crudl.types import RequestDetails, TDjangoModel
 logger = logging.getLogger(__name__)
 
 
-class SoftDeleteMixin(Generic[TDjangoModel], ABC):
+class SoftDeleteMixin(Generic[TDjangoModel]):  # noqa: UP046
     """Mixin for soft-delete handling."""
 
     def soft_delete(
@@ -95,7 +94,7 @@ class SoftDeleteMixin(Generic[TDjangoModel], ABC):
         """
         using = using or router.db_for_write(model, instance=obj)
         collector = Collector(using=using, origin=obj)
-        collector.collect([obj], keep_parents=keep_parents)
+        collector.collect([obj], keep_parents=keep_parents)  # type: ignore[reportArgumentType]
         return collector
 
     def _send_pre_delete_signals(self, collector: Collector) -> None:
