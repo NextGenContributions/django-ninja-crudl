@@ -36,7 +36,7 @@ class SoftDeleteMixin(Generic[TDjangoModel]):  # noqa: UP046
         msg = "soft_delete method must be implemented in subclass."
         raise NotImplementedError(msg)
 
-    def _soft_delete_obj(
+    def soft_delete_obj(
         self,
         obj: TDjangoModel,
         request_details: RequestDetails[TDjangoModel],

@@ -107,6 +107,6 @@ def get_delete_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
                 return
 
             # "soft" delete
-            self._soft_delete_obj(obj, request_details)
+            self.soft_delete_obj(obj, request_details)
 
     return DeleteEndpoint
