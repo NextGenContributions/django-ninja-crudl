@@ -1,6 +1,15 @@
 # CHANGELOG
 
 
+## v0.8.0 (2026-01-27)
+
+### Features
+
+- **#1**: Soft delete (#211)
+  ([#211](https://github.com/NextGenContributions/django-ninja-crudl/pull/211),
+  [`58927b8`](https://github.com/NextGenContributions/django-ninja-crudl/commit/58927b8704b3d9433377be717628b817bf637144))
+
+
 ## v0.7.0 (2025-10-08)
 
 ### Bug Fixes
