@@ -61,7 +61,7 @@ class CrudlMeta(ABCMeta):
             endpoints.append(update_endpoint)
         if partial_update_endpoint := get_partial_update_endpoint(config):
             endpoints.append(partial_update_endpoint)
-        if config.delete_options.allowed:
+        if config.delete_allowed:
             delete_endpoint = get_delete_endpoint(config)
             endpoints.append(delete_endpoint)
 

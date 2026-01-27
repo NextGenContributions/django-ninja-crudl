@@ -422,7 +422,7 @@ def test_soft_delete_single_resource_should_emit_signals(
 def test_soft_delete_related_resources_should_emit_signals(
     client: Client,
 ) -> None:
-    """Test that soft-deleting a resource with related resources emits pre/post_delete signals."""
+    """Test that soft-deleting related resources emits pre/post_delete signals."""
     p: Publisher = Publisher.objects.create(
         name="Some publisher",
         address="Some address",

@@ -106,18 +106,16 @@ class MyModelCrudl(CrudlController[MyModel]):
                 },
             }
         ),
-        delete_options=DeleteOptions(
-            allowed=True,
-            mode="hard",  # or "soft" if you implement soft_delete()
-        )
+        delete_allowed=True,
+        soft_delete=False,  # set to True if you implement soft_delete()
     )
 ```
 
 **NOTE:** In order to avoid accidentally exposing sensitive fields, you need to explicitly define the model fields that shall be exposed via the CRUDL endpoints. Some other libraries support exposing all fields (with optional exclude) which can lead to unintentional exposure of sensitive data.
 
-**NOTE:** If any of `create_schema`, `update_schema`, `get_one_schema`, or `list_schema` are not defined or are set as `None`, then that specific endpoint will not be exposed. If `delete_options` is not defined or `allowed` is set as `False`, then the delete endpoint will not be exposed.
+**NOTE:** If any of `create_schema`, `update_schema`, `get_one_schema`, or `list_schema` are not defined or are set as `None`, then that specific endpoint will not be exposed. If `delete_allowed` is not set or is `False`, then the delete endpoint will not be exposed.
 
-**NOTE:** For delete operation, it currently performs a hard delete by default. You might customize the delete operation to perform a soft delete by [overriding the delete method in the model]() or **alternatively** by setting `mode="soft"` in the `DeleteOptions` and implementing the `soft_delete()` method in your model CRUDL config.
+**NOTE:** For delete operation, it currently performs a hard delete by default. You might customize the delete operation to perform a soft delete by [overriding the delete method in the model]() or **alternatively** by setting `soft_delete=True` in the `CrudlConfig` and implementing the `soft_delete()` method in your model CRUDL config.
 
 **NOTE:** The `Infer` class from the [django2pydantic](https://github.com/NextGenContributions/django2pydantic) library is used to tell that the field type and other details shall be inferred from the Django model field.
 
@@ -474,7 +472,7 @@ class MyModel(models.Model):
 
 If you want to implement soft delete, you can override the delete method in the model to mark the object as deleted instead of actually deleting it from the database.
 
-**Alternatively**, you can set the `mode="soft"` in the `DeleteOptions` and implement the `soft_delete()` method in your model CRUDL config. You only need to define how object(s) should be marked as deleted. Django Ninja CRUDL will handle **cascade** deletion logic to related objects as needed. `soft_delete()` method is called multiple times during soft-delete request, each time with a different QuerySet of (related) objects, similarly to how Django's `obj.delete()` handle hard-delete.
+**Alternatively**, you can set `soft_delete=True` in the `CrudlConfig` and implement the `soft_delete()` method in your model CRUDL config. You only need to define how object(s) should be marked as deleted. Django Ninja CRUDL will handle **cascade** deletion logic to related objects as needed. `soft_delete()` method is called multiple times during soft-delete request, each time with a different QuerySet of (related) objects, similarly to how Django's `obj.delete()` handle hard-delete.
 
 ```python
 from django.db import models
@@ -509,10 +507,8 @@ class MyModelCrudl(CrudlController[MyModel]):
     config = CrudlConfig[MyModel](
         model=MyModel,
         base_path="/soft-delete-my-model",
-        delete_options=DeleteOptions(
-            allowed=True,
-            mode="soft",
-        ),
+        delete_allowed=True,
+        soft_delete=True,
     )
 
     @override

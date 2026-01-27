@@ -23,7 +23,7 @@ from django_ninja_crudl import (
 from django_ninja_crudl.api import NinjaCrudlAPI
 from django_ninja_crudl.mixins.filters import FiltersMixin
 from django_ninja_crudl.mixins.soft_delete import SoftDeleteMixin
-from django_ninja_crudl.types import DeleteOptions, TDjangoModel
+from django_ninja_crudl.types import TDjangoModel
 from tests.test_django.app.models import (
     AmazonAuthorProfile,
     Author,
@@ -239,9 +239,7 @@ class GatedAuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylin
             }
         ),
         delete_operation_id="GatedAuthor_delete",
-        delete_options=DeleteOptions(
-            allowed=True,
-        ),
+        delete_allowed=True,
     )
 
 
@@ -292,9 +290,7 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: di
                 "user": {"first_name": Infer, "last_name": Infer},
             }
         ),
-        delete_options=DeleteOptions(
-            allowed=True,
-        ),
+        delete_allowed=True,
     )
 
 
@@ -337,9 +333,7 @@ class AmazonAuthorProfileCrudl(
                 "description": Infer,
             }
         ),
-        delete_options=DeleteOptions(
-            allowed=True,
-        ),
+        delete_allowed=True,
     )
 
 
@@ -384,9 +378,7 @@ class PublisherCrudl(CrudlController[Publisher], DefaultFilter[Publisher]):  # p
                 "address": Infer,
             }
         ),
-        delete_options=DeleteOptions(
-            allowed=True,
-        ),
+        delete_allowed=True,
     )
 
 
@@ -439,9 +431,7 @@ class BookCrudl(CrudlController[Book], DefaultFilter[Book]):  # pylint: disable=
                 "authors": {"id": Infer, "name": Infer},
             }
         ),
-        delete_options=DeleteOptions(
-            allowed=True,
-        ),
+        delete_allowed=True,
         # TODO(phuongfi91): implement 'search_fields'
         #  https://github.com/NextGenContributions/django-ninja-crudl/issues/33
         #  search_fields: ClassVar[list[str]] = [
@@ -498,9 +488,7 @@ class LibraryCrudl(CrudlController[Library], DefaultFilter[Library]):  # pylint:
                 },
             }
         ),
-        delete_options=DeleteOptions(
-            allowed=True,
-        ),
+        delete_allowed=True,
     )
 
 
@@ -594,10 +582,8 @@ class SoftDeleteUserCrudl(
         model=User,
         base_path="/soft-delete-users",
         delete_operation_id="SoftDeleteUser_delete",
-        delete_options=DeleteOptions(
-            allowed=True,
-            mode="soft",
-        ),
+        delete_allowed=True,
+        soft_delete=True,
     )
 
 
@@ -611,10 +597,8 @@ class SoftDeletePublisherCrudl(
         model=Publisher,
         base_path="/soft-delete-publishers",
         delete_operation_id="SoftDeletePublisher_delete",
-        delete_options=DeleteOptions(
-            allowed=True,
-            mode="soft",
-        ),
+        delete_allowed=True,
+        soft_delete=True,
     )
 
 
@@ -628,10 +612,8 @@ class SoftDeleteLibraryCrudl(
         model=Library,
         base_path="/soft-delete-libraries",
         delete_operation_id="SoftDeleteLibrary_delete",
-        delete_options=DeleteOptions(
-            allowed=True,
-            mode="soft",
-        ),
+        delete_allowed=True,
+        soft_delete=True,
     )
 
 
@@ -645,10 +627,8 @@ class SoftDeleteBookCopyCrudl(
         model=BookCopy,
         base_path="/soft-delete-book-copies",
         delete_operation_id="SoftDeleteBookCopy_delete",
-        delete_options=DeleteOptions(
-            allowed=True,
-            mode="soft",
-        ),
+        delete_allowed=True,
+        soft_delete=True,
     )
 
 

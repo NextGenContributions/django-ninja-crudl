@@ -84,7 +84,7 @@ def get_delete_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
 
             self.pre_delete(request_details)
             try:
-                self.delete_obj(obj, request_details, mode=config.delete_options.mode)
+                self.delete_obj(obj, request_details, soft_delete=config.soft_delete)
             except IntegrityError as exc:
                 # This should cover also ProtectedError, RestrictedError enforced by
                 # PROTECT/RESTRICT model constraints
@@ -97,12 +97,12 @@ def get_delete_endpoint(config: CrudlConfig[TDjangoModel]) -> type:
             obj: TDjangoModel,
             request_details: RequestDetails[TDjangoModel],
             *,
-            mode: Literal["hard", "soft"] = "hard",
+            soft_delete: bool = False,
         ) -> None:
             """Delete the collected objects according to the specified mode."""
-            logger.debug("Deleting object %s with delete mode: %s", obj, mode)
+            logger.debug("Deleting object %s with soft_delete: %s", obj, soft_delete)
 
-            if mode == "hard":
+            if not soft_delete:
                 obj.delete()
                 return
 
