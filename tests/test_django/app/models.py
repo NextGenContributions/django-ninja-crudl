@@ -9,7 +9,9 @@ from django2pydantic.types import TDjangoModel
 from pydantic import HttpUrl
 
 
-class SoftDeleteManager(models.Manager[TDjangoModel]):  # ty:ignore[invalid-type-arguments]
+class SoftDeleteManager(
+    models.Manager[TDjangoModel]
+):  # ty:ignore[invalid-type-arguments]
     """Manager that filters out soft-deleted objects by default."""
 
     @override
@@ -46,9 +48,13 @@ class BaseModel(models.Model):
     )
 
     # Use soft delete manager as default
-    objects: ClassVar[models.Manager[Self]] = SoftDeleteManager()  # ty:ignore[invalid-type-arguments]
+    objects: ClassVar[models.Manager[Self]] = (
+        SoftDeleteManager()
+    )  # ty:ignore[invalid-type-arguments]
     # Manager to access all objects including deleted ones
-    all_objects: ClassVar[models.Manager[Self]] = models.Manager()  # ty:ignore[invalid-type-arguments]
+    all_objects: ClassVar[models.Manager[Self]] = (
+        models.Manager()
+    )  # ty:ignore[invalid-type-arguments]
 
     class Meta:
         """Meta options for the model."""
@@ -70,7 +76,9 @@ class SoftDeleteUserManager(UserManager["User"]):
 class User(AbstractUser, BaseModel):
     """Custom User model extending Django's AbstractUser."""
 
-    objects: ClassVar[UserManager["User"]] = SoftDeleteUserManager()  # ty:ignore[invalid-type-arguments]
+    objects: ClassVar[UserManager["User"]] = (
+        SoftDeleteUserManager()
+    )  # ty:ignore[invalid-type-arguments]
 
 
 @final
