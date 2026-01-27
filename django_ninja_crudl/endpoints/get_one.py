@@ -27,7 +27,7 @@ from django_ninja_crudl.utils import replace_path_args_annotation
 if TYPE_CHECKING:
     from pydantic import BaseModel
 
-logger: logging.Logger = logging.getLogger("django_ninja_crudl")
+logger = logging.getLogger(__name__)
 
 
 def get_get_one_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:

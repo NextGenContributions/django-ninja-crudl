@@ -29,7 +29,7 @@ from django_ninja_crudl.utils import (
 if TYPE_CHECKING:
     from pydantic import BaseModel
 
-logger: logging.Logger = logging.getLogger("django_ninja_crudl")
+logger = logging.getLogger(__name__)
 
 
 def get_get_many_endpoint(config: CrudlConfig[TDjangoModel]) -> type | None:

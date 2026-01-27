@@ -3,11 +3,11 @@
 import datetime
 
 import pytest
-from django.contrib.auth.models import User
 from django.test import Client
 from ninja_extra import status
 
 from tests.test_django.app import models
+from tests.test_django.app.models import User
 from tests.test_django.urls import ADMIN_USER, RESTRICTED_USER, STANDARD_USER
 
 
