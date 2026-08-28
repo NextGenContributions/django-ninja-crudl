@@ -1,10 +1,12 @@
 """URL configuration for the Django test project."""
 
-from typing import cast, override
+# ruff: noqa: ERA001
+import logging
+from typing import cast, final, override
 
 from django.contrib import admin
-from django.contrib.auth.models import User
-from django.db.models import Q
+from django.core.exceptions import FieldDoesNotExist
+from django.db.models import Model, Q, QuerySet
 from django.urls import path
 from django.urls.resolvers import URLResolver
 from django.utils import timezone
@@ -20,6 +22,7 @@ from django_ninja_crudl import (
 )
 from django_ninja_crudl.api import NinjaCrudlAPI
 from django_ninja_crudl.mixins.filters import FiltersMixin
+from django_ninja_crudl.mixins.soft_delete import SoftDeleteMixin
 from django_ninja_crudl.types import TDjangoModel
 from tests.test_django.app.models import (
     AmazonAuthorProfile,
@@ -30,7 +33,10 @@ from tests.test_django.app.models import (
     Borrowing,
     Library,
     Publisher,
+    User,
 )
+
+logger = logging.getLogger(__name__)
 
 ADMIN_USER = "john_doe"
 STANDARD_USER = "jane_doe"
@@ -51,10 +57,7 @@ class HasResourcePermissions(BasePermission[TDjangoModel]):
         """Check if the user has permission to perform the action."""
         user = cast("User", request.request.user)
 
-        if user.username in [ADMIN_USER, STANDARD_USER]:  # pyright: ignore [reportUnknownMemberType]
-            return True
-
-        return False
+        return user.username in [ADMIN_USER, STANDARD_USER]  # pyright: ignore [reportUnknownMemberType]
 
     @override
     def has_object_permission(self, request: RequestDetails[TDjangoModel]) -> bool:
@@ -64,11 +67,11 @@ class HasResourcePermissions(BasePermission[TDjangoModel]):
         if user.username == ADMIN_USER:  # pyright: ignore [reportUnknownMemberType]
             return True
 
-        if user.username == STANDARD_USER:  # pyright: ignore [reportUnknownMemberType]
+        if user.username == STANDARD_USER:  # pyright: ignore [reportUnknownMemberType]  # noqa: SIM102
             # Check if the user is the owner of the object
             if request.object and hasattr(request.object, "created_by"):
                 obj = cast("BaseModel", request.object)
-                return obj.created_by == user  # pyright: ignore [reportUnknownVariableType, reportUnknownMemberType]
+                return obj.created_by == user
 
         return False
 
@@ -82,11 +85,11 @@ class HasResourcePermissions(BasePermission[TDjangoModel]):
         if user.username == ADMIN_USER:  # pyright: ignore [reportUnknownMemberType]
             return True
 
-        if user.username == STANDARD_USER:  # pyright: ignore [reportUnknownMemberType]
+        if user.username == STANDARD_USER:  # pyright: ignore [reportUnknownMemberType]  # noqa: SIM102
             # Check if the user is the owner of the object
             if request.related_object and hasattr(request.related_object, "created_by"):
                 obj = cast("BaseModel", request.related_object)
-                return obj.created_by == user  # pyright: ignore [reportUnknownVariableType, reportUnknownMemberType]
+                return obj.created_by == user
 
         return False
 
@@ -120,6 +123,37 @@ class DefaultFilter(FiltersMixin[TDjangoModel]):
         return Q()
 
 
+class DefaultSoftDelete(SoftDeleteMixin[TDjangoModel]):
+    """Default soft delete mixin for the CRUDL operations."""
+
+    @override
+    def soft_delete(
+        self,
+        qs: QuerySet[Model],
+        request_details: RequestDetails[TDjangoModel],
+        using_db: str,
+    ) -> None:
+        try:
+            qs.update(
+                deleted=True,
+                deleted_at=timezone.now(),
+                deleted_by=request_details.request.user.pk,
+            )
+        except FieldDoesNotExist as e:
+            logger.warning(
+                "Model %s does not support soft-delete: %s. "
+                "Falling back to hard-delete.",
+                qs.model,
+                e,
+            )
+            # If all self-defined models support soft-delete, then this is likely an
+            # auto-created relation model. Fallback to HARD-delete in this case.
+            # Using _raw_delete just like how collector.delete() does it.
+            # No signals are sent and there is no protection for cascades.
+            qs._raw_delete(using=using_db)  # noqa: SLF001
+
+
+@final
 class GatedAuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: disable=too-many-ancestors
     """CRUDL controller for the Author model, with permission gating."""
 
@@ -136,7 +170,7 @@ class GatedAuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylin
             msg = "Missing or invalid user."
             raise ValueError(msg)
 
-        if type(request.object) is BaseModel:
+        if isinstance(request.object, BaseModel):
             request.object.created_at = timezone.now()
             request.object.created_by = request.request.user
             request.object.save()
@@ -209,6 +243,7 @@ class GatedAuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylin
     )
 
 
+@final
 class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: disable=too-many-ancestors
     """CRUDL controller for the Author model."""
 
@@ -259,6 +294,7 @@ class AuthorCrudl(CrudlController[Author], DefaultFilter[Author]):  # pylint: di
     )
 
 
+@final
 class AmazonAuthorProfileCrudl(
     CrudlController[AmazonAuthorProfile], DefaultFilter[AmazonAuthorProfile]
 ):  # pylint: disable=too-many-ancestors
@@ -301,6 +337,7 @@ class AmazonAuthorProfileCrudl(
     )
 
 
+@final
 class PublisherCrudl(CrudlController[Publisher], DefaultFilter[Publisher]):  # pylint: disable=too-many-ancestors
     """CRUDL controller for the Publisher model."""
 
@@ -345,6 +382,7 @@ class PublisherCrudl(CrudlController[Publisher], DefaultFilter[Publisher]):  # p
     )
 
 
+@final
 class BookCrudl(CrudlController[Book], DefaultFilter[Book]):  # pylint: disable=too-many-ancestors
     """CRUDL controller for the Book model."""
 
@@ -369,6 +407,7 @@ class BookCrudl(CrudlController[Book], DefaultFilter[Book]):  # pylint: disable=
                 "authors": Infer,
                 # TODO(phuongfi91): support 'publisher' and infer it as 'publisher_id'
                 #  adding 'publisher' field now would cause HTTP 422
+                #  https://github.com/NextGenContributions/django-ninja-crudl/issues/33
                 "publisher": Infer,
             }
         ),
@@ -405,6 +444,7 @@ class BookCrudl(CrudlController[Book], DefaultFilter[Book]):  # pylint: disable=
     )
 
 
+@final
 class LibraryCrudl(CrudlController[Library], DefaultFilter[Library]):  # pylint: disable=too-many-ancestors
     """CRUDL controller for the Library model."""
 
@@ -452,6 +492,7 @@ class LibraryCrudl(CrudlController[Library], DefaultFilter[Library]):  # pylint:
     )
 
 
+@final
 class BookCopyCrudl(CrudlController[BookCopy], DefaultFilter[BookCopy]):  # pylint: disable=too-many-ancestors
     """CRUDL controller for the BookCopy model."""
 
@@ -491,6 +532,7 @@ class BookCopyCrudl(CrudlController[BookCopy], DefaultFilter[BookCopy]):  # pyli
     )
 
 
+@final
 class BorrowingCrudl(CrudlController[Borrowing], DefaultFilter[Borrowing]):  # pylint: disable=too-many-ancestors
     """CRUDL controller for the Borrowing model."""
 
@@ -530,16 +572,82 @@ class BorrowingCrudl(CrudlController[Borrowing], DefaultFilter[Borrowing]):  # p
     )
 
 
+@final
+class SoftDeleteUserCrudl(
+    CrudlController[User], DefaultFilter[User], DefaultSoftDelete[User]
+):
+    """CRUDL controller for the User model with soft delete."""
+
+    config = CrudlConfig[User](
+        model=User,
+        base_path="/soft-delete-users",
+        delete_operation_id="SoftDeleteUser_delete",
+        delete_allowed=True,
+        soft_delete=True,
+    )
+
+
+@final
+class SoftDeletePublisherCrudl(
+    CrudlController[Publisher], DefaultFilter[Publisher], DefaultSoftDelete[Publisher]
+):
+    """CRUDL controller for the Publisher model with soft delete."""
+
+    config = CrudlConfig[Publisher](
+        model=Publisher,
+        base_path="/soft-delete-publishers",
+        delete_operation_id="SoftDeletePublisher_delete",
+        delete_allowed=True,
+        soft_delete=True,
+    )
+
+
+@final
+class SoftDeleteLibraryCrudl(
+    CrudlController[Library], DefaultFilter[Library], DefaultSoftDelete[Library]
+):
+    """CRUDL controller for the Library model with soft delete."""
+
+    config = CrudlConfig[Library](
+        model=Library,
+        base_path="/soft-delete-libraries",
+        delete_operation_id="SoftDeleteLibrary_delete",
+        delete_allowed=True,
+        soft_delete=True,
+    )
+
+
+@final
+class SoftDeleteBookCopyCrudl(
+    CrudlController[BookCopy], DefaultFilter[BookCopy], DefaultSoftDelete[BookCopy]
+):
+    """CRUDL controller for the BookCopy model with soft delete."""
+
+    config = CrudlConfig[BookCopy](
+        model=BookCopy,
+        base_path="/soft-delete-book-copies",
+        delete_operation_id="SoftDeleteBookCopy_delete",
+        delete_allowed=True,
+        soft_delete=True,
+    )
+
+
 api = NinjaCrudlAPI()
 
-api.register_controllers(PublisherCrudl)
-api.register_controllers(BookCrudl)
-api.register_controllers(GatedAuthorCrudl)
-api.register_controllers(AuthorCrudl)
-api.register_controllers(AmazonAuthorProfileCrudl)
-api.register_controllers(BookCopyCrudl)
-api.register_controllers(BorrowingCrudl)
-api.register_controllers(LibraryCrudl)
+api.register_controllers(  # pyright: ignore[reportUnknownMemberType]
+    PublisherCrudl,
+    BookCrudl,
+    GatedAuthorCrudl,
+    AuthorCrudl,
+    AmazonAuthorProfileCrudl,
+    BookCopyCrudl,
+    BorrowingCrudl,
+    LibraryCrudl,
+    SoftDeleteUserCrudl,
+    SoftDeletePublisherCrudl,
+    SoftDeleteLibraryCrudl,
+    SoftDeleteBookCopyCrudl,
+)
 
 
 urlpatterns: list[URLResolver] = [

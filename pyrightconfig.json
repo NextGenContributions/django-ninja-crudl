@@ -95,7 +95,6 @@
   "reportImportCycles": "information",
   "reportMissingSuperCall": "information",
   "reportPropertyTypeMismatch": "information",
-  "reportShadowedImports": "information",
   "reportUninitializedInstanceVariable": "information",
   "reportUnnecessaryTypeIgnoreComment": "information",
   "reportUnusedCallResult": "none",

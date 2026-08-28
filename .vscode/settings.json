@@ -1,5 +1,4 @@
 {
-    "files.autoSave": "onFocusChange",
     "[python]": {
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "charliermarsh.ruff",
@@ -15,7 +14,7 @@
     "python.analysis.inlayHints.functionReturnTypes": true,
     "python.analysis.inlayHints.pytestParameters": true,
     "python.analysis.inlayHints.variableTypes": true,
-    "python.analysis.typeCheckingMode": "strict",
+    "python.analysis.typeCheckingMode": "off",
     "python.analysis.typeEvaluation.enableReachabilityAnalysis": true,
     "python.analysis.typeEvaluation.strictDictionaryInference": true,
     "python.analysis.typeEvaluation.strictListInference": true,
@@ -68,5 +67,11 @@
     ],
     "github.copilot.enable": {
         "markdown": true
-    }
+    },
+    "cSpell.words": [
+        "crudl",
+        "phuongfi91"
+    ],
+    "basedpyright.disableLanguageServices": false,
+    "ty.disableLanguageServices": true
 }
