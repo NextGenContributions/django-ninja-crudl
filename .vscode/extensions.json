@@ -1,15 +1,15 @@
 {
     "recommendations": [
-        "ms-python.vscode-pylance",
+        "detachhead.basedpyright",
         "ms-python.python",
         "ms-python.mypy-type-checker",
         "charliermarsh.ruff",
+        "astral-sh.ty",
         "ms-python.flake8",
         "ms-python.pylint",
         "fb-pyre-check.pyre-vscode",
         "ms-azuretools.vscode-docker",
         "github.vscode-github-actions",
-        "ms-python.isort",
         "ms-toolsai.jupyter"
     ]
 }

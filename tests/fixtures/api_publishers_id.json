@@ -51,6 +51,16 @@
           }
         }
       },
+      "409": {
+        "description": "Conflict",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error409ConflictSchema"
+            }
+          }
+        }
+      },
       "422": {
         "description": "Unprocessable Entity",
         "content": {

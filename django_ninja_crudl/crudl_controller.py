@@ -23,7 +23,7 @@ from django_ninja_crudl.endpoints import (
 )
 from django_ninja_crudl.types import DictStrAny, TDjangoModel
 
-logger: logging.Logger = logging.getLogger("django_ninja_crudl")
+logger = logging.getLogger(__name__)
 
 
 class CrudlMeta(ABCMeta):
@@ -37,12 +37,11 @@ class CrudlMeta(ABCMeta):
     ) -> "type[ControllerBase] | CrudlMeta":
         """Create a new class."""
         # Quit if this is an abstract base class
-        if not dct.get("config") or name == "CrudlController":
+        if name == "CrudlController":
             return super().__new__(mcs, name, bases, dct)
 
-        config = dct.get("config")
-
-        if not config or not mcs.is_crudl_config(config):  # pyright: ignore[reportAny]
+        config = cast("CrudlConfig[Model] | None", dct.get("config"))
+        if not config or not mcs.is_crudl_config(config):
             class_name = __name__
             config_module = f"{CrudlConfig.__module__}.{CrudlConfig.__qualname__}"
             msg = (
@@ -87,7 +86,7 @@ class CrudlMeta(ABCMeta):
         bases = (ControllerBase, CrudlBaseMethodsMixin)
         final_bases = tuple(endpoints) + bases
         return cast(
-            type[ControllerBase],
+            "type[ControllerBase]",
             api_controller(tags=config.tags)(
                 type(
                     name,

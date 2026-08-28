@@ -38,7 +38,9 @@ class CrudlConfig(Generic[TDjangoModel]):  # pylint: disable=too-many-instance-a
     list_schema: type[BaseModel] | None: The request schema for the list endpoint.
         If not provided, the endpoint will not be created.
 
-    delete_allowed: bool: Whether the delete endpoint is created.
+    delete_allowed: bool: Whether the delete endpoint is allowed. Default is False.
+
+    soft_delete: bool: Whether to use soft delete mode. Default is False (hard delete).
 
     create_response_name: str | None: The name of the response class for the
         create operation.
@@ -82,6 +84,7 @@ class CrudlConfig(Generic[TDjangoModel]):  # pylint: disable=too-many-instance-a
         get_one_schema: Schema[TDjangoModel] | type[BaseModel] | None = None,
         list_schema: Schema[TDjangoModel] | type[BaseModel] | None = None,
         delete_allowed: bool = False,
+        soft_delete: bool = False,
         create_path: str | None = None,
         update_path: str | None = None,
         get_one_path: str | None = None,
@@ -113,6 +116,8 @@ class CrudlConfig(Generic[TDjangoModel]):  # pylint: disable=too-many-instance-a
         self.partial_update_schema: type[BaseModel] | None
 
         self.delete_allowed: bool = delete_allowed
+        self.soft_delete: bool = soft_delete
+
         self.get_one_schema = self._set_schema(
             get_one_schema,
             model,

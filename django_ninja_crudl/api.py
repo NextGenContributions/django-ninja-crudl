@@ -28,7 +28,7 @@ from django_ninja_crudl.errors.schemas import (
 from django_ninja_crudl.renderers import CrudlJSONRenderer
 from django_ninja_crudl.utils import get_request_id
 
-logger = logging.getLogger("django")
+logger = logging.getLogger(__name__)
 
 
 class NinjaCrudlOpenAPISchema(OpenAPISchema):

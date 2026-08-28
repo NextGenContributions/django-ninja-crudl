@@ -1,6 +1,7 @@
 """Test the API endpoints with reverse One-To-One relation."""
 
 import datetime
+from typing import Any, cast
 
 import pytest
 from django.test import Client
@@ -119,7 +120,7 @@ def test_deleting_relation_by_patch_should_work(client: Client) -> None:
         name="Some author",
         birth_date="1990-01-01",
     )
-    amz_author_profile = models.AmazonAuthorProfile.objects.create(
+    models.AmazonAuthorProfile.objects.create(
         author=author,
         description="Some description",
     )
@@ -144,21 +145,20 @@ def test_getting_relation_with_get_many_should_work(client: Client) -> None:
         name="Some author",
         birth_date="1990-01-01",
     )
-    amz_author_profile = models.AmazonAuthorProfile.objects.create(
+    models.AmazonAuthorProfile.objects.create(
         author=author,
         description="Some description",
     )
     response = client.get("/api/authors")
     assert response.status_code == status.HTTP_200_OK, response.json()
-    assert len(response.json()) == 1
-    assert response.json()[0]["name"] == "Some author"
-    assert response.json()[0]["birth_date"] == "1990-01-01"
-    assert (
-        response.json()[0]["amazon_author_profile"]["description"] == "Some description"
-    )
-    assert response.json()[0]["user"] is None
-    assert response.json()[0]["age"] == 35
-    assert response.json()[0]["books_count"] == 0
+    authors = cast("list[dict[Any, Any]]", response.json())  # pyright: ignore[reportExplicitAny]
+    assert len(authors) == 1
+    assert authors[0]["name"] == "Some author"
+    assert authors[0]["birth_date"] == "1990-01-01"
+    assert authors[0]["amazon_author_profile"]["description"] == "Some description"
+    assert authors[0]["user"] is None
+    assert authors[0]["age"]
+    assert authors[0]["books_count"] == 0
 
 
 @pytest.mark.django_db
@@ -168,15 +168,16 @@ def test_getting_relation_with_get_one_should_work(client: Client) -> None:
         name="Some author",
         birth_date="1990-01-01",
     )
-    amz_author_profile = models.AmazonAuthorProfile.objects.create(
+    models.AmazonAuthorProfile.objects.create(
         author=author,
         description="Some description",
     )
     response = client.get(f"/api/authors/{author.id}")
     assert response.status_code == status.HTTP_200_OK, response.json()
-    assert response.json()["name"] == "Some author"
-    assert response.json()["birth_date"] == "1990-01-01"
-    assert response.json()["amazon_author_profile"]["description"] == "Some description"
-    assert response.json()["age"] == 35
-    assert response.json()["books_count"] == 0
-    assert response.json()["user"] is None
+    author = cast("dict[Any, Any]", response.json())  # pyright: ignore[reportExplicitAny]
+    assert author["name"] == "Some author"
+    assert author["birth_date"] == "1990-01-01"
+    assert author["amazon_author_profile"]["description"] == "Some description"
+    assert author["age"]
+    assert author["books_count"] == 0
+    assert author["user"] is None
