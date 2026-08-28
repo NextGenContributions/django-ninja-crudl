@@ -1,6 +1,15 @@
 # CHANGELOG
 
 
+## v0.9.0 (2026-08-28)
+
+### Features
+
+- Add labels to renovate's PR (#221)
+  ([#221](https://github.com/NextGenContributions/django-ninja-crudl/pull/221),
+  [`280bbae`](https://github.com/NextGenContributions/django-ninja-crudl/commit/280bbae735fd548da06cbe6c883b103ee21a5245))
+
+
 ## v0.8.0 (2026-01-27)
 
 ### Features
