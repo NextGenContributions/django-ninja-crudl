@@ -1,6 +1,6 @@
 [project]
 name = "django-ninja-crudl"
-version = "0.7.0"
+version = "0.8.0"
 description = "CRUDL REST API endpoints from Django ORM models using Django Ninja framework"
 requires-python = ">=3.12"
 authors = [{ name = "Jukka Hassinen", email = "jukka.hassinen@gmail.com" }]
@@ -60,11 +60,12 @@ dev = [
     "nitpick",
     "django-stubs[compatible-mypy]>=5.1.1",
     "wemake-python-styleguide>=1.0.0",
-    "taplo>=0.9.3",
     "project-config>=0.9.7",
     "pre-commit>=4.1.0",
     "python-semantic-release>=9.14.0",
     "django-extensions>=3.2.3",
+    "ty>=0.0.7",
+    "rust-just>=1.45.0",
 ]
 tests = [
     "openapi-spec-validator>=0.7.2",

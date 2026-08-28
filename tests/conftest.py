@@ -58,6 +58,7 @@ def pytest_configure(
             "ninja_extra",
             "tests.test_django.app",
         ),
+        AUTH_USER_MODEL="app.User",
         PASSWORD_HASHERS=("django.contrib.auth.hashers.MD5PasswordHasher",),
         AUTHENTICATION_BACKENDS=("django.contrib.auth.backends.ModelBackend",),
         LANGUAGE_CODE="en-us",

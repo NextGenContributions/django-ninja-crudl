@@ -3,7 +3,6 @@
 from unittest.mock import patch
 
 import pytest
-from django.contrib.auth.models import User
 from django.test import Client, override_settings
 from ninja_extra import status
 
@@ -16,6 +15,7 @@ from django_ninja_crudl.errors.schemas import (
     Error500InternalServerErrorSchema,
 )
 from tests.test_django.app import models
+from tests.test_django.app.models import User
 from tests.test_django.urls import RESTRICTED_USER
 
 
@@ -131,9 +131,9 @@ def test_http_500_with_debug_off_conforms_with_crudl_error_schema(
 ) -> None:
     """Test server error when DEBUG is OFF."""
     response = get_author_with_mock_internal_server_error(client)
-    assert (
-        response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-    ), response.json()
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR, (
+        response.json()
+    )
     Error500InternalServerErrorSchema.model_validate(response.json())
     assert response.json()["detail"] is None
 
@@ -145,8 +145,8 @@ def test_http_500_with_debug_on_conforms_with_crudl_error_schema(
 ) -> None:
     """Test server error when DEBUG is ON."""
     response = get_author_with_mock_internal_server_error(client)
-    assert (
-        response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-    ), response.json()
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR, (
+        response.json()
+    )
     Error500InternalServerErrorSchema.model_validate(response.json())
     assert response.json()["detail"] is not None
