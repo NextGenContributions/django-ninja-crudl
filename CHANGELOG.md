@@ -1,6 +1,24 @@
 # CHANGELOG
 
 
+## v0.9.0 (2026-08-28)
+
+### Features
+
+- Add labels to renovate's PR (#221)
+  ([#221](https://github.com/NextGenContributions/django-ninja-crudl/pull/221),
+  [`280bbae`](https://github.com/NextGenContributions/django-ninja-crudl/commit/280bbae735fd548da06cbe6c883b103ee21a5245))
+
+
+## v0.8.0 (2026-01-27)
+
+### Features
+
+- **#1**: Soft delete (#211)
+  ([#211](https://github.com/NextGenContributions/django-ninja-crudl/pull/211),
+  [`58927b8`](https://github.com/NextGenContributions/django-ninja-crudl/commit/58927b8704b3d9433377be717628b817bf637144))
+
+
 ## v0.7.0 (2025-10-08)
 
 ### Bug Fixes
