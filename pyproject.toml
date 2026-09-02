@@ -55,7 +55,7 @@ dev = [
     # TODO(phuongfi91): pytype causes issue with overlapping ninja packages
     #    "pytype>=2024.10.11",
     "ruff>=0.7.3",
-    "wemake-python-styleguide>=0.19.2",
+    "wemake-python-styleguide>=1.0.0",
     "semgrep>=1.85.0",
     "nitpick",
     "django-stubs[compatible-mypy]>=5.1.1",
