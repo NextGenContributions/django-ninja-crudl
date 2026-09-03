@@ -825,7 +825,6 @@ dev = [
     { name = "schemathesis", specifier = ">=3.39.16,<5" },
     { name = "semgrep", specifier = ">=1.85.0" },
     { name = "ty", specifier = ">=0.0.7" },
-    { name = "wemake-python-styleguide", specifier = ">=0.19.2" },
     { name = "wemake-python-styleguide", specifier = ">=1.0.0" },
 ]
 tests = [
