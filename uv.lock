@@ -701,8 +701,7 @@ dev = [
     { name = "debugpy" },
     { name = "django-extensions" },
     { name = "django-stubs", extra = ["compatible-mypy"] },
-    { name = "import-linter", version = "2.16", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.15' and sys_platform == 'win32'" },
-    { name = "import-linter", version = "2.17", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.15' or sys_platform != 'win32'" },
+    { name = "import-linter" },
     { name = "ipykernel" },
     { name = "isort" },
     { name = "mypy" },
@@ -1243,33 +1242,8 @@ wheels = [
 
 [[package]]
 name = "import-linter"
-version = "2.16"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.15' and sys_platform == 'win32'",
-]
-dependencies = [
-    { name = "click" },
-    { name = "grimp" },
-    { name = "rich" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f0/70/ac97afe41a04239a60c9d92fbe593294bf6501309d728af4a400e569d786/import_linter-2.16.tar.gz", hash = "sha256:c5bd0d38bdef46c7251120266b3bf72662bc8cd989a8fe461499936e12e8c6fa", size = 1405978, upload-time = "2026-11-06T13:48:21.617Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e1/f9/0f8a5a9a95c2b3b7e87e7406a2941a5620aeaacc4207155d5010263dabb6/import_linter-2.16-py3-none-any.whl", hash = "sha256:e775602e9214ab3933fc7d2162278ea1f11dd9229c914735c1bda43b94619565", size = 644477, upload-time = "2026-11-06T13:48:20.099Z" },
-]
-
-[[package]]
-name = "import-linter"
 version = "2.17"
 source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.15' and sys_platform != 'win32'",
-    "python_full_version == '3.14.*' and sys_platform == 'win32'",
-    "python_full_version == '3.14.*' and sys_platform != 'win32'",
-    "python_full_version == '3.13.*' and sys_platform == 'win32'",
-    "python_full_version == '3.13.*' and sys_platform != 'win32'",
-    "python_full_version < '3.13'",
-]
 dependencies = [
     { name = "click" },
     { name = "grimp" },
